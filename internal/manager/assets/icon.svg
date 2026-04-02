@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Background circle -->
+  <circle cx="128" cy="128" r="128" fill="#2c1654"/>
+
+  <!-- Wine glass bowl outline -->
+  <path d="M72 44 L184 44 L162 130 Q148 158 128 158 Q108 158 94 130 Z"
+        fill="#ffffff" opacity="0.12"/>
+
+  <!-- Wine fill inside bowl -->
+  <path d="M84 100 L172 100 L162 130 Q148 158 128 158 Q108 158 94 130 Z"
+        fill="#9b1b30"/>
+
+  <!-- Wine surface highlight -->
+  <ellipse cx="128" cy="100" rx="44" ry="8" fill="#c0392b" opacity="0.85"/>
+
+  <!-- Glass rim and bowl outline (stroke only) -->
+  <path d="M72 44 L184 44 L162 130 Q148 158 128 158 Q108 158 94 130 Z"
+        fill="none" stroke="#ffffff" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Stem -->
+  <rect x="121" y="158" width="14" height="52" rx="4" fill="#ffffff"/>
+
+  <!-- Base -->
+  <rect x="84" y="208" width="88" height="16" rx="8" fill="#ffffff"/>
+
+  <!-- Bubble highlights in wine -->
+  <circle cx="112" cy="118" r="4" fill="#ffffff" opacity="0.35"/>
+  <circle cx="140" cy="110" r="3" fill="#ffffff" opacity="0.25"/>
+  <circle cx="152" cy="122" r="2.5" fill="#ffffff" opacity="0.30"/>
+
+  <!-- Glass shine / refraction -->
+  <path d="M82 52 L90 48 L100 120 L88 124 Z"
+        fill="#ffffff" opacity="0.18"/>
+</svg>

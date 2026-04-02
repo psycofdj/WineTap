@@ -1,0 +1,78 @@
+# generated: 2026-04-01
+# last_updated: 2026-04-01
+# project: winetap-mobile-v2
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Epic 5 is standalone. Epic 6 depends on Epic 5. Epic 7 depends on 5+6. Epic 8 depends on 5.
+
+generated: 2026-04-01
+last_updated: 2026-04-02  # updated by retrospective epics 5-8
+project: winetap-mobile-v2
+
+
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 5: Phone Server + Local Consume
+  epic-5: done
+  5-1-drift-database-and-schema: done
+  5-2-shelf-http-server-and-middleware: done
+  5-3-catalog-rest-api: done
+  5-4-bottle-rest-api-and-completions: done
+  5-5-local-consume-flow: done
+  5-6-remove-grpc-dependencies: done
+  epic-5-retrospective: done
+
+  # Epic 6: Manager HTTP Migration
+  epic-6: done
+  6-1-go-http-client-and-api-types: done
+  6-2-manager-mdns-discovery-of-phone: done
+  6-3-rewire-manager-screens-for-http: done
+  6-4-manager-nfc-scanner-stub-for-http: done
+  epic-6-retrospective: done
+
+  # Epic 7: Coordinated Intake via HTTP
+  epic-7: done
+  7-1-scan-coordination-rest-endpoints: done
+  7-2-intake-provider-rewrite: done
+  7-3-manager-nfc-scanner-http-polling: done
+  7-4-continuous-scan-mode-and-error-handling: done
+  epic-7-retrospective: done
+
+  # Epic 8: Data Resilience
+  epic-8: done
+  8-1-backup-and-restore-endpoints: done
+  8-2-settings-screen-with-backup-restore: done
+  epic-8-retrospective: done

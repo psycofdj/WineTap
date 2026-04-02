@@ -1,0 +1,19 @@
+# Generated protobuf code
+gen/
+
+# Build output
+bin/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+main
+winetap
+cfru5102_read
+nfc_seed
+/server
+/winetap.db*

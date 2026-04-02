@@ -1,0 +1,76 @@
+# generated: 2026-03-30
+# last_updated: 2026-03-30
+# project: winetap-mobile
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Epic 2 and Epic 3 can be worked in parallel after Epic 1 is done
+# - Epic 4 requires both Epic 2 and Epic 3 to be done
+
+generated: 2026-03-30
+last_updated: 2026-03-30
+project: winetap-mobile
+# NOTE: last_updated reflects sprint planning generation date
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Tag ID Modernization
+  epic-1: done
+  1-1-proto-rename-and-system-wide-tag-id-migration: done
+  1-2-nfc-tag-seeding-cli-tool: done
+  epic-1-retrospective: optional
+
+  # Epic 2: Consume a Bottle by Phone
+  epic-2: done
+  2-1-flutter-project-setup-and-dart-proto-toolchain: done
+  2-2-nfc-tag-reading-proof-of-concept: done
+  2-3-grpc-client-mdns-discovery-and-connection-management: done
+  2-4-consume-flow-scan-confirm-consume: done
+  2-5-consume-error-handling-and-connection-resilience: done
+  epic-2-retrospective: optional
+
+  # Epic 3: Scan Coordination — Server & Manager
+  epic-3: done
+  3-1-coordination-proto-and-server-stream-handler: done
+  3-2-server-mdns-registration-and-tag-id-normalization: done
+  3-3-manager-scanner-interface-and-rfid-extraction: done
+  3-4-nfc-scanner-implementation-and-settings-toggle: done
+  epic-3-retrospective: optional
+
+  # Epic 4: Coordinated Intake by Phone
+  epic-4: done
+  4-1-intake-screen-single-scan-mode: done
+  4-2-continuous-scan-mode-for-bulk-intake: done
+  4-3-intake-error-handling-cancellation-and-timeout: done
+  epic-4-retrospective: optional
