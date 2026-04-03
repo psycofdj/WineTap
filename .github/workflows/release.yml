@@ -1,0 +1,93 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            goos: linux
+            goarch: amd64
+            artifact: manager-linux-amd64
+            qt_install: sudo apt-get update && sudo apt-get install -y qt6-base-dev
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            artifact: manager-windows-amd64.exe
+            qt_install: choco install qt6-base-dev --yes || powershell -Command "Invoke-WebRequest -Uri 'https://github.com/nicktencate/qt6-choco/releases/latest/download/qt6-base-dev.6.8.2.nupkg' -OutFile qt6.nupkg; choco install qt6-base-dev --source . --yes"
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            artifact: manager-darwin-arm64
+            qt_install: brew install qt@6
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt6 dependencies
+        run: ${{ matrix.qt_install }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o ${{ matrix.artifact }} ./cmd/manager
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create archives
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cd dist
+          tar czf "manager-${VERSION}-linux-amd64.tar.gz" -C manager-linux-amd64 manager-linux-amd64
+          tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
+          zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh release create "${VERSION}" \
+            --generate-notes \
+            "dist/manager-${VERSION}-linux-amd64.tar.gz" \
+            "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
+            "dist/manager-${VERSION}-windows-amd64.zip"

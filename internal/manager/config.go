@@ -27,5 +27,8 @@ func saveConfig(path string, cfg Config) error {
 		return fmt.Errorf("create file: %w", err)
 	}
 	defer f.Close()
-	return yaml.NewEncoder(f).Encode(cfg)
+	if err := yaml.NewEncoder(f).Encode(cfg); err != nil {
+		return err
+	}
+	return f.Close()
 }
