@@ -80,7 +80,7 @@ func checkError(resp *http.Response) error {
 		return nil
 	}
 	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	var apiErr APIError
 	if err := json.Unmarshal(body, &apiErr); err != nil {
 		return fmt.Errorf("HTTP %d", resp.StatusCode)
@@ -94,7 +94,7 @@ func decodeResponse[T any](resp *http.Response) (T, error) {
 	if err := checkError(resp); err != nil {
 		return zero, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	var result T
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return zero, fmt.Errorf("decode response: %w", err)
@@ -133,7 +133,7 @@ func (c *WineTapHTTPClient) DeleteDesignation(ctx context.Context, id int64) err
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -168,7 +168,7 @@ func (c *WineTapHTTPClient) DeleteDomain(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -203,7 +203,7 @@ func (c *WineTapHTTPClient) DeleteCuvee(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -274,7 +274,7 @@ func (c *WineTapHTTPClient) DeleteBottle(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -311,7 +311,7 @@ func (c *WineTapHTTPClient) RequestScan(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -324,7 +324,7 @@ func (c *WineTapHTTPClient) GetScanResult(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -353,7 +353,7 @@ func (c *WineTapHTTPClient) CancelScan(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 
@@ -401,7 +401,7 @@ func (c *WineTapHTTPClient) Restore(ctx context.Context, r io.Reader) error {
 		return err
 	}
 	slog.Info("HTTP response", "method", http.MethodPost, "path", "/restore", "status", resp.StatusCode)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	return checkError(resp)
 }
 

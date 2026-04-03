@@ -119,7 +119,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 		genBtn := qt.NewQPushButton3("Générer un tag")
 		genBtn.OnClicked(func() {
 			tagID := fmt.Sprintf("AABBCCDD%08x", rand.Int31())
-			ctx.Scanner.StopScan()
+			_ = ctx.Scanner.StopScan()
 			if s.onSimulateTag != nil {
 				s.onSimulateTag(tagID)
 			}
@@ -248,7 +248,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 		FormContent: s.rightStack.QFrame.QWidget,
 		OnSave:      func() { s.onSave() },
 		OnCancel: func() {
-			s.ctx.Scanner.StopScan()
+			_ = s.ctx.Scanner.StopScan()
 			s.ts.HideRight()
 		},
 		OnAdd:    func() { s.openAddForm() },
@@ -314,7 +314,7 @@ func (s *InventoryScreen) makeFilterPopup(col int, list *qt.QListWidget) *qt.QWi
 }
 
 func (s *InventoryScreen) OnActivate() {
-	s.ctx.Scanner.StopScan()
+	_ = s.ctx.Scanner.StopScan()
 	s.ts.HideRight()
 	s.refresh()
 }
@@ -545,7 +545,7 @@ func (s *InventoryScreen) openAddForm() {
 		s.ts.ShowRight()
 	}
 	s.ctx.Scanner.OnTagScanned(func(tagID string) {
-		s.ctx.Scanner.StopScan()
+		_ = s.ctx.Scanner.StopScan()
 		fillAdd(tagID)
 	})
 	s.onSimulateTag = fillAdd
@@ -572,7 +572,7 @@ func (s *InventoryScreen) openEditForm(srcRow int) {
 	if b == nil {
 		return
 	}
-	s.ctx.Scanner.StopScan()
+	_ = s.ctx.Scanner.StopScan()
 	s.ts.SetSaveEnabled(false)
 	s.setWaiting(false, "")
 	s.rightStack.Hide()
@@ -614,7 +614,7 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 	}
 
 	s.ctx.Scanner.OnTagScanned(func(tagID string) {
-		s.ctx.Scanner.StopScan()
+		_ = s.ctx.Scanner.StopScan()
 		fillFromTemplate(tagID)
 	})
 	s.onSimulateTag = fillFromTemplate
@@ -1034,7 +1034,7 @@ func (s *InventoryScreen) onSearchByTag() {
 	s.setWaiting(true, "Recherche par tag NFC")
 	s.ts.ShowRight()
 	s.ctx.Scanner.OnTagScanned(func(tagID string) {
-		s.ctx.Scanner.StopScan()
+		_ = s.ctx.Scanner.StopScan()
 
 		var found *client.Bottle
 		for i := range s.allBottles {
