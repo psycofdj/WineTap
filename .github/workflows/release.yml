@@ -1,0 +1,197 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt 6.5
+        run: |
+          pipx install aqtinstall
+          # mitqt doesn't qt6.6 which is default for "brew install"
+          aqt install-qt mac desktop 6.5.3 clang_64
+          QT_DIR=$(pwd)/6.5.3/macos
+          echo "Qt6_DIR=${QT_DIR}" >> $GITHUB_ENV
+          echo "${QT_DIR}/bin" >> $GITHUB_PATH
+
+          # aqtinstall doesn't ship pkg-config files — generate them
+          mkdir -p "${QT_DIR}/lib/pkgconfig"
+
+          cat > "${QT_DIR}/lib/pkgconfig/Qt6Core.pc" <<EOS
+          prefix=${QT_DIR}
+          libdir=\${prefix}/lib
+          includedir=\${libdir}/QtCore.framework/Headers
+
+          Name: Qt6Core
+          Description: Qt6 Core module
+          Version: 6.5.3
+          Libs: -F\${prefix}/lib -framework QtCore
+          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_CORE_LIB
+          EOS
+
+          cat > "${QT_DIR}/lib/pkgconfig/Qt6Gui.pc" <<EOS
+          prefix=${QT_DIR}
+          libdir=\${prefix}/lib
+          includedir=\${libdir}/QtGui.framework/Headers
+
+          Name: Qt6Gui
+          Description: Qt6 Gui module
+          Version: 6.5.3
+          Requires: Qt6Core
+          Libs: -F\${prefix}/lib -framework QtGui
+          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_GUI_LIB
+          EOS
+
+          cat > "${QT_DIR}/lib/pkgconfig/Qt6Widgets.pc" <<EOS
+          prefix=${QT_DIR}
+          libdir=\${prefix}/lib
+          includedir=\${libdir}/QtWidgets.framework/Headers
+
+          Name: Qt6Widgets
+          Description: Qt6 Widgets module
+          Version: 6.5.3
+          Requires: Qt6Gui
+          Libs: -F\${prefix}/lib -framework QtWidgets
+          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_WIDGETS_LIB
+          EOS
+          echo "PKG_CONFIG_PATH=${QT_DIR}/lib/pkgconfig" >> $GITHUB_ENV
+          export PKG_CONFIG_PATH="${QT_DIR}/lib/pkgconfig"
+          pkg-config --cflags --libs Qt6Core Qt6Gui Qt6Widgets
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        env:
+          CGO_ENABLED: "1"
+          GOOS: darwin
+          GOARCH: arm64
+          CGO_CXXFLAGS: "-std=c++17"
+        run: |
+          echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
+          go build -v -ldflags='-s -w' -o manager-darwin-arm64 ./cmd/manager
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manager-darwin-arm64
+          path: manager-darwin-arm64
+
+  windows:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install ca-certificates
+        run: sudo apt-get update && sudo apt-get install -y ca-certificates && sudo update-ca-certificates
+
+      - name: Install miqt-docker
+        run: go install github.com/mappu/miqt/cmd/miqt-docker@latest
+        
+      - name: Build
+        run: 
+          miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manager-windows-amd64.exe
+          path: manager-windows-amd64.exe
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Qt6 dependencies
+        run: sudo apt-get update && sudo apt-get install -y qt6-base-dev
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        env:
+          CGO_ENABLED: "1"
+          GOOS: linux
+          GOARCH: amd64
+          CGO_CXXFLAGS: "-std=c++17"
+        run: |
+          echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
+          go build -v -ldflags='-s -w' -o manager-linux-amd64 ./cmd/manager
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manager-linux-amd64
+          path: manager-linux-amd64
+
+
+
+  release:
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create archives
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cd dist
+          tar czf "manager-${VERSION}-linux-amd64.tar.gz" -C manager-linux-amd64 manager-linux-amd64
+          tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
+          zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          gh release create "${VERSION}" \
+            --generate-notes \
+            "dist/manager-${VERSION}-linux-amd64.tar.gz" \
+            "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
+            "dist/manager-${VERSION}-windows-amd64.zip"

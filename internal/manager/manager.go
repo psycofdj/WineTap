@@ -301,7 +301,7 @@ func (m *Manager) makeCtx() *screen.Ctx {
 // ── Navigation ────────────────────────────────────────────────────────────────
 
 func (m *Manager) navigate(idx int) {
-	m.scanner.StopScan()
+	_ = m.scanner.StopScan()
 	m.stack.SetCurrentIndex(idx)
 	switch idx {
 	case m.idxInv:
@@ -323,14 +323,14 @@ func (m *Manager) navigate(idx int) {
 // Must be called from the Qt main thread (inside New).
 func (m *Manager) buildUI() {
 	m.window = qt.NewQMainWindow2()
-	m.window.QWidget.SetWindowTitle("WineTap")
+	m.window.SetWindowTitle("WineTap")
 
 	// Set application and window icon from embedded PNG.
 	pm := qt.NewQPixmap()
 	pm.LoadFromDataWithData(assets.Icon)
 	icon := qt.NewQIcon2(pm)
 	qt.QGuiApplication_SetWindowIcon(icon)
-	m.window.QWidget.SetWindowIcon(icon)
+	m.window.SetWindowIcon(icon)
 
 	central := qt.NewQWidget(m.window.QWidget)
 	root := qt.NewQVBoxLayout(central)
@@ -340,7 +340,7 @@ func (m *Manager) buildUI() {
 	// Notification bar (hidden by default).
 	m.notifBar = qt.NewQPushButton3("")
 	m.notifBar.Hide()
-	root.AddWidget(m.notifBar.QAbstractButton.QWidget)
+	root.AddWidget(m.notifBar.QWidget)
 
 	// Body: sidebar + main content.
 	body := qt.NewQWidget(central)
@@ -352,7 +352,7 @@ func (m *Manager) buildUI() {
 	bodyLayout.AddWidget(sidebar)
 
 	m.stack = qt.NewQStackedWidget(body)
-	bodyLayout.AddWidget2(m.stack.QFrame.QWidget, 1)
+	bodyLayout.AddWidget2(m.stack.QWidget, 1)
 
 	root.AddWidget2(body, 1)
 	m.window.SetCentralWidget(central)
@@ -376,7 +376,7 @@ func (m *Manager) buildUI() {
 
 func (m *Manager) buildSidebar(parent *qt.QWidget) *qt.QWidget {
 	sidebar := qt.NewQWidget(parent)
-	sidebar.QObject.SetProperty("role", qt.NewQVariant11("sidebar"))
+	sidebar.SetProperty("role", qt.NewQVariant11("sidebar"))
 	sidebar.SetAttribute2(qt.WA_AlwaysShowToolTips, true)
 
 	layout := qt.NewQVBoxLayout(sidebar)
