@@ -173,6 +173,13 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	})
 
 	f.alignLabels()
+	chainTabOrder([]*qt.QWidget{
+		f.nameEdit.QWidget,
+		f.colorCombo.QWidget,
+		f.domainCombo.QWidget,
+		f.designCombo.QWidget,
+		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
+	})
 	return f
 }
 

@@ -28,9 +28,9 @@ class IntakeProvider extends ChangeNotifier {
   final ScanProvider? _scanProvider;
 
   IntakeProvider(ScanCoordinator coordinator,
-      {NfcService? nfcService, ScanProvider? scanProvider})
+      {required NfcService nfcService, ScanProvider? scanProvider})
       : _coordinator = coordinator,
-        _nfcService = nfcService ?? NfcService(),
+        _nfcService = nfcService,
         _scanProvider = scanProvider;
 
   IntakeState _state = IntakeState.idle;
@@ -82,8 +82,10 @@ class IntakeProvider extends ChangeNotifier {
       // Auto-start NFC scan immediately — no user interaction (FR12)
       _setState(IntakeState.scanning);
       _singleRead();
-    } else if (!pending && _hadActiveRequest) {
-      // Manager cancelled or scan completed and reset
+    } else if (!pending && _hadActiveRequest && _state != IntakeState.tagSent) {
+      // Manager cancelled or scan completed and reset.
+      // Skip when tagSent — the reset timer will stop reader-mode after the
+      // 1-second feedback, preventing Android from re-dispatching the tag.
       _hadActiveRequest = false;
       _nfcService.stopReading();
       if (_state != IntakeState.waitingForRequest &&
@@ -132,8 +134,9 @@ class IntakeProvider extends ChangeNotifier {
 
     // Return to waitingForRequest after brief feedback
     _resetTimer?.cancel();
-    _resetTimer = Timer(const Duration(seconds: 1), () {
+    _resetTimer = Timer(const Duration(seconds: 3), () {
       if (!_disposed && _state == IntakeState.tagSent) {
+        _nfcService.stopReading();
         _setState(IntakeState.waitingForRequest);
       }
     });

@@ -105,6 +105,7 @@ func newBaseForm(nameLabel, autoTooltip string, nameRequired bool, canEnable fun
 	f.descEdit = qt.NewQTextEdit2()
 	f.descEdit.SetPlaceholderText("Description (optionnel)")
 	f.descEdit.SetVerticalScrollBarPolicy(qt.ScrollBarAsNeeded)
+	f.descEdit.SetTabChangesFocus(true)
 	f.addFooter("Description", f.descEdit.QAbstractScrollArea.QFrame.QWidget, false)
 
 	f.descEdit.OnTextChanged(func() { f.adjustDescHeight() })
@@ -229,6 +230,14 @@ func (f *baseForm) finishAuto() {
 func (f *baseForm) showName(show bool) {
 	f.nameLabel.SetVisible(show)
 	f.nameEdit.SetVisible(show)
+}
+
+// chainTabOrder sets the tab order for a sequence of widgets.
+// Each widget in the list will tab to the next one.
+func chainTabOrder(widgets []*qt.QWidget) {
+	for i := 0; i < len(widgets)-1; i++ {
+		qt.QWidget_SetTabOrder(widgets[i], widgets[i+1])
+	}
 }
 
 func (f *baseForm) Name() string            { return strings.TrimSpace(f.nameEdit.Text()) }

@@ -229,7 +229,7 @@ func (m *Manager) updateNotifBar() {
 		if phoneAddr == "" {
 			m.notifBar.SetText("⚠  Téléphone introuvable — configurez l'adresse manuellement")
 		} else {
-			m.notifBar.SetText("⚠  Téléphone inaccessible")
+			m.notifBar.SetText("⚠  Téléphone inaccessible, lancez l'application WineTap sur le téléphone")
 		}
 		m.notifBar.SetStyleSheet(notifBarErrorStyle)
 		m.notifBar.Show()

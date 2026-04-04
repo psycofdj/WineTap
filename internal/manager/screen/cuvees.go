@@ -32,6 +32,8 @@ func BuildCuveesScreen(ctx *Ctx) *CuveesScreen {
 	s.delFn = func(c context.Context, cv client.Cuvee) error {
 		return ctx.Client.DeleteCuvee(c, cv.ID)
 	}
+	s.nameFn = func(c client.Cuvee) string { return c.Name }
+	s.refMsg = "cette cuvée est encore utilisée par une ou plusieurs bouteilles"
 
 	s.cuvForm = newCuveeForm(ctx.Client)
 

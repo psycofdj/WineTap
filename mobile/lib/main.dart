@@ -16,6 +16,7 @@ import 'server/database.dart';
 import 'server/scan_coordinator.dart';
 import 'server/server.dart';
 import 'services/discovery_service.dart';
+import 'services/nfc_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,17 +66,29 @@ void main() async {
     dev.log('mDNS registration failed (non-fatal): $e', name: 'main');
   }
 
-  // 5. UI
+  // 5. NFC — constructor starts a persistent session that claims
+  //    foreground dispatch (suppresses Android's default tag dialog).
+  final nfc = NfcService();
+
+  // 6. UI
   runApp(
     MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: db),
         Provider<ScanCoordinator>.value(value: coordinator),
+        Provider<NfcService>.value(value: nfc),
         ChangeNotifierProvider(create: (_) => ServerProvider(server.port)),
-        ChangeNotifierProvider(create: (_) => ScanProvider(db, consumeTracker)),
+        ChangeNotifierProvider(
+          create: (ctx) => ScanProvider(
+            db,
+            consumeTracker,
+            nfcService: ctx.read<NfcService>(),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (ctx) => IntakeProvider(
             coordinator,
+            nfcService: ctx.read<NfcService>(),
             scanProvider: ctx.read<ScanProvider>(),
           ),
         ),

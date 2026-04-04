@@ -10,9 +10,12 @@ import 'package:wine_tap_mobile/server/database.dart';
 import 'package:wine_tap_mobile/services/nfc_exceptions.dart';
 import 'package:wine_tap_mobile/services/nfc_service.dart';
 
-class MockNfcService extends NfcService {
+class MockNfcService implements NfcService {
   Completer<String>? _readCompleter;
   bool stopReadingCalled = false;
+
+  @override
+  Future<bool> isAvailable() async => true;
 
   @override
   Future<String> readTagId() {

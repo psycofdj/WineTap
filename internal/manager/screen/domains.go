@@ -27,6 +27,8 @@ func BuildDomainsScreen(ctx *Ctx) *DomainsScreen {
 	s.delFn = func(c context.Context, d client.Domain) error {
 		return ctx.Client.DeleteDomain(c, d.ID)
 	}
+	s.nameFn = func(d client.Domain) string { return d.Name }
+	s.refMsg = "ce domaine est encore utilisé par une ou plusieurs cuvées"
 
 	s.domForm = newDomainForm(ctx.Client)
 

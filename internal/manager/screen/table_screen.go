@@ -399,6 +399,9 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 
 	ts.SaveBtn = newStdBtn("save")
 	ts.SaveBtn.SetEnabled(false)
+	ts.SaveBtn.SetFocusPolicy(qt.StrongFocus)
+	ts.SaveBtn.SetAutoDefault(true)
+	ts.SaveBtn.SetDefault(true)
 	if cfg.OnSave != nil {
 		ts.SaveBtn.OnClicked(func() { cfg.OnSave() })
 	}

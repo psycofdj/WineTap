@@ -27,10 +27,10 @@ class ScanProvider extends ChangeNotifier {
   String? _lastScannedTagId;
 
   ScanProvider(AppDatabase db, ConsumeTracker consumeTracker,
-      {NfcService? nfcService})
+      {required NfcService nfcService})
       : _db = db,
         _consumeTracker = consumeTracker,
-        _nfcService = nfcService ?? NfcService();
+        _nfcService = nfcService;
 
   ScanState get state => _state;
   String? get tagId => _tagId;
@@ -129,6 +129,7 @@ class ScanProvider extends ChangeNotifier {
 
   /// Resets to idle from consumed or error state (user taps "Terminé").
   void reset() {
+    _nfcService.stopReading();
     _tagId = null;
     _bottle = null;
     _errorMessage = null;

@@ -1,159 +1,155 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager/nfc_manager_android.dart';
-import 'package:nfc_manager/nfc_manager_ios.dart';
 
 import 'dart:developer' as dev;
 
 import 'nfc_exceptions.dart';
+import 'nfc_service_android.dart';
+import 'nfc_service_ios.dart';
 import 'tag_id.dart';
 
-/// NFC tag reading service. Platform differences (iOS NFC sheet vs Android
-/// foreground dispatch) are hidden inside this class.
-class NfcService {
-  /// Default timeout for a single NFC read on Android.
-  static const _readTimeout = Duration(seconds: 30);
+const _tag = 'NfcService';
 
-  /// Global flag — iOS allows only one NFC session at a time across the
-  /// entire app, regardless of how many NfcService instances exist.
-  static bool _sessionActive = false;
-
-  /// Returns whether the device has NFC hardware and it is enabled.
-  Future<bool> isAvailable() async {
-    final availability = await NfcManager.instance.checkAvailability();
-    return availability == NfcAvailability.enabled;
+/// Platform-agnostic NFC tag reading interface.
+///
+/// The factory constructor picks the right implementation for the current
+/// platform. On desktop (or any non-mobile platform) a no-op fallback is
+/// returned so the app can run without NFC hardware.
+abstract class NfcService {
+  factory NfcService() {
+    if (Platform.isAndroid) return NfcServiceAndroid();
+    if (Platform.isIOS) return NfcServiceIos();
+    return NoOpNfcService();
   }
 
-  /// Initiates an NFC session, reads one tag, and returns the UID as a
-  /// normalized uppercase hex string (e.g., "04A32BFF").
+  /// Returns whether the device has NFC hardware and it is enabled.
+  Future<bool> isAvailable();
+
+  /// Reads one tag and returns the UID as a normalized uppercase hex string
+  /// (e.g. "04A32BFF").
   ///
   /// Throws [NfcReadTimeoutException] if no tag is presented.
   /// Throws [NfcSessionCancelledException] if the user cancels (iOS sheet).
+  Future<String> readTagId();
+
+  /// Cancels any active read and returns to idle.
+  Future<void> stopReading();
+}
+
+/// Base implementation that owns the completer + timeout timer.
+///
+/// Subclasses override [onReadStart], [onReadStop], and [onReadTimeout]
+/// for platform-specific behavior, and call [completeRead] / [failRead]
+/// when a tag is discovered or an error occurs.
+///
+/// As-is (without subclassing), returns random fake tags prefixed with
+/// "FFFF" — useful for desktop runs and tests.
+class NoOpNfcService implements NfcService {
+  static const _readTimeout = Duration(seconds: 30);
+  final _random = Random();
+
+  Completer<String>? _readCompleter;
+  Timer? _readTimer;
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
   Future<String> readTagId() async {
-    dev.log('readTagId called, _sessionActive=$_sessionActive', name: 'NfcService');
-
-    // Ensure no lingering session (iOS single-session limit).
-    if (_sessionActive) {
-      dev.log('Stopping lingering session', name: 'NfcService');
-      _sessionActive = false;
-      try {
-        await NfcManager.instance.stopSession();
-      } catch (e) {
-        dev.log('stopSession error: $e', name: 'NfcService');
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-    }
-
-    dev.log('Starting new NFC session', name: 'NfcService');
+    dev.log('readTagId: start', name: _tag);
+    _disarm();
     final completer = Completer<String>();
-
-    // Android has no system NFC timeout — enforce one explicitly.
-    final timer = Timer(_readTimeout, () {
-      _sessionActive = false;
+    _readCompleter = completer;
+    _readTimer = Timer(_readTimeout, () {
+      dev.log('readTagId: timeout fired, completed=${completer.isCompleted}',
+          name: _tag);
       if (!completer.isCompleted) {
-        NfcManager.instance.stopSession();
+        dev.log('readTagId: return timeout error', name: _tag);
+        _disarm();
+        onReadTimeout();
         completer.completeError(NfcReadTimeoutException());
       }
     });
-
-    _sessionActive = true;
-
-    NfcManager.instance.startSession(
-      pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
-      alertMessageIos: 'Approchez le téléphone du tag NFC',
-      onDiscovered: (NfcTag tag) {
-        dev.log('onDiscovered fired', name: 'NfcService');
-        _sessionActive = false;
-        timer.cancel();
-        try {
-          final uid = _extractUid(tag);
-          NfcManager.instance.stopSession();
-          if (!completer.isCompleted) {
-            completer.complete(normalizeTagId(_bytesToHex(uid)));
-          }
-        } catch (e) {
-          NfcManager.instance
-              .stopSession(errorMessageIos: e.toString());
-          if (!completer.isCompleted) {
-            completer.completeError(e);
-          }
-        }
-      },
-      onSessionErrorIos: (error) {
-        dev.log('onSessionErrorIos: $error', name: 'NfcService');
-        _sessionActive = false;
-        timer.cancel();
-        if (completer.isCompleted) return;
-        completer.completeError(NfcSessionCancelledException());
-      },
-    );
-
+    dev.log('readTagId: armed, awaiting tag', name: _tag);
+    onReadStart();
     return completer.future;
   }
 
-  /// Stops any active NFC session and continuous read loop.
+  @override
   Future<void> stopReading() async {
-    dev.log('stopReading called, _sessionActive=$_sessionActive', name: 'NfcService');
-    _continuousActive = false;
-    if (!_sessionActive) return;
-    _sessionActive = false;
-    try {
-      await NfcManager.instance.stopSession();
-    } catch (_) {}
+    dev.log('stopReading: start', name: _tag);
+    _disarm();
+    onReadStop();
+    dev.log('stopReading: return ok', name: _tag);
   }
 
-  /// Continuously reads NFC tags, yielding each UID as a normalized hex string.
-  /// On iOS, each read creates a new NFC session (system sheet appears briefly).
-  /// On Android, the session stays active naturally.
-  /// Cancel by calling [stopReading] or closing the stream subscription.
-  Stream<String> continuousRead() async* {
-    _continuousActive = true;
+  /// Called when [readTagId] arms the handler. Override to start
+  /// platform-specific NFC listening.
+  /// The default generates a random fake tag immediately.
+  void onReadStart() {
+    final suffix = List.generate(
+      4,
+      (_) => _random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    completeRead('FFFF$suffix'.toUpperCase());
+  }
+
+  /// Called when the read timer expires. Override for platform cleanup
+  /// (e.g. stopping an iOS session).
+  void onReadTimeout() {}
+
+  /// Called when [stopReading] is invoked. Override for platform cleanup.
+  void onReadStop() {}
+
+  /// Extracts the UID from a discovered tag, normalizes it, and resolves
+  /// the pending read. Subclasses call this from their onDiscovered callback.
+  void handleTagDiscovered(NfcTag tag, Uint8List Function(NfcTag) extractUid) {
+    dev.log('handleTagDiscovered: fired', name: _tag);
     try {
-      while (_continuousActive) {
-        try {
-          final tagId = await readTagId();
-          if (!_continuousActive) return;
-          yield tagId;
-        } on NfcSessionCancelledException {
-          yield* Stream<String>.error(NfcSessionCancelledException());
-          return; // user dismissed iOS sheet — stop continuous
-        } on NfcReadTimeoutException {
-          if (!_continuousActive) return;
-          continue; // timeout — retry automatically
-        } catch (e) {
-          dev.log('continuousRead error: $e', name: 'NfcService');
-          if (!_continuousActive) return;
-          continue;
-        }
-      }
-    } finally {
-      _continuousActive = false;
+      final uid = extractUid(tag);
+      final hex = uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      final normalized = normalizeTagId(hex);
+      dev.log('handleTagDiscovered: tag=$normalized', name: _tag);
+      completeRead(normalized);
+    } catch (e) {
+      dev.log('handleTagDiscovered: extractUid error: $e', name: _tag);
+      failRead(e);
     }
   }
 
-  bool _continuousActive = false;
-
-  /// Extracts the tag UID bytes from an NfcTag.
-  Uint8List _extractUid(NfcTag tag) {
-    if (Platform.isAndroid) {
-      final android = NfcTagAndroid.from(tag);
-      if (android != null) return android.id;
-    } else if (Platform.isIOS) {
-      final iso7816 = Iso7816Ios.from(tag);
-      if (iso7816 != null) return iso7816.identifier;
-      final mifare = MiFareIos.from(tag);
-      if (mifare != null) return mifare.identifier;
+  /// Resolves the pending read with a tag ID.
+  void completeRead(String tagId) {
+    dev.log('completeRead: tagId=$tagId', name: _tag);
+    final completer = _readCompleter;
+    _disarm();
+    if (completer != null && !completer.isCompleted) {
+      dev.log('completeRead: return success', name: _tag);
+      completer.complete(tagId);
+    } else {
+      dev.log('completeRead: skipped (no pending read)', name: _tag);
     }
-    throw Exception('Unsupported NFC tag technology — could not extract UID');
   }
 
-  /// Converts raw bytes to a hex string (lowercase, no separators).
-  String _bytesToHex(Uint8List bytes) {
-    return bytes
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join();
+  /// Rejects the pending read with an error.
+  void failRead(Object error) {
+    dev.log('failRead: error=$error', name: _tag);
+    final completer = _readCompleter;
+    _disarm();
+    if (completer != null && !completer.isCompleted) {
+      dev.log('failRead: return error', name: _tag);
+      completer.completeError(error);
+    } else {
+      dev.log('failRead: skipped (no pending read)', name: _tag);
+    }
+  }
+
+  void _disarm() {
+    _readTimer?.cancel();
+    _readTimer = null;
+    _readCompleter = null;
   }
 }

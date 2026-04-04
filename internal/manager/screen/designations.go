@@ -32,6 +32,8 @@ func BuildDesignationsScreen(ctx *Ctx) *DesignationsScreen {
 	s.delFn = func(c context.Context, d client.Designation) error {
 		return ctx.Client.DeleteDesignation(c, d.ID)
 	}
+	s.nameFn = func(d client.Designation) string { return d.Name }
+	s.refMsg = "cette appellation est encore utilisée par une ou plusieurs cuvées"
 
 	s.desigForm = newDesignationForm(ctx.Client)
 

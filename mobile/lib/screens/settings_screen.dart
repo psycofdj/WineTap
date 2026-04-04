@@ -1,7 +1,8 @@
 import 'dart:developer' as dev;
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -40,17 +41,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _backingUp = true);
     try {
       final bytes = await _downloadBackup(port);
-      // Write to a temp file, then share via the system share sheet.
-      final tmp = await getTemporaryDirectory();
-      final file = File('${tmp.path}/winetap.db');
-      await file.writeAsBytes(bytes);
-      final result = await SharePlus.instance.share(
-        ShareParams(files: [XFile(file.path)]),
-      );
-      if (!mounted) return;
-      if (result.status == ShareResultStatus.success) {
-        _showSnackBar(S.backupSuccess);
+      if (Platform.isAndroid) {
+        const ch = MethodChannel('com.winetap.mobile/file_io');
+        final saved = await ch.invokeMethod<bool>('saveFile', {
+          'bytes': Uint8List.fromList(bytes),
+          'name': 'winetap.db',
+        });
+        if (!mounted) return;
+        if (saved == true) _showSnackBar(S.backupSuccess);
+      } else {
+        // iOS: write to temp then share via system share sheet.
+        final tmp = await getTemporaryDirectory();
+        final file = File('${tmp.path}/winetap.db');
+        await file.writeAsBytes(bytes);
+        final result = await Share.shareXFiles([XFile(file.path)]);
+        if (!mounted) return;
+        if (result.status == ShareResultStatus.success) {
+          _showSnackBar(S.backupSuccess);
+        }
       }
+    } on PlatformException catch (e) {
+      dev.log('backup error: $e', name: 'settings');
+      if (mounted) _showSnackBar(S.backupError);
     } catch (e) {
       dev.log('backup error: $e', name: 'settings');
       if (mounted) _showSnackBar(S.backupError);
@@ -85,14 +97,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (confirmed != true || !mounted) return;
 
     // Step 2: pick .db file.
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      withData: true,
-    );
-    if (result == null || result.files.isEmpty || !mounted) return;
-    final fileBytes = result.files.first.bytes;
-    if (fileBytes == null) {
-      _showSnackBar(S.restoreError);
+    final Uint8List? fileBytes;
+    try {
+      if (Platform.isAndroid) {
+        // Android: use platform channel to avoid content URI issues.
+        const ch = MethodChannel('com.winetap.mobile/file_io');
+        final result = await ch.invokeMethod<Uint8List>('pickFileBytes');
+        if (result == null || !mounted) return;
+        fileBytes = result;
+      } else {
+        // iOS: use file_picker.
+        final result = await FilePicker.platform.pickFiles(withData: true);
+        if (result == null || !mounted) return;
+        fileBytes = result.files.single.bytes;
+        if (fileBytes == null) {
+          if (mounted) _showSnackBar(S.restoreError);
+          return;
+        }
+      }
+    } on PlatformException catch (e) {
+      dev.log('File picker error: $e', name: 'settings');
+      if (mounted) _showSnackBar(S.restoreError);
       return;
     }
 

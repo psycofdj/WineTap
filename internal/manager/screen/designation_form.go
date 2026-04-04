@@ -136,6 +136,11 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 	})
 
 	f.alignLabels()
+	chainTabOrder([]*qt.QWidget{
+		f.nameEdit.QWidget,
+		f.regionEdit.QWidget,
+		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
+	})
 	return f
 }
 

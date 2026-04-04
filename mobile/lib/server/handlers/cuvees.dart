@@ -167,8 +167,13 @@ Router cuveesRouter(AppDatabase db) {
       return Response(204);
     } on SqliteException catch (e) {
       if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(412, 'failed_precondition',
-            'cuvée $intId is referenced by bottles and cannot be deleted');
+        return _error(412, 'referenced', 'entity is still referenced');
+      }
+      dev.log('deleteCuvee error: $e', name: 'cuvees');
+      return _error(500, 'internal', e.toString());
+    } catch (e) {
+      if (e.toString().contains('FOREIGN KEY constraint')) {
+        return _error(412, 'referenced', 'entity is still referenced');
       }
       dev.log('deleteCuvee error: $e', name: 'cuvees');
       return _error(500, 'internal', e.toString());

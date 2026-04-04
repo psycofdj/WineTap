@@ -13,7 +13,7 @@ import '../widgets/bottle_details_card.dart';
 class IdentifyScreen extends StatefulWidget {
   const IdentifyScreen({super.key, this.nfcService});
 
-  /// Optional NFC service for testing. Uses a real [NfcService] by default.
+  /// Optional NFC service for testing. Uses the Provider tree by default.
   final NfcService? nfcService;
 
   @override
@@ -23,7 +23,8 @@ class IdentifyScreen extends StatefulWidget {
 enum _IdentifyState { scanning, found, error }
 
 class _IdentifyScreenState extends State<IdentifyScreen> {
-  late final NfcService _nfc = widget.nfcService ?? NfcService();
+  late final NfcService _nfc =
+      widget.nfcService ?? context.read<NfcService>();
   _IdentifyState _state = _IdentifyState.scanning;
   BottleWithCuvee? _bottle;
   String? _errorMessage;

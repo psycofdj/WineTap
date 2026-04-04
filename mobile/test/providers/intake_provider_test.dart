@@ -11,9 +11,12 @@ import 'package:wine_tap_mobile/services/nfc_exceptions.dart';
 import 'package:wine_tap_mobile/services/nfc_service.dart';
 
 /// Mock NfcService that allows controlling NFC reads from tests.
-class MockNfcService extends NfcService {
+class MockNfcService implements NfcService {
   Completer<String>? _readCompleter;
   bool stopReadingCalled = false;
+
+  @override
+  Future<bool> isAvailable() async => true;
 
   @override
   Future<String> readTagId() {
@@ -23,9 +26,6 @@ class MockNfcService extends NfcService {
 
   void completeRead(String tagId) => _readCompleter?.complete(tagId);
   void failRead(Object error) => _readCompleter?.completeError(error);
-
-  @override
-  Stream<String> continuousRead() => const Stream.empty();
 
   @override
   Future<void> stopReading() async {

@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -129,8 +130,16 @@ func showQuestion(parent *qt.QWidget, title, text string) bool {
 }
 
 // showErr shows a Qt warning dialog.  Must be called from the main thread.
+// When the error is an APIError it displays only the human-readable message
+// (e.g. "domain 5 is referenced by cuvées and cannot be deleted") instead of
+// the raw "code: message" string.
 func showErr(msg string, err error) {
-	qt.QMessageBox_Warning(nil, "Erreur", msg+" : "+err.Error())
+	detail := err.Error()
+	var apiErr *client.APIError
+	if errors.As(err, &apiErr) {
+		detail = apiErr.Message
+	}
+	qt.QMessageBox_Warning(nil, "Erreur", msg+" : "+detail)
 }
 
 // ── Async helper ──────────────────────────────────────────────────────────────

@@ -88,6 +88,10 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 	})
 
 	f.alignLabels()
+	chainTabOrder([]*qt.QWidget{
+		f.nameEdit.QWidget,
+		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
+	})
 	return f
 }
 

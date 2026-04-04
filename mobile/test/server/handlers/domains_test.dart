@@ -174,7 +174,7 @@ void main() {
       final response = await delete('/${domain['id']}');
       expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'failed_precondition');
+      expect(body['error'], 'referenced');
     });
   });
 }

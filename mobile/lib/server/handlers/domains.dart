@@ -103,8 +103,13 @@ Router domainsRouter(AppDatabase db) {
       return Response(204);
     } on SqliteException catch (e) {
       if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(412, 'failed_precondition',
-            'domain $intId is referenced by cuvées and cannot be deleted');
+        return _error(412, 'referenced', 'entity is still referenced');
+      }
+      dev.log('deleteDomain error: $e', name: 'domains');
+      return _error(500, 'internal', e.toString());
+    } catch (e) {
+      if (e.toString().contains('FOREIGN KEY constraint')) {
+        return _error(412, 'referenced', 'entity is still referenced');
       }
       dev.log('deleteDomain error: $e', name: 'domains');
       return _error(500, 'internal', e.toString());

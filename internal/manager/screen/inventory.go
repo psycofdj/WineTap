@@ -543,6 +543,7 @@ func (s *InventoryScreen) openAddForm() {
 		s.ts.SetSaveEnabled(false) // nameEdit is still empty
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()
+		s.bottleForm.nameEdit.SetFocus()
 	}
 	s.ctx.Scanner.OnTagScanned(func(tagID string) {
 		_ = s.ctx.Scanner.StopScan()
@@ -554,6 +555,7 @@ func (s *InventoryScreen) openAddForm() {
 		s.bottleForm.loadData(nil)
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()
+		s.bottleForm.nameEdit.SetFocus()
 		s.ctx.Log.Error("scan error during add", "error", err)
 		qt.QMessageBox_Warning(nil, "Erreur de scan", "Téléphone inaccessible — entrez le tag manuellement ou réessayez.")
 	})
@@ -562,6 +564,7 @@ func (s *InventoryScreen) openAddForm() {
 		s.bottleForm.loadData(nil)
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()
+		s.bottleForm.nameEdit.SetFocus()
 		s.ctx.Log.Error("scan start failed during add", "error", err)
 		qt.QMessageBox_Warning(nil, "Erreur de scan", "Téléphone inaccessible — entrez le tag manuellement ou réessayez.")
 	}
@@ -587,6 +590,7 @@ func (s *InventoryScreen) openEditForm(srcRow int) {
 		}()))
 		s.ts.SetSaveEnabled(b.ConsumedAt == nil) // consumed bottles are read-only
 		s.ts.ShowRight()
+		s.bottleForm.nameEdit.SetFocus()
 	})
 }
 
@@ -608,6 +612,7 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 			s.bottleForm.editBottleID = 0
 			s.bottleForm.SetEPC(tagID)
 			s.ts.SetSaveEnabled(true)
+			s.ts.SaveBtn.SetFocus()
 		})
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()

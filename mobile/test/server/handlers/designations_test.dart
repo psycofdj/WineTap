@@ -194,7 +194,7 @@ void main() {
       final response = await delete('/${designation['id']}');
       expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'failed_precondition');
+      expect(body['error'], 'referenced');
     });
 
     test('returns 412 for sentinel designation id=0', () async {

@@ -131,6 +131,13 @@ func newInventoryBottleForm(ctx *Ctx) *inventoryBottleForm {
 	})
 
 	f.alignLabels()
+	chainTabOrder([]*qt.QWidget{
+		f.nameEdit.QWidget,
+		f.vintageSpin.QWidget,
+		f.drinkSpin.QWidget,
+		f.priceEdit.QWidget,
+		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
+	})
 	return f
 }
 

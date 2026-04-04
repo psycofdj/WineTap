@@ -2,10 +2,13 @@ package screen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	qt "github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
+
+	"winetap/internal/client"
 )
 
 // crudBase[T] provides the OnActivate / refresh / onDelete boilerplate shared
@@ -19,12 +22,14 @@ type crudBase[T any] struct {
 	ts     *tableScreen
 	ctx    *Ctx
 
-	all    []T
-	listFn func(context.Context) ([]T, error)
-	popFn  func()
-	delMsg func(T) string
-	delFn  func(context.Context, T) error
-	name   string // used in log messages, e.g. "domain"
+	all     []T
+	listFn  func(context.Context) ([]T, error)
+	popFn   func()
+	delMsg  func(T) string
+	delFn   func(context.Context, T) error
+	nameFn  func(T) string // human-readable name of the item
+	name    string         // used in log messages, e.g. "domain"
+	refMsg  string         // French message shown on FK violation
 }
 
 // OnActivate hides the right panel and refreshes the list.
@@ -58,10 +63,23 @@ func (b *crudBase[T]) onDelete() {
 	if !showQuestion(b.Widget, "Supprimer", fmt.Sprintf("%s ?", b.delMsg(item))) {
 		return
 	}
-	doAsync(b.ctx.Log, "delete "+b.name, "Suppression échouée", func() error {
-		return b.delFn(context.Background(), item)
-	}, func() {
-		b.ts.HideRight()
-		b.refresh()
-	})
+	go func() {
+		if err := b.delFn(context.Background(), item); err != nil {
+			b.ctx.Log.Error("delete "+b.name, "error", err)
+			msg := "Suppression échouée"
+			var apiErr *client.APIError
+			if errors.As(err, &apiErr) && apiErr.Code == "referenced" {
+				msg = fmt.Sprintf("Impossible de supprimer « %s » : %s",
+					b.nameFn(item), b.refMsg)
+			}
+			mainthread.Start(func() {
+				qt.QMessageBox_Warning(nil, "Erreur", msg)
+			})
+			return
+		}
+		mainthread.Start(func() {
+			b.ts.HideRight()
+			b.refresh()
+		})
+	}()
 }

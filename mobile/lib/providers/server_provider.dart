@@ -23,14 +23,26 @@ class ServerProvider extends ChangeNotifier {
       final interfaces = await NetworkInterface.list(
         type: InternetAddressType.IPv4,
       );
+
+      // Prefer WiFi interfaces (en0/en1 on iOS, wlan on Android) over
+      // cellular (pdp_ip) or other non-loopback interfaces.
+      InternetAddress? fallback;
       for (final iface in interfaces) {
         for (final addr in iface.addresses) {
-          if (!addr.isLoopback) {
+          if (addr.isLoopback) continue;
+          final name = iface.name.toLowerCase();
+          if (name.startsWith('en') || name.startsWith('wlan')) {
             _serverAddress = '${addr.address}:$_port';
             notifyListeners();
             return;
           }
+          fallback ??= addr;
         }
+      }
+      if (fallback != null) {
+        _serverAddress = '${fallback.address}:$_port';
+        notifyListeners();
+        return;
       }
     } catch (e) {
       dev.log('NetworkInterface.list failed: $e', name: 'ServerProvider');
