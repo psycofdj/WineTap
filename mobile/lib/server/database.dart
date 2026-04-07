@@ -127,6 +127,7 @@ extension BottleWithCuveeToJson on BottleWithCuvee {
         'domain_id': cuvee.domainId,
         'designation_id': cuvee.designationId,
         'color': cuvee.color,
+        'description': cuvee.description,
         'domain_name': domainName,
         'designation_name': designationName,
         'region': region,
