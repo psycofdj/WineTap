@@ -22,7 +22,7 @@ class ConsumeScreen extends StatelessWidget {
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const Text(S.appTitle);
             final info = snapshot.data!;
-            return Text('${S.appTitle} ${info.version}+${info.buildNumber}');
+            return Text('${S.appTitle} (${info.version}+${info.buildNumber})');
           },
         ),
         actions: [
