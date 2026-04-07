@@ -81,27 +81,37 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 
 	f.addFooter("Carte", picH, false)
 
+	designPrompt := func() string {
+		return fmt.Sprintf(
+			"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
+				"de l'appellation « %s » : caractéristiques gustatives et géographiques. "+
+				"Je veux aussi la région viticole associée. "+
+				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
+				"La région doit être dans la liste : "+
+				"Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, "+
+				"Languedoc, Loire, Provence, Rhône, Roussillon, Savoie, Sud-Ouest. "+
+				"Répond moi sous forme d'un JSON : description, region. "+
+				"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
+			f.Name(),
+		)
+	}
+
+	f.chatGPTBtn.OnClicked(func() {
+		if f.Name() == "" {
+			return
+		}
+		openChatGPT(designPrompt())
+	})
+
 	f.autoBtn.OnClicked(func() {
-		name := f.Name()
-		if name == "" {
+		if f.Name() == "" {
 			return
 		}
 		f.descEdit.Clear()
 		f.startAuto()
 
 		go func() {
-			prompt := fmt.Sprintf(
-				"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
-					"de l'appellation « %s » : caractéristiques gustatives et géographiques. "+
-					"Je veux aussi la région viticole associée. "+
-					"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-					"La région doit être dans la liste : "+
-					"Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, "+
-					"Languedoc, Loire, Provence, Rhône, Roussillon, Savoie, Sud-Ouest. "+
-					"Répond moi sous forme d'un JSON : description, region. "+
-					"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
-				name,
-			)
+			prompt := designPrompt()
 			slog.Debug("chatgpt designation query", "prompt", prompt)
 			raw, err := chatGPTQuery(prompt)
 			slog.Debug("chatgpt designation query result", "raw", raw, "err", err)

@@ -30,24 +30,34 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 	f := &domainForm{cli: cli}
 	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true, nil)
 
+	domainPrompt := func() string {
+		return fmt.Sprintf(
+			"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
+				"du domaine viticole « %s » : appellation, style des vins, réputation. "+
+				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
+				"Je veux aussi l'adresse postale et le numéro de téléphone. "+
+				"Répond moi sous forme d'un JSON: description, adresse, telephone. "+
+				"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
+			f.Name(),
+		)
+	}
+
+	f.chatGPTBtn.OnClicked(func() {
+		if f.Name() == "" {
+			return
+		}
+		openChatGPT(domainPrompt())
+	})
+
 	f.autoBtn.OnClicked(func() {
-		name := f.Name()
-		if name == "" {
+		if f.Name() == "" {
 			return
 		}
 		f.descEdit.Clear()
 		f.startAuto()
 
 		go func() {
-			prompt := fmt.Sprintf(
-				"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
-					"du domaine viticole « %s » : appellation, style des vins, réputation. "+
-					"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-					"Je veux aussi l'adresse postale et le numéro de téléphone. "+
-					"Répond moi sous forme d'un JSON: description, adresse, telephone. "+
-					"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
-				name,
-			)
+			prompt := domainPrompt()
 			slog.Debug("chatgpt domain query", "prompt", prompt)
 			raw, err := chatGPTQuery(prompt)
 			slog.Debug("chatgpt domain query result", "raw", raw, "err", err)

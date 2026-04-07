@@ -1,6 +1,9 @@
 package screen
 
 import (
+	"net/url"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
@@ -29,7 +32,8 @@ type baseForm struct {
 	labels      []*qt.QLabel    // all field labels; used by alignLabels
 	nameLabel     *qt.QLabel
 	nameEdit      *qt.QLineEdit
-	autoContainer *qt.QWidget // row containing autoBtn + progressBar; hide to remove the row
+	autoContainer *qt.QWidget // row containing chatGPTBtn + autoBtn + progressBar; hide to remove the row
+	chatGPTBtn    *qt.QPushButton
 	autoBtn       *qt.QPushButton
 	progressBar   *qt.QProgressBar
 	descEdit      *qt.QTextEdit
@@ -71,6 +75,11 @@ func newBaseForm(nameLabel, autoTooltip string, nameRequired bool, canEnable fun
 	f.header = qt.NewQFormLayout2()
 	f.header.SetRowWrapPolicy(qt.QFormLayout__WrapLongRows)
 
+	f.chatGPTBtn = qt.NewQPushButton3("💬 Demander à ChatGPT")
+	f.chatGPTBtn.SetToolTip("Ouvrir ChatGPT dans le navigateur avec la même requête")
+	f.chatGPTBtn.SetEnabled(false)
+	f.chatGPTBtn.SetSizePolicy2(qt.QSizePolicy__Expanding, qt.QSizePolicy__Fixed)
+
 	f.autoBtn = qt.NewQPushButton3("🪄 Remplir automatiquement")
 	f.autoBtn.SetToolTip(autoTooltip)
 	f.autoBtn.SetEnabled(false)
@@ -85,6 +94,7 @@ func newBaseForm(nameLabel, autoTooltip string, nameRequired bool, canEnable fun
 	autoVL := qt.NewQVBoxLayout(f.autoContainer)
 	autoVL.SetContentsMargins(0, 0, 0, 0)
 	autoVL.SetSpacing(2)
+	autoVL.AddWidget(f.chatGPTBtn.QAbstractButton.QWidget)
 	autoVL.AddWidget(f.autoBtn.QAbstractButton.QWidget)
 	autoVL.AddWidget(f.progressBar.QWidget)
 	f.header.AddRowWithWidget(f.autoContainer)
@@ -205,17 +215,21 @@ func (f *baseForm) recheckAuto() {
 	if f.progressBar.IsVisible() {
 		return
 	}
+	var enabled bool
 	if f.canEnable != nil {
-		f.autoBtn.SetEnabled(f.canEnable())
+		enabled = f.canEnable()
 	} else {
-		f.autoBtn.SetEnabled(f.nameEdit.Text() != "")
+		enabled = f.nameEdit.Text() != ""
 	}
+	f.autoBtn.SetEnabled(enabled)
+	f.chatGPTBtn.SetEnabled(enabled)
 }
 
 // startAuto disables the button and shows the progress bar.
 // Call before launching the AI goroutine.
 func (f *baseForm) startAuto() {
 	f.autoBtn.SetEnabled(false)
+	f.chatGPTBtn.SetEnabled(false)
 	f.progressBar.Show()
 }
 
@@ -238,6 +252,21 @@ func chainTabOrder(widgets []*qt.QWidget) {
 	for i := 0; i < len(widgets)-1; i++ {
 		qt.QWidget_SetTabOrder(widgets[i], widgets[i+1])
 	}
+}
+
+// openChatGPT opens the default browser to chatgpt.com with the given query.
+func openChatGPT(query string) {
+	u := "https://chatgpt.com/?q=" + url.QueryEscape(query)
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", u)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u)
+	default:
+		cmd = exec.Command("xdg-open", u)
+	}
+	_ = cmd.Start()
 }
 
 func (f *baseForm) Name() string            { return strings.TrimSpace(f.nameEdit.Text()) }

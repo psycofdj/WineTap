@@ -66,29 +66,39 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f.designCombo.SetPlaceholderText("Appellation (obligatoire)")
 	f.addBody("Appellation", f.designCombo.QWidget, true)
 
+	cuveePrompt := func() string {
+		return fmt.Sprintf(
+			"Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé "+
+				"(5 à 6 phrases) à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » "+
+				"en « %s ». Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, "+
+				"et combien de temps puis-je espérer le conserver pour maximiser son goût. "+
+				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
+				"Si tu ne connais pas tu répond \"NC\". "+
+				"Donne juste la réponse, pas d'intriduction type \"Voici un résumé...\" "+
+				"et pas de conclusion du type \"Si tu veux...\".",
+			f.Name(),
+			strings.TrimSpace(f.domainCombo.CurrentText()),
+			strings.TrimSpace(f.designCombo.CurrentText()),
+			colorNames[f.Color()],
+		)
+	}
+
+	f.chatGPTBtn.OnClicked(func() {
+		if f.Name() == "" || strings.TrimSpace(f.domainCombo.CurrentText()) == "" || strings.TrimSpace(f.designCombo.CurrentText()) == "" {
+			return
+		}
+		openChatGPT(cuveePrompt())
+	})
+
 	f.autoBtn.OnClicked(func() {
-		name := f.Name()
-		domain := strings.TrimSpace(f.domainCombo.CurrentText())
-		design := strings.TrimSpace(f.designCombo.CurrentText())
-		color := colorNames[f.Color()]
-		if name == "" || domain == "" || design == "" {
+		if f.Name() == "" || strings.TrimSpace(f.domainCombo.CurrentText()) == "" || strings.TrimSpace(f.designCombo.CurrentText()) == "" {
 			return
 		}
 		f.descEdit.Clear()
 		f.startAuto()
 
 		go func() {
-			prompt := fmt.Sprintf(
-				"Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé "+
-					"(5 à 6 phrases) à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » "+
-					"en « %s ». Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, "+
-					"et combien de temps puis-je espérer le conserver pour maximiser son goût. "+
-					"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-					"Si tu ne connais pas tu répond \"NC\". "+
-					"Donne juste la réponse, pas d'intriduction type \"Voici un résumé...\" "+
-					"et pas de conclusion du type \"Si tu veux...\".",
-				name, domain, design, color,
-			)
+			prompt := cuveePrompt()
 			slog.Debug("chatgpt cuvee query", "prompt", prompt)
 			raw, err := chatGPTQuery(prompt)
 			slog.Debug("chatgpt cuvee query result", "raw", raw, "err", err)
