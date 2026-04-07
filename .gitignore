@@ -17,3 +17,4 @@ cfru5102_read
 nfc_seed
 /server
 /winetap.db*
+/manager

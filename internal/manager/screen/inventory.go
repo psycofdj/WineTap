@@ -144,11 +144,8 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	// Tab 2 — Historique: flat,    all (consumed included)
 	s.viewTabs = qt.NewQTabBar2()
 	s.viewTabs.AddTab("Par bouteille")
-	s.viewTabs.SetTabToolTip(1, "Une ligne par bouteille, stock en cave uniquement")
 	s.viewTabs.AddTab("Par référence")
-	s.viewTabs.SetTabToolTip(0, "Stock en cave groupé par cuvée et millésime, avec les quantités")
 	s.viewTabs.AddTab("Historique")
-	s.viewTabs.SetTabToolTip(2, "Toutes les bouteilles, y compris celles déjà bues")
 	s.viewTabs.OnCurrentChanged(func(idx int) {
 		s.grouped = idx == 1
 		s.showConsumed = idx == 2
@@ -292,6 +289,40 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 		s.ts.SetSaveEnabled(strings.TrimSpace(text) != "")
 	})
 
+	// ── Keyboard shortcuts ────────────────────────────────────────────────
+	// Tab switching: Ctrl+1 / Ctrl+& → tab 0, Ctrl+2 / Ctrl+é → tab 1, Ctrl+3 / Ctrl+" → tab 2.
+	for _, pair := range []struct {
+		key string
+		idx int
+	}{
+		{"Ctrl+1", 0}, {"Ctrl+2", 1}, {"Ctrl+3", 2},
+	} {
+		idx := pair.idx
+		addShortcut(s.Widget, pair.key, func() { s.viewTabs.SetCurrentIndex(idx) })
+	}
+	// French AZERTY alternates: & = 0x26, é = 0xe9, " = 0x22
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0x26, func() { s.viewTabs.SetCurrentIndex(0) })
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0xe9, func() { s.viewTabs.SetCurrentIndex(1) })
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0x22, func() { s.viewTabs.SetCurrentIndex(2) })
+
+	// Ctrl+T → search by NFC tag
+	addShortcut(s.Widget, "Ctrl+T", func() {
+		if s.searchBtn.IsEnabled() {
+			s.onSearchByTag()
+		}
+	})
+	// Ctrl+B → mark as consumed
+	addShortcut(s.Widget, "Ctrl+B", func() {
+		if s.warnBtn.IsEnabled() {
+			s.onConsumeBottle()
+		}
+	})
+
+	// Tab tooltips with shortcut hints.
+	s.viewTabs.SetTabToolTip(0, "Stock en cave groupé par cuvée et millésime, avec les quantités  (Ctrl+1)")
+	s.viewTabs.SetTabToolTip(1, "Une ligne par bouteille, stock en cave uniquement  (Ctrl+2)")
+	s.viewTabs.SetTabToolTip(2, "Toutes les bouteilles, y compris celles déjà bues  (Ctrl+3)")
+
 	return s
 }
 
@@ -382,6 +413,7 @@ func (s *InventoryScreen) populate(bottles []client.Bottle) {
 
 	s.ts.refreshFilterHeaders()
 	s.ts.HideRight()
+	s.ts.SelectFirstRow()
 }
 
 func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {

@@ -49,6 +49,7 @@ func (b *crudBase[T]) refresh() {
 		mainthread.Start(func() {
 			b.all = items
 			b.popFn()
+			b.ts.SelectFirstRow()
 		})
 	}()
 }

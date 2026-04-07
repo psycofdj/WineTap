@@ -134,6 +134,20 @@ func (ts *tableScreen) HideRight() {
 	ts.TableView.ClearSelection()
 }
 
+// SelectFirstRow selects the first visible row in the table, or clears the
+// selection when the table is empty.  Call after populating the model.
+func (ts *tableScreen) SelectFirstRow() {
+	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
+	if rowCount == 0 {
+		ts.TableView.ClearSelection()
+		return
+	}
+	idx := ts.Proxy.Index(0, 0, qt.NewQModelIndex())
+	ts.TableView.SetCurrentIndex(idx)
+	ts.TableView.SelectRow(0)
+	ts.TableView.SetFocus()
+}
+
 // SelectedSourceRow returns the source-model row of the current selection,
 // or -1 if nothing is selected.
 func (ts *tableScreen) SelectedSourceRow() int {
@@ -270,6 +284,7 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	ts.SearchEdit = qt.NewQLineEdit2()
 	ts.SearchEdit.SetPlaceholderText(ph)
 	ts.SearchEdit.SetClearButtonEnabled(true)
+	ts.SearchEdit.SetToolTip("Rechercher  (Ctrl+R)")
 	setWidgetRole(ts.SearchEdit.QWidget, "search")
 	ts.SearchEdit.OnTextChanged(func(_ string) { ts.Proxy.InvalidateFilter() })
 
@@ -376,6 +391,7 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	// ── Splitter or plain layout ───────────────────────────────────────────────
 	if cfg.FormContent == nil {
 		root.AddWidget2(leftWidget, 1)
+		ts.installShortcuts(cfg)
 		return ts
 	}
 
@@ -443,5 +459,69 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	splitter.SetStretchFactor(1, 0)
 	ts.ShowRight()
 
+	ts.installShortcuts(cfg)
+
 	return ts
+}
+
+// installShortcuts wires keyboard shortcuts to the action buttons and table
+// navigation on the root Widget.
+func (ts *tableScreen) installShortcuts(cfg tableScreenCfg) {
+	w := ts.Widget
+
+	// ── Action buttons ────────────────────────────────────────────────────
+	if cfg.OnAdd != nil {
+		addShortcut(w, "Ctrl+A", func() { cfg.OnAdd() })
+	}
+	if cfg.OnDelete != nil {
+		addShortcut(w, "Del", func() {
+			if ts.DelBtn.IsEnabled() {
+				cfg.OnDelete()
+			}
+		})
+	}
+	if cfg.OnCopy != nil {
+		addShortcut(w, "Ctrl+D", func() {
+			if ts.CopyBtn != nil && ts.CopyBtn.IsEnabled() {
+				cfg.OnCopy()
+			}
+		})
+	}
+	// Ctrl+R → focus search bar
+	addShortcut(w, "Ctrl+R", func() {
+		ts.SearchEdit.SetFocus()
+		ts.SearchEdit.SelectAll()
+	})
+
+	// ── Table navigation ──────────────────────────────────────────────────
+	addShortcut(w, "Ctrl+Down", func() { ts.selectRelative(+1) })
+	addShortcut(w, "Ctrl+Up", func() { ts.selectRelative(-1) })
+}
+
+// selectRelative moves the table selection by delta rows (+1 = down, -1 = up).
+// If nothing is selected, +1 selects the first row, -1 selects the last.
+func (ts *tableScreen) selectRelative(delta int) {
+	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
+	if rowCount == 0 {
+		return
+	}
+	cur := ts.TableView.QAbstractItemView.CurrentIndex()
+	var targetRow int
+	if !cur.IsValid() {
+		if delta > 0 {
+			targetRow = 0
+		} else {
+			targetRow = rowCount - 1
+		}
+	} else {
+		targetRow = cur.Row() + delta
+		if targetRow < 0 {
+			targetRow = rowCount - 1
+		} else if targetRow >= rowCount {
+			targetRow = 0
+		}
+	}
+	idx := ts.Proxy.Index(targetRow, 0, qt.NewQModelIndex())
+	ts.TableView.SetCurrentIndex(idx)
+	ts.TableView.SelectRow(targetRow)
 }

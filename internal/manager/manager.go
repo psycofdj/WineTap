@@ -372,6 +372,19 @@ func (m *Manager) buildUI() {
 	m.idxCuvs = m.stack.AddWidget(m.cuvs.Widget)
 	m.idxCfg = m.stack.AddWidget(m.cfg.Widget)
 	m.idxDash = m.stack.AddWidget(m.dash.Widget)
+
+	// ── Global keyboard shortcuts (sidebar navigation) ────────────────────
+	w := m.window.QWidget
+	addWindowShortcut := func(keySeq string, fn func()) {
+		sc := qt.NewQShortcut2(qt.NewQKeySequence2(keySeq), w.QObject)
+		sc.SetContext(qt.ApplicationShortcut)
+		sc.OnActivated(fn)
+	}
+	addWindowShortcut("Alt+A", func() { m.navigate(m.idxDesig) })
+	addWindowShortcut("Alt+D", func() { m.navigate(m.idxDoms) })
+	addWindowShortcut("Alt+C", func() { m.navigate(m.idxCuvs) })
+	addWindowShortcut("Alt+T", func() { m.navigate(m.idxDash) })
+	addWindowShortcut("Alt+I", func() { m.navigate(m.idxInv) })
 }
 
 func (m *Manager) buildSidebar(parent *qt.QWidget) *qt.QWidget {
@@ -389,26 +402,30 @@ func (m *Manager) buildSidebar(parent *qt.QWidget) *qt.QWidget {
 		layout.AddWidget(lbl.QWidget)
 	}
 
-	addItem := func(label string, fn func()) {
+	addItem := func(label, shortcutHint string, fn func()) *qt.QPushButton {
 		btn := qt.NewQPushButton3(label)
 		btn.QAbstractButton.QWidget.QObject.SetProperty("role", qt.NewQVariant11("sidebar-item"))
+		if shortcutHint != "" {
+			btn.SetToolTip(label + "  (" + shortcutHint + ")")
+		}
 		btn.OnClicked(func() { fn() })
 		layout.AddWidget(btn.QAbstractButton.QWidget)
+		return btn
 	}
 
 	addSection("Catalogue")
-	addItem("Appellations", func() { m.navigate(m.idxDesig) })
-	addItem("Domaines", func() { m.navigate(m.idxDoms) })
-	addItem("Cuvées", func() { m.navigate(m.idxCuvs) })
+	addItem("Appellations", "Alt+A", func() { m.navigate(m.idxDesig) })
+	addItem("Domaines", "Alt+D", func() { m.navigate(m.idxDoms) })
+	addItem("Cuvées", "Alt+C", func() { m.navigate(m.idxCuvs) })
 
 	addSection("Cave")
-	addItem("Tableau de bord", func() { m.navigate(m.idxDash) })
-	addItem("Inventaire", func() { m.navigate(m.idxInv) })
+	addItem("Tableau de bord", "Alt+T", func() { m.navigate(m.idxDash) })
+	addItem("Inventaire", "Alt+I", func() { m.navigate(m.idxInv) })
 
 	layout.AddWidget2(qt.NewQWidget2(), 1) // spacer
 
 	addSection("Système")
-	addItem("Paramètres", func() { m.navigate(m.idxCfg) })
+	addItem("Paramètres", "", func() { m.navigate(m.idxCfg) })
 
 	return sidebar
 }
