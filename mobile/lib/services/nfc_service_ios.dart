@@ -16,6 +16,13 @@ const _tag = 'NfcServiceIos';
 /// The session is stopped when a tag is read, on timeout, on error, or
 /// when the user dismisses the sheet.
 class NfcServiceIos extends NoOpNfcService {
+  bool _sessionActive = false;
+
+  /// Tracks an in-flight [stopSession] call so [teardownSession] can await it
+  /// even when another code path (e.g. widget dispose) already triggered the
+  /// stop and set [_sessionActive] to false.
+  Future<void>? _pendingStop;
+
   @override
   Future<bool> isAvailable() async {
     dev.log('isAvailable: start', name: _tag);
@@ -25,14 +32,18 @@ class NfcServiceIos extends NoOpNfcService {
     return result;
   }
 
-  bool _sessionActive = false;
-
   @override
   Future<void> teardownSession() async {
-    if (!_sessionActive) return;
-    dev.log('teardownSession: stopping active session', name: _tag);
-    _sessionActive = false;
-    await NfcManager.instance.stopSession().catchError((_) {});
+    if (_sessionActive) {
+      dev.log('teardownSession: stopping active session', name: _tag);
+      _sessionActive = false;
+      _pendingStop = NfcManager.instance.stopSession().catchError((_) {});
+    }
+    if (_pendingStop != null) {
+      dev.log('teardownSession: awaiting pending stop', name: _tag);
+      await _pendingStop;
+      _pendingStop = null;
+    }
   }
 
   @override
@@ -70,9 +81,10 @@ class NfcServiceIos extends NoOpNfcService {
   void _stopSession({String? alertMessage}) {
     if (!_sessionActive) return;
     _sessionActive = false;
-    NfcManager.instance
+    _pendingStop = NfcManager.instance
         .stopSession(alertMessageIos: alertMessage)
-        .catchError((_) {});
+        .catchError((_) {})
+        .whenComplete(() => _pendingStop = null);
   }
 
   Uint8List _extractUid(NfcTag tag) {
