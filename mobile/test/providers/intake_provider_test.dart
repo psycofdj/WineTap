@@ -101,8 +101,8 @@ void main() {
     expect(provider.state, IntakeState.tagSent);
     expect(provider.lastTagId, '04AABBCC');
 
-    // Wait for reset timer (1s)
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    // Wait for reset timer (3s)
+    await Future<void>.delayed(const Duration(milliseconds: 3100));
     expect(provider.state, IntakeState.waitingForRequest);
     expect(provider.shouldShowIntakeScreen, false);
   });

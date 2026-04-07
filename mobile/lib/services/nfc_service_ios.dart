@@ -85,7 +85,16 @@ class NfcServiceIos extends NoOpNfcService {
     _stopRequested = true;
     NfcManager.instance
         .stopSession(alertMessageIos: alertMessage)
-        .catchError((_) {});
+        .then((_) => _onSessionEnded())
+        .catchError((_) => _onSessionEnded());
+  }
+
+  void _onSessionEnded() {
+    if (!_sessionActive) return; // already handled by onSessionErrorIos
+    _sessionActive = false;
+    _stopRequested = false;
+    _sessionEndCompleter?.complete();
+    _sessionEndCompleter = null;
   }
 
   Uint8List _extractUid(NfcTag tag) {
