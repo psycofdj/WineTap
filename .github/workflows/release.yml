@@ -114,10 +114,11 @@ jobs:
 
       - name: Install miqt-docker
         run: go install github.com/mappu/miqt/cmd/miqt-docker@latest
-        
+
       - name: Build
-        run: 
+        run:
           miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

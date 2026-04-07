@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/strings.dart';
@@ -16,7 +17,14 @@ class ConsumeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(S.appTitle),
+        title: FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Text(S.appTitle);
+            final info = snapshot.data!;
+            return Text('${S.appTitle} ${info.version}+${info.buildNumber}');
+          },
+        ),
         actions: [
           const Padding(
             padding: EdgeInsets.only(right: 8),
