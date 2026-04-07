@@ -7,30 +7,28 @@ import 'package:wine_tap_mobile/providers/scan_provider.dart';
 import 'package:wine_tap_mobile/server/consume_tracker.dart';
 import 'package:wine_tap_mobile/server/database.dart';
 import 'package:wine_tap_mobile/server/scan_coordinator.dart';
-import 'package:wine_tap_mobile/services/nfc_exceptions.dart';
 import 'package:wine_tap_mobile/services/nfc_service.dart';
 
 /// Mock NfcService that allows controlling NFC reads from tests.
 class MockNfcService implements NfcService {
-  Completer<String>? _readCompleter;
-  bool stopReadingCalled = false;
+  Completer<NfcReadResult>? _readCompleter;
+
+  @override
+  NfcState get state => NfcState.ready;
 
   @override
   Future<bool> isAvailable() async => true;
 
   @override
-  Future<String> readTagId() {
-    _readCompleter = Completer<String>();
+  Future<NfcReadResult> readTag() {
+    _readCompleter = Completer<NfcReadResult>();
     return _readCompleter!.future;
   }
 
-  void completeRead(String tagId) => _readCompleter?.complete(tagId);
-  void failRead(Object error) => _readCompleter?.completeError(error);
-
-  @override
-  Future<void> stopReading() async {
-    stopReadingCalled = true;
-  }
+  void completeRead(String tagId) =>
+      _readCompleter?.complete((tag: tagId, error: null));
+  void failRead(String error) =>
+      _readCompleter?.complete((tag: null, error: error));
 }
 
 void main() {
@@ -123,7 +121,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 600));
     expect(provider.state, IntakeState.scanning);
 
-    mockNfc.failRead(NfcSessionCancelledException());
+    mockNfc.failRead('cancelled');
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(provider.state, IntakeState.error);
     expect(provider.errorMessage, isNotNull);
@@ -139,7 +137,7 @@ void main() {
     coordinator.request();
     await Future<void>.delayed(const Duration(milliseconds: 600));
 
-    mockNfc.failRead(NfcReadTimeoutException());
+    mockNfc.failRead('timeout');
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(provider.state, IntakeState.error);
 
@@ -154,7 +152,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 600));
     expect(provider.state, IntakeState.scanning);
 
-    await provider.cancelScan();
+    provider.cancelScan();
     expect(provider.state, IntakeState.waitingForRequest);
     expect(provider.shouldShowIntakeScreen, false);
   });

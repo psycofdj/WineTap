@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../l10n/strings.dart';
 import '../server/database.dart';
-import '../services/nfc_exceptions.dart';
 import '../services/nfc_service.dart';
 import '../widgets/bottle_details_card.dart';
 
@@ -35,12 +34,6 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
     _scan();
   }
 
-  @override
-  void dispose() {
-    _nfc.stopReading();
-    super.dispose();
-  }
-
   Future<void> _scan() async {
     setState(() {
       _state = _IdentifyState.scanning;
@@ -48,20 +41,16 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
       _errorMessage = null;
     });
 
-    String uid;
-    try {
-      uid = await _nfc.readTagId();
-    } on NfcSessionCancelledException {
-      if (mounted) Navigator.pop(context);
-      return;
-    } on NfcReadTimeoutException {
-      _setError(S.noTagDetectedWithHint);
-      return;
-    } catch (e) {
-      dev.log('NFC scan error: $e', name: 'IdentifyScreen');
-      _setError(S.noTagDetectedWithHint);
+    final result = await _nfc.readTag();
+    if (result.tag == null) {
+      if (result.error == 'cancelled') {
+        if (mounted) Navigator.pop(context);
+      } else {
+        _setError(S.noTagDetectedWithHint);
+      }
       return;
     }
+    final uid = result.tag!;
 
     dev.log('Identify tag scanned: $uid', name: 'IdentifyScreen');
 
@@ -123,7 +112,6 @@ class _IdentifyScreenState extends State<IdentifyScreen> {
         const SizedBox(height: 24),
         OutlinedButton(
           onPressed: () {
-            _nfc.stopReading();
             Navigator.pop(context);
           },
           child: const Text(S.cancel),

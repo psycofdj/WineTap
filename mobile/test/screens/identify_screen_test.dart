@@ -7,29 +7,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:wine_tap_mobile/screens/identify_screen.dart';
 import 'package:wine_tap_mobile/server/database.dart';
-import 'package:wine_tap_mobile/services/nfc_exceptions.dart';
 import 'package:wine_tap_mobile/services/nfc_service.dart';
 
 class MockNfcService implements NfcService {
-  Completer<String>? _readCompleter;
-  bool stopReadingCalled = false;
+  Completer<NfcReadResult>? _readCompleter;
+
+  @override
+  NfcState get state => NfcState.ready;
 
   @override
   Future<bool> isAvailable() async => true;
 
   @override
-  Future<String> readTagId() {
-    _readCompleter = Completer<String>();
+  Future<NfcReadResult> readTag() {
+    _readCompleter = Completer<NfcReadResult>();
     return _readCompleter!.future;
   }
 
-  void completeRead(String tagId) => _readCompleter?.complete(tagId);
-  void failRead(Object error) => _readCompleter?.completeError(error);
-
-  @override
-  Future<void> stopReading() async {
-    stopReadingCalled = true;
-  }
+  void completeRead(String tagId) =>
+      _readCompleter?.complete((tag: tagId, error: null));
+  void failRead(String error) =>
+      _readCompleter?.complete((tag: null, error: error));
 }
 
 void main() {
@@ -98,7 +96,7 @@ void main() {
     expect(find.text('En attente du scan…'), findsOneWidget);
     expect(find.text('Annuler'), findsOneWidget);
 
-    mockNfc.failRead(NfcSessionCancelledException());
+    mockNfc.failRead('cancelled');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
   });
@@ -172,7 +170,7 @@ void main() {
 
   testWidgets('shows error on NFC timeout', (tester) async {
     await pushIdentifyScreen(tester);
-    mockNfc.failRead(NfcReadTimeoutException());
+    mockNfc.failRead('timeout');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -183,7 +181,7 @@ void main() {
   testWidgets('NFC session cancelled pops the screen', (tester) async {
     await pushIdentifyScreen(tester);
 
-    mockNfc.failRead(NfcSessionCancelledException());
+    mockNfc.failRead('cancelled');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
