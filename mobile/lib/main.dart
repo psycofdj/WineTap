@@ -28,7 +28,11 @@ void main() async {
   final coordinator = ScanCoordinator();
   final consumeTracker = ConsumeTracker();
 
-  // 3. Resolve database file path for backup/restore.
+  // 3. NFC — constructor starts a persistent session that claims
+  //    foreground dispatch (suppresses Android's default tag dialog).
+  final nfc = NfcService();
+
+  // 4. Resolve database file path for backup/restore.
   //    Force a trivial query so Drift's lazy connection materializes the file.
   await db.customSelect('SELECT 1').get();
   final docsDir = await getApplicationDocumentsDirectory();
@@ -46,7 +50,7 @@ void main() async {
   // 4. HTTP server — running before UI renders
   late final HttpServer server;
   try {
-    server = await startServer(db, coordinator, dbFile, restartDb, consumeTracker);
+    server = await startServer(db, coordinator, dbFile, restartDb, consumeTracker, nfcService: nfc);
     dev.log(
       'Server started on port ${server.port}',
       name: 'main',
@@ -65,10 +69,6 @@ void main() async {
   } catch (e) {
     dev.log('mDNS registration failed (non-fatal): $e', name: 'main');
   }
-
-  // 5. NFC — constructor starts a persistent session that claims
-  //    foreground dispatch (suppresses Android's default tag dialog).
-  final nfc = NfcService();
 
   // 6. UI
   runApp(

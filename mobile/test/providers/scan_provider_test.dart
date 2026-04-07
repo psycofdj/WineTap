@@ -28,6 +28,9 @@ class MockNfcService implements NfcService {
       _readCompleter?.complete((tag: tagId, error: null));
   void failRead(String error) =>
       _readCompleter?.complete((tag: null, error: error));
+
+  @override
+  Future<void> cancel() async {}
 }
 
 void main() {

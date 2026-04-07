@@ -32,6 +32,9 @@ abstract class NfcService {
   /// High-level read: handles any current state, ensures scanner is ready,
   /// then performs a scan and returns the result.
   Future<NfcReadResult> readTag();
+
+  /// Cancels an active scan. No-op if not scanning.
+  Future<void> cancel();
 }
 
 /// Base implementation that owns the state machine.
@@ -76,7 +79,8 @@ abstract class NfcServiceBase implements NfcService {
     }
   }
 
-  Future<void> _cancel() async {
+  @override
+  Future<void> cancel() async {
     dev.log('cancel: state=$_state', name: _tag);
     switch (_state) {
       case NfcState.ready:
@@ -101,7 +105,7 @@ abstract class NfcServiceBase implements NfcService {
       case NfcState.scanning:
         throw NfcNotReadyException('already scanning');
       case NfcState.postScanning:
-        await Future.delayed(const Duration(seconds: 5));
+        await Future.delayed(const Duration(seconds: 2));
         _state = NfcState.ready;
     }
   }
@@ -111,7 +115,7 @@ abstract class NfcServiceBase implements NfcService {
     dev.log('readTag: state=$_state', name: _tag);
     switch (_state) {
       case NfcState.scanning:
-        await _cancel();
+        await cancel();
         await _waitReady();
       case NfcState.postScanning:
         await _waitReady();
