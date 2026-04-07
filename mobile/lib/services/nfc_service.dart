@@ -42,7 +42,7 @@ abstract class NfcService {
 /// Subclasses override [platformStartScan] and [platformStopScan]
 /// for platform-specific NFC behavior.
 abstract class NfcServiceBase implements NfcService {
-  static const _postScanCooldown = Duration(seconds: 3);
+  static const _postScanCooldown = Duration(seconds: 5);
 
   NfcState _state = NfcState.ready;
   Completer<String>? _scanCompleter;
