@@ -144,6 +144,7 @@ abstract class NfcServiceBase implements NfcService {
 
   void _onTagDiscovered(String tagId) {
     dev.log('_onTagDiscovered: tagId=$tagId, state=$_state', name: _tag);
+    platformStopScan();
     if (_state != NfcState.scanning) return;
     _state = NfcState.postScanning;
     _lastScanAt = DateTime.now();
@@ -154,6 +155,7 @@ abstract class NfcServiceBase implements NfcService {
 
   void _onCanceled() {
     dev.log('_onCanceled: state=$_state', name: _tag);
+    platformStopScan();
     if (_state != NfcState.scanning) return;
     _state = NfcState.postScanning;
     _lastScanAt = DateTime.now();
