@@ -61,8 +61,7 @@ class NoOpNfcService implements NfcService {
   @override
   Future<String> readTagId() async {
     dev.log('readTagId: start', name: _tag);
-    _cancelPendingRead();
-    await teardownSession();
+    _disarm();
     final completer = Completer<String>();
     _readCompleter = completer;
     _readTimer = Timer(_readTimeout, () {
@@ -106,11 +105,6 @@ class NoOpNfcService implements NfcService {
   /// Called when [stopReading] is invoked. Override for platform cleanup.
   void onReadStop() {}
 
-  /// Awaited by [readTagId] before [onReadStart] when a previous read was
-  /// cancelled. Override to perform async platform cleanup (e.g. iOS must
-  /// wait for the NFC sheet to fully dismiss before opening a new one).
-  Future<void> teardownSession() async {}
-
   /// Extracts the UID from a discovered tag, normalizes it, and resolves
   /// the pending read. Subclasses call this from their onDiscovered callback.
   void handleTagDiscovered(NfcTag tag, Uint8List Function(NfcTag) extractUid) {
@@ -150,19 +144,6 @@ class NoOpNfcService implements NfcService {
       completer.completeError(error);
     } else {
       dev.log('failRead: skipped (no pending read)', name: _tag);
-    }
-  }
-
-  /// Cancels any pending read by completing it with [NfcSessionCancelledException].
-  /// Does NOT call [onReadStop] — the next [onReadStart] is responsible for
-  /// tearing down any platform session (iOS needs to await the async stop
-  /// before starting a new session).
-  void _cancelPendingRead() {
-    final prev = _readCompleter;
-    _disarm();
-    if (prev != null && !prev.isCompleted) {
-      dev.log('_cancelPendingRead: cancelling previous read', name: _tag);
-      prev.completeError(NfcSessionCancelledException());
     }
   }
 
