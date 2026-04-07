@@ -267,6 +267,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				b = s.bottleAtSourceRow(row)
 			}
 			if b != nil {
+				s.continueAfterAdd = false
 				s.addBottleFrom(*b)
 			}
 		},
@@ -620,7 +621,11 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 			s.bottleForm.editBottleID = 0
 			s.bottleForm.SetEPC(tagID)
 			s.ts.SetSaveEnabled(true)
-			s.ts.SaveBtn.SetFocus()
+			if s.continueAfterAdd {
+				s.ts.SaveContBtn.SetFocus()
+			} else {
+				s.ts.SaveBtn.SetFocus()
+			}
 		})
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()
