@@ -15,12 +15,21 @@ const _tag = 'NfcServiceIos';
 /// Each read starts a new NFC session which shows the system NFC sheet.
 /// The session is stopped when a tag is read, on timeout, on error, or
 /// when the user dismisses the sheet.
+///
+/// A [_generation] counter guards against stale callbacks: when iOS
+/// asynchronously fires `onSessionErrorIos` from an invalidated session,
+/// the callback sees a generation mismatch and is ignored.
 class NfcServiceIos extends NoOpNfcService {
   bool _sessionActive = false;
 
-  /// Tracks an in-flight [stopSession] call so [teardownSession] can await it
-  /// even when another code path (e.g. widget dispose) already triggered the
-  /// stop and set [_sessionActive] to false.
+  /// Monotonically increasing counter. Bumped on every [_startSession].
+  /// Each callback closure captures the value at creation time and bails
+  /// if it no longer matches.
+  int _generation = 0;
+
+  /// Tracks an in-flight [stopSession] so [teardownSession] can await it
+  /// even when another code path (e.g. widget dispose) already triggered
+  /// the stop.
   Future<void>? _pendingStop;
 
   @override
@@ -46,24 +55,35 @@ class NfcServiceIos extends NoOpNfcService {
       // iOS NFC sheet has a dismiss animation; startSession will fail if the
       // sheet is still visible. Wait for it to fully disappear.
       dev.log('teardownSession: waiting for sheet dismiss', name: _tag);
-      await Future<void>.delayed(const Duration(milliseconds: 3000));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
   }
 
   @override
   void onReadStart() {
     dev.log('onReadStart: starting session', name: _tag);
+    _startSession();
+  }
+
+  void _startSession() {
     _sessionActive = true;
+    final gen = ++_generation;
+    dev.log('_startSession: gen=$gen, opening NFC sheet', name: _tag);
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
       alertMessageIos: 'Approchez le téléphone du tag NFC',
       onDiscovered: (NfcTag tag) {
-        dev.log('onDiscovered: fired', name: _tag);
+        dev.log('onDiscovered: fired (gen=$gen, current=$_generation)',
+            name: _tag);
+        if (gen != _generation) return;
         _stopSession(alertMessage: 'Tag lu');
         handleTagDiscovered(tag, _extractUid);
       },
       onSessionErrorIos: (error) {
-        dev.log('onSessionErrorIos: $error', name: _tag);
+        dev.log(
+            'onSessionErrorIos: $error (gen=$gen, current=$_generation)',
+            name: _tag);
+        if (gen != _generation) return;
         _sessionActive = false;
         failRead(NfcSessionCancelledException());
       },
