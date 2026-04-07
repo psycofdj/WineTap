@@ -262,6 +262,9 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
       final bottle = await db.getBottleById(intId);
       return _json(200, bottle.toJson());
     } on SqliteException catch (e) {
+      if (e.message.contains('UNIQUE constraint')) {
+        return _error(400, 'already_exists', 'tag_id is already in use');
+      }
       if (e.message.contains('FOREIGN KEY constraint')) {
         return _error(400, 'invalid_argument', 'cuvee_id does not exist');
       }

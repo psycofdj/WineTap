@@ -2,6 +2,7 @@ package screen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -68,6 +69,9 @@ type InventoryScreen struct {
 	waitWidget    *qt.QWidget // page 0 — shown during NFC scan
 	waitTitle     *qt.QLabel  // title inside the wait widget
 	onSimulateTag func(tagID string)
+
+	// continueAfterAdd controls whether addBottle chains into addBottleFrom.
+	continueAfterAdd bool
 
 	// Dashboard drill-down filter — consumed after refresh, then cleared.
 	pendingFilterType  string
@@ -245,8 +249,9 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				s.ts.HideRight()
 			}
 		},
-		FormContent: s.rightStack.QFrame.QWidget,
-		OnSave:      func() { s.onSave() },
+		FormContent:    s.rightStack.QFrame.QWidget,
+		OnSave:         func() { s.continueAfterAdd = false; s.onSave() },
+		OnSaveContinue: func() { s.continueAfterAdd = true; s.onSave() },
 		OnCancel: func() {
 			_ = s.ctx.Scanner.StopScan()
 			s.ts.HideRight()
@@ -535,6 +540,7 @@ func (s *InventoryScreen) openAddForm() {
 	s.bottleForm.clearFields()
 	s.setWaiting(true, "En attente d'un scan NFC…")
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(true)
 	s.ts.ShowRight()
 	fillAdd := func(tagID string) {
 		s.bottleForm.SetEPC(tagID)
@@ -577,6 +583,7 @@ func (s *InventoryScreen) openEditForm(srcRow int) {
 	}
 	_ = s.ctx.Scanner.StopScan()
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(false)
 	s.setWaiting(false, "")
 	s.rightStack.Hide()
 	s.bottleForm.loadData(func() {
@@ -602,6 +609,7 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 	s.bottleForm.clearFields()
 	s.setWaiting(true, "En attente d'un scan NFC…")
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(true)
 	s.ts.ShowRight()
 
 	fillFromTemplate := func(tagID string) {
@@ -746,21 +754,34 @@ func (s *InventoryScreen) addBottle(cuveeID int64) {
 		Cuvee:         templateCuvee,
 	}
 
+	continueAfter := s.continueAfterAdd
 	go func() {
 		bottle, err := s.ctx.Client.AddBottle(context.Background(), req)
 		if err != nil {
 			s.ctx.Log.Error("add bottle", "error", err)
 			mainthread.Start(func() {
-				qt.QMessageBox_Warning(nil, "Erreur", "Impossible d'ajouter la bouteille : "+err.Error())
+				msg := "Impossible d'ajouter la bouteille"
+				var apiErr *client.APIError
+				if errors.As(err, &apiErr) && apiErr.Code == "already_exists" {
+					msg = "Impossible d'ajouter la bouteille : ce tag EPC est déjà utilisé par une autre bouteille"
+				} else {
+					showErr(msg, err)
+					return
+				}
+				qt.QMessageBox_Warning(nil, "Erreur", msg)
 			})
 			return
 		}
 		s.ctx.Log.Info("bottle added", "bottle_id", bottle.ID)
 		mainthread.Start(func() {
-			s.refreshThen(func() {
-				// Start a new single scan for the next bottle.
-				s.addBottleFrom(template)
-			})
+			if continueAfter {
+				s.refreshThen(func() {
+					s.addBottleFrom(template)
+				})
+			} else {
+				s.ts.HideRight()
+				s.refresh()
+			}
 		})
 	}()
 }

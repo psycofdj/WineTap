@@ -58,8 +58,9 @@ type tableScreenCfg struct {
 	FormContent        *qt.QWidget
 	RightPanelMinWidth int // 0 → 420
 
-	OnSave   func()
-	OnCancel func() // nil → default: HideRight()
+	OnSave         func()
+	OnSaveContinue func() // nil → no "Save & Continue" button
+	OnCancel       func() // nil → default: HideRight()
 }
 
 // tableScreen is the reusable left-table + right-panel layout used by all
@@ -76,6 +77,7 @@ type tableScreen struct {
 	DelBtn          *qt.QPushButton
 	CopyBtn         *qt.QPushButton // nil when OnCopy was not set
 	SaveBtn         *qt.QPushButton
+	SaveContBtn     *qt.QPushButton // nil when OnSaveContinue was not set
 	CancelBtn       *qt.QPushButton
 
 	sortCol   int
@@ -90,6 +92,16 @@ type tableScreen struct {
 func (ts *tableScreen) SetSaveEnabled(enabled bool) {
 	if ts.SaveBtn != nil {
 		ts.SaveBtn.SetEnabled(enabled)
+	}
+	if ts.SaveContBtn != nil {
+		ts.SaveContBtn.SetEnabled(enabled)
+	}
+}
+
+// SetSaveContinueVisible shows or hides the "Save & Continue" button.
+func (ts *tableScreen) SetSaveContinueVisible(visible bool) {
+	if ts.SaveContBtn != nil {
+		ts.SaveContBtn.SetVisible(visible)
 	}
 }
 
@@ -405,6 +417,13 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	if cfg.OnSave != nil {
 		ts.SaveBtn.OnClicked(func() { cfg.OnSave() })
 	}
+	if cfg.OnSaveContinue != nil {
+		ts.SaveContBtn = newStdBtn("save-continue")
+		ts.SaveContBtn.SetEnabled(false)
+		ts.SaveContBtn.SetFocusPolicy(qt.StrongFocus)
+		ts.SaveContBtn.OnClicked(func() { cfg.OnSaveContinue() })
+		ts.SaveContBtn.Hide()
+	}
 	ts.CancelBtn = newStdBtn("cancel")
 	if cfg.OnCancel != nil {
 		ts.CancelBtn.OnClicked(func() { cfg.OnCancel() })
@@ -413,6 +432,9 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	}
 	panelBtnRow := qt.NewQHBoxLayout2()
 	panelBtnRow.AddWidget(ts.SaveBtn.QAbstractButton.QWidget)
+	if ts.SaveContBtn != nil {
+		panelBtnRow.AddWidget(ts.SaveContBtn.QAbstractButton.QWidget)
+	}
 	panelBtnRow.AddWidget(ts.CancelBtn.QAbstractButton.QWidget)
 	panelBtnRow.AddWidget2(qt.NewQWidget2(), 1)
 	bodyLayout.AddLayout(panelBtnRow.QBoxLayout.QLayout)
