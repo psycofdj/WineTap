@@ -105,7 +105,7 @@ abstract class NfcServiceBase implements NfcService {
       case NfcState.scanning:
         throw NfcNotReadyException('already scanning');
       case NfcState.postScanning:
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 3));
         _state = NfcState.ready;
     }
   }
