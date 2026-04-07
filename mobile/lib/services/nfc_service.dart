@@ -42,8 +42,11 @@ abstract class NfcService {
 /// Subclasses override [platformStartScan] and [platformStopScan]
 /// for platform-specific NFC behavior.
 abstract class NfcServiceBase implements NfcService {
+  static const _postScanCooldown = Duration(seconds: 3);
+
   NfcState _state = NfcState.ready;
   Completer<String>? _scanCompleter;
+  DateTime? _lastScanAt;
 
   @override
   NfcState get state => _state;
@@ -88,6 +91,7 @@ abstract class NfcServiceBase implements NfcService {
         return;
       case NfcState.scanning:
         _state = NfcState.postScanning;
+        _lastScanAt = DateTime.now();
         final completer = _scanCompleter;
         _scanCompleter = null;
         await platformStopScan();
@@ -105,7 +109,11 @@ abstract class NfcServiceBase implements NfcService {
       case NfcState.scanning:
         throw NfcNotReadyException('already scanning');
       case NfcState.postScanning:
-        await Future.delayed(const Duration(seconds: 3));
+        final elapsed = DateTime.now().difference(_lastScanAt ?? DateTime.now());
+        final remaining = _postScanCooldown - elapsed;
+        if (remaining > Duration.zero) {
+          await Future.delayed(remaining);
+        }
         _state = NfcState.ready;
     }
   }
@@ -138,6 +146,7 @@ abstract class NfcServiceBase implements NfcService {
     dev.log('_onTagDiscovered: tagId=$tagId, state=$_state', name: _tag);
     if (_state != NfcState.scanning) return;
     _state = NfcState.postScanning;
+    _lastScanAt = DateTime.now();
     final completer = _scanCompleter;
     _scanCompleter = null;
     completer?.complete(tagId);
@@ -147,6 +156,7 @@ abstract class NfcServiceBase implements NfcService {
     dev.log('_onCanceled: state=$_state', name: _tag);
     if (_state != NfcState.scanning) return;
     _state = NfcState.postScanning;
+    _lastScanAt = DateTime.now();
     final completer = _scanCompleter;
     _scanCompleter = null;
     if (completer != null && !completer.isCompleted) {
