@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -68,6 +69,54 @@ void main() {
       expect((list[0] as Map)['name'], 'Bordeaux');
       expect((list[1] as Map)['name'], 'Madiran');
     });
+
+    test('list returns summary without description and picture', () async {
+      final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+      await post('/', {
+        'name': 'Pauillac',
+        'region': 'Bordeaux',
+        'description': 'A great appellation',
+        'picture': base64Encode(picData),
+      });
+      final response = await get('/');
+      final list = await jsonList(response);
+      final item = list[0] as Map;
+      expect(item['name'], 'Pauillac');
+      expect(item['region'], 'Bordeaux');
+      expect(item.containsKey('description'), isFalse);
+      expect(item.containsKey('picture'), isFalse);
+    });
+  });
+
+  group('GET /designations/:id', () {
+    test('returns 200 with full object including description and picture', () async {
+      final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+      final b64 = base64Encode(picData);
+      final created = await jsonBody(
+          await post('/', {'name': 'Pauillac', 'region': 'Bordeaux', 'description': 'Fine wines', 'picture': b64}));
+      final id = created['id'] as int;
+
+      final response = await get('/$id');
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body['id'], id);
+      expect(body['name'], 'Pauillac');
+      expect(body['region'], 'Bordeaux');
+      expect(body['description'], 'Fine wines');
+      expect(body['picture'], b64);
+    });
+
+    test('returns 404 for non-existent id', () async {
+      final response = await get('/9999');
+      expect(response.statusCode, 404);
+      final body = await jsonBody(response);
+      expect(body['error'], 'not_found');
+    });
+
+    test('returns 400 for non-integer id', () async {
+      final response = await get('/abc');
+      expect(response.statusCode, 400);
+    });
   });
 
   group('POST /designations', () {
@@ -108,6 +157,23 @@ void main() {
       final body = await jsonBody(response);
       expect(body['error'], 'already_exists');
     });
+
+    test('creates designation with picture and returns base64', () async {
+      final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+      final b64 = base64Encode(picData);
+      final response =
+          await post('/', {'name': 'Pauillac', 'picture': b64});
+      expect(response.statusCode, 201);
+      final body = await jsonBody(response);
+      expect(body['picture'], b64);
+    });
+
+    test('creates designation without picture field returns no picture key', () async {
+      final response = await post('/', {'name': 'Listrac'});
+      expect(response.statusCode, 201);
+      final body = await jsonBody(response);
+      expect(body.containsKey('picture'), isFalse);
+    });
   });
 
   group('PUT /designations/:id', () {
@@ -147,6 +213,45 @@ void main() {
     test('returns 400 for non-integer id', () async {
       final response = await put('/abc', {'name': 'X'});
       expect(response.statusCode, 400);
+    });
+
+    test('updates picture via PUT', () async {
+      final created = await jsonBody(await post('/', {'name': 'Margaux'}));
+      final id = created['id'] as int;
+      final picData = Uint8List.fromList([0xFF, 0xD8, 0xFF]);
+      final b64 = base64Encode(picData);
+
+      final response = await put('/$id', {'name': 'Margaux', 'picture': b64});
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body['picture'], b64);
+    });
+
+    test('clears picture when picture is null in PUT', () async {
+      final picData = Uint8List.fromList([0x01, 0x02]);
+      final created = await jsonBody(
+          await post('/', {'name': 'Pessac', 'picture': base64Encode(picData)}));
+      final id = created['id'] as int;
+
+      final response =
+          await put('/$id', {'name': 'Pessac', 'picture': null});
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body.containsKey('picture'), isFalse);
+    });
+
+    test('preserves picture when picture key is absent in PUT', () async {
+      final picData = Uint8List.fromList([0x01, 0x02]);
+      final b64 = base64Encode(picData);
+      final created = await jsonBody(
+          await post('/', {'name': 'Graves', 'picture': b64}));
+      final id = created['id'] as int;
+
+      final response =
+          await put('/$id', {'name': 'Graves', 'region': 'Bordeaux'});
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body['picture'], b64);
     });
   });
 

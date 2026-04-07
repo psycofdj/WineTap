@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 
 import '../l10n/strings.dart';
 import '../server/scan_coordinator.dart';
-import '../services/nfc_exceptions.dart';
 import '../services/nfc_service.dart';
 import 'scan_provider.dart';
 
@@ -63,7 +62,6 @@ class IntakeProvider extends ChangeNotifier {
   void stopListening() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    _nfcService.stopReading();
     _resetTimer?.cancel();
     _hadActiveRequest = false;
     _setState(IntakeState.idle);
@@ -83,11 +81,7 @@ class IntakeProvider extends ChangeNotifier {
       _setState(IntakeState.scanning);
       _singleRead();
     } else if (!pending && _hadActiveRequest && _state != IntakeState.tagSent) {
-      // Manager cancelled or scan completed and reset.
-      // Skip when tagSent — the reset timer will stop reader-mode after the
-      // 1-second feedback, preventing Android from re-dispatching the tag.
       _hadActiveRequest = false;
-      _nfcService.stopReading();
       if (_state != IntakeState.waitingForRequest &&
           _state != IntakeState.error) {
         _setState(IntakeState.waitingForRequest);
@@ -96,28 +90,22 @@ class IntakeProvider extends ChangeNotifier {
   }
 
   /// Cancels an active NFC scan and returns to waitingForRequest.
-  Future<void> cancelScan() async {
-    await _nfcService.stopReading();
+  void cancelScan() {
     _setState(IntakeState.waitingForRequest);
   }
 
   Future<void> _singleRead() async {
-    String tagId;
-    try {
-      tagId = await _nfcService.readTagId();
-    } on NfcSessionCancelledException {
-      _showBriefError(S.scanCancelledRetry);
-      return;
-    } on NfcReadTimeoutException {
-      _showBriefError(S.noTagDetectedWithHint);
-      return;
-    } catch (e) {
-      dev.log('Intake NFC error: $e', name: 'IntakeProvider');
-      _showBriefError(S.noTagDetectedWithHint);
+    final result = await _nfcService.readTag();
+    if (result.tag == null) {
+      if (result.error == 'cancelled') {
+        _showBriefError(S.scanCancelledRetry);
+      } else {
+        _showBriefError(S.noTagDetectedWithHint);
+      }
       return;
     }
 
-    _sendTag(tagId);
+    _sendTag(result.tag!);
   }
 
   void _sendTag(String tagId) {
@@ -136,7 +124,6 @@ class IntakeProvider extends ChangeNotifier {
     _resetTimer?.cancel();
     _resetTimer = Timer(const Duration(seconds: 3), () {
       if (!_disposed && _state == IntakeState.tagSent) {
-        _nfcService.stopReading();
         _setState(IntakeState.waitingForRequest);
       }
     });
@@ -170,7 +157,6 @@ class IntakeProvider extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _pollTimer?.cancel();
-    _nfcService.stopReading();
     _resetTimer?.cancel();
     super.dispose();
   }

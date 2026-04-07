@@ -2,6 +2,7 @@ package screen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -68,6 +69,9 @@ type InventoryScreen struct {
 	waitWidget    *qt.QWidget // page 0 — shown during NFC scan
 	waitTitle     *qt.QLabel  // title inside the wait widget
 	onSimulateTag func(tagID string)
+
+	// continueAfterAdd controls whether addBottle chains into addBottleFrom.
+	continueAfterAdd bool
 
 	// Dashboard drill-down filter — consumed after refresh, then cleared.
 	pendingFilterType  string
@@ -140,11 +144,8 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	// Tab 2 — Historique: flat,    all (consumed included)
 	s.viewTabs = qt.NewQTabBar2()
 	s.viewTabs.AddTab("Par bouteille")
-	s.viewTabs.SetTabToolTip(1, "Une ligne par bouteille, stock en cave uniquement")
 	s.viewTabs.AddTab("Par référence")
-	s.viewTabs.SetTabToolTip(0, "Stock en cave groupé par cuvée et millésime, avec les quantités")
 	s.viewTabs.AddTab("Historique")
-	s.viewTabs.SetTabToolTip(2, "Toutes les bouteilles, y compris celles déjà bues")
 	s.viewTabs.OnCurrentChanged(func(idx int) {
 		s.grouped = idx == 1
 		s.showConsumed = idx == 2
@@ -245,8 +246,9 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				s.ts.HideRight()
 			}
 		},
-		FormContent: s.rightStack.QFrame.QWidget,
-		OnSave:      func() { s.onSave() },
+		FormContent:    s.rightStack.QFrame.QWidget,
+		OnSave:         func() { s.continueAfterAdd = false; s.onSave() },
+		OnSaveContinue: func() { s.continueAfterAdd = true; s.onSave() },
 		OnCancel: func() {
 			_ = s.ctx.Scanner.StopScan()
 			s.ts.HideRight()
@@ -262,6 +264,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				b = s.bottleAtSourceRow(row)
 			}
 			if b != nil {
+				s.continueAfterAdd = false
 				s.addBottleFrom(*b)
 			}
 		},
@@ -285,6 +288,40 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	s.bottleForm.nameEdit.OnTextChanged(func(text string) {
 		s.ts.SetSaveEnabled(strings.TrimSpace(text) != "")
 	})
+
+	// ── Keyboard shortcuts ────────────────────────────────────────────────
+	// Tab switching: Ctrl+1 / Ctrl+& → tab 0, Ctrl+2 / Ctrl+é → tab 1, Ctrl+3 / Ctrl+" → tab 2.
+	for _, pair := range []struct {
+		key string
+		idx int
+	}{
+		{"Ctrl+1", 0}, {"Ctrl+2", 1}, {"Ctrl+3", 2},
+	} {
+		idx := pair.idx
+		addShortcut(s.Widget, pair.key, func() { s.viewTabs.SetCurrentIndex(idx) })
+	}
+	// French AZERTY alternates: & = 0x26, é = 0xe9, " = 0x22
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0x26, func() { s.viewTabs.SetCurrentIndex(0) })
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0xe9, func() { s.viewTabs.SetCurrentIndex(1) })
+	addShortcutInt(s.Widget, int(qt.ControlModifier)|0x22, func() { s.viewTabs.SetCurrentIndex(2) })
+
+	// Ctrl+T → search by NFC tag
+	addShortcut(s.Widget, "Ctrl+T", func() {
+		if s.searchBtn.IsEnabled() {
+			s.onSearchByTag()
+		}
+	})
+	// Ctrl+B → mark as consumed
+	addShortcut(s.Widget, "Ctrl+B", func() {
+		if s.warnBtn.IsEnabled() {
+			s.onConsumeBottle()
+		}
+	})
+
+	// Tab tooltips with shortcut hints.
+	s.viewTabs.SetTabToolTip(0, "Stock en cave groupé par cuvée et millésime, avec les quantités  (Ctrl+1)")
+	s.viewTabs.SetTabToolTip(1, "Une ligne par bouteille, stock en cave uniquement  (Ctrl+2)")
+	s.viewTabs.SetTabToolTip(2, "Toutes les bouteilles, y compris celles déjà bues  (Ctrl+3)")
 
 	return s
 }
@@ -316,6 +353,7 @@ func (s *InventoryScreen) makeFilterPopup(col int, list *qt.QListWidget) *qt.QWi
 func (s *InventoryScreen) OnActivate() {
 	_ = s.ctx.Scanner.StopScan()
 	s.ts.HideRight()
+	s.bottleForm.loadData(nil)
 	s.refresh()
 }
 
@@ -376,6 +414,7 @@ func (s *InventoryScreen) populate(bottles []client.Bottle) {
 
 	s.ts.refreshFilterHeaders()
 	s.ts.HideRight()
+	s.ts.SelectFirstRow()
 }
 
 func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
@@ -535,6 +574,7 @@ func (s *InventoryScreen) openAddForm() {
 	s.bottleForm.clearFields()
 	s.setWaiting(true, "En attente d'un scan NFC…")
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(true)
 	s.ts.ShowRight()
 	fillAdd := func(tagID string) {
 		s.bottleForm.SetEPC(tagID)
@@ -575,23 +615,34 @@ func (s *InventoryScreen) openEditForm(srcRow int) {
 	if b == nil {
 		return
 	}
+	bottleID := b.ID
 	_ = s.ctx.Scanner.StopScan()
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(false)
 	s.setWaiting(false, "")
 	s.rightStack.Hide()
-	s.bottleForm.loadData(func() {
-		s.rightStack.Show()
-		s.bottleForm.loadBottle(*b)
-		s.bottleForm.SetTitle(fmt.Sprintf("Modifier « %s »", func() string {
-			if b.Cuvee.ID != 0 {
-				return b.Cuvee.Name
+	go func() {
+		full, err := s.ctx.Client.GetBottle(context.Background(), bottleID)
+		if err != nil {
+			s.ctx.Log.Error("get bottle", "id", bottleID, "error", err)
+			return
+		}
+		mainthread.Start(func() {
+			s.rightStack.Show()
+			s.bottleForm.loadBottle(full)
+			s.bottleForm.SetTitle(fmt.Sprintf("Modifier « %s »", func() string {
+				if full.Cuvee.ID != 0 {
+					return full.Cuvee.Name
+				}
+				return fmt.Sprintf("#%d", full.ID)
+			}()))
+			s.ts.SetSaveEnabled(full.ConsumedAt == nil)
+			s.ts.ShowRight()
+			if !s.ts.SearchHasFocus() {
+				s.bottleForm.nameEdit.SetFocus()
 			}
-			return fmt.Sprintf("#%d", b.ID)
-		}()))
-		s.ts.SetSaveEnabled(b.ConsumedAt == nil) // consumed bottles are read-only
-		s.ts.ShowRight()
-		s.bottleForm.nameEdit.SetFocus()
-	})
+		})
+	}()
 }
 
 // addBottleFrom starts the add-bottle flow pre-filled from template.
@@ -602,6 +653,7 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 	s.bottleForm.clearFields()
 	s.setWaiting(true, "En attente d'un scan NFC…")
 	s.ts.SetSaveEnabled(false)
+	s.ts.SetSaveContinueVisible(true)
 	s.ts.ShowRight()
 
 	fillFromTemplate := func(tagID string) {
@@ -612,7 +664,11 @@ func (s *InventoryScreen) addBottleFrom(template client.Bottle) {
 			s.bottleForm.editBottleID = 0
 			s.bottleForm.SetEPC(tagID)
 			s.ts.SetSaveEnabled(true)
-			s.ts.SaveBtn.SetFocus()
+			if s.continueAfterAdd {
+				s.ts.SaveContBtn.SetFocus()
+			} else {
+				s.ts.SaveBtn.SetFocus()
+			}
 		})
 		s.bottleForm.SetTitle("Nouvelle bouteille")
 		s.ts.ShowRight()
@@ -746,21 +802,34 @@ func (s *InventoryScreen) addBottle(cuveeID int64) {
 		Cuvee:         templateCuvee,
 	}
 
+	continueAfter := s.continueAfterAdd
 	go func() {
 		bottle, err := s.ctx.Client.AddBottle(context.Background(), req)
 		if err != nil {
 			s.ctx.Log.Error("add bottle", "error", err)
 			mainthread.Start(func() {
-				qt.QMessageBox_Warning(nil, "Erreur", "Impossible d'ajouter la bouteille : "+err.Error())
+				msg := "Impossible d'ajouter la bouteille"
+				var apiErr *client.APIError
+				if errors.As(err, &apiErr) && apiErr.Code == "already_exists" {
+					msg = "Impossible d'ajouter la bouteille : ce tag EPC est déjà utilisé par une autre bouteille"
+				} else {
+					showErr(msg, err)
+					return
+				}
+				qt.QMessageBox_Warning(nil, "Erreur", msg)
 			})
 			return
 		}
 		s.ctx.Log.Info("bottle added", "bottle_id", bottle.ID)
 		mainthread.Start(func() {
-			s.refreshThen(func() {
-				// Start a new single scan for the next bottle.
-				s.addBottleFrom(template)
-			})
+			if continueAfter {
+				s.refreshThen(func() {
+					s.addBottleFrom(template)
+				})
+			} else {
+				s.ts.HideRight()
+				s.refresh()
+			}
 		})
 	}()
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	qt "github.com/mappu/miqt/qt6"
+	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -40,10 +41,9 @@ func BuildDomainsScreen(ctx *Ctx) *DomainsScreen {
 		OnSelectionChange: func(srcRow int) {
 			if srcRow >= 0 && srcRow < len(s.all) {
 				d := s.all[srcRow]
-				s.domForm.loadForEdit(d)
 				s.domForm.SetTitle(fmt.Sprintf("Modifier « %s »", d.Name))
 				s.ts.ShowRight()
-				s.domForm.nameEdit.SetFocus()
+				s.fetchAndLoadDomain(d.ID)
 			} else {
 				s.ts.HideRight()
 			}
@@ -78,6 +78,22 @@ func (s *DomainsScreen) populate() {
 			nonEditableItem(d.Description),
 		})
 	}
+}
+
+func (s *DomainsScreen) fetchAndLoadDomain(id int64) {
+	go func() {
+		d, err := s.ctx.Client.GetDomain(context.Background(), id)
+		if err != nil {
+			s.ctx.Log.Error("get domain", "id", id, "error", err)
+			return
+		}
+		mainthread.Start(func() {
+			s.domForm.loadForEdit(d)
+			if !s.ts.SearchHasFocus() {
+				s.domForm.nameEdit.SetFocus()
+			}
+		})
+	}()
 }
 
 func (s *DomainsScreen) onSave() {

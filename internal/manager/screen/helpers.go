@@ -69,24 +69,55 @@ func setBtnClass(btn *qt.QPushButton, class string) {
 	btn.QAbstractButton.QWidget.QObject.SetProperty("cssClass", qt.NewQVariant11(class))
 }
 
+// stdBtnShortcuts maps semantic button classes to their shortcut hint text.
+// Used to append shortcut info to tooltips.
+var stdBtnShortcuts = map[string]string{
+	"add":     "Ctrl+A",
+	"delete":  "Ctrl+Suppr",
+	"copy":    "Ctrl+D",
+	"search":  "Ctrl+T",
+	"warning": "Ctrl+B",
+}
+
 // newStdBtn creates a standard action button from a semantic class name.
 func newStdBtn(class string) *qt.QPushButton {
 	type def struct{ symbol, tooltip string }
 	defs := map[string]def{
-		"add":     {"＋", "Ajouter"},
-		"delete":  {"−", "Supprimer"},
-		"copy":    {"⧉", "Copier"},
-		"save":    {"✔", "Enregistrer"},
-		"cancel":  {"✕", "Annuler"},
-		"search":  {"⌕", "Rechercher"},
-		"warning": {"🍷", "Marquée comme bue"},
+		"add":           {"＋", "Ajouter"},
+		"delete":        {"−", "Supprimer"},
+		"copy":          {"⧉", "Copier"},
+		"save":          {"✔", "Enregistrer"},
+		"save-continue": {"✔➜", "Enregistrer et continuer"},
+		"cancel":        {"✕", "Annuler"},
+		"search":        {"⌕", "Rechercher"},
+		"warning":       {"🍷", "Marquée comme bue"},
 	}
 	d := defs[class]
 	btn := qt.NewQPushButton3(d.symbol + " " + d.tooltip)
 	setBtnClass(btn, class)
-	btn.SetToolTip(d.tooltip)
+	tip := d.tooltip
+	if sc, ok := stdBtnShortcuts[class]; ok {
+		tip += "  (" + sc + ")"
+	}
+	btn.SetToolTip(tip)
 	btn.SetFixedHeight(36)
 	return btn
+}
+
+// addShortcut creates a QShortcut on parent for the given key sequence string
+// (e.g. "Ctrl+A", "Alt+D") and connects it to fn.
+func addShortcut(parent *qt.QWidget, keySeq string, fn func()) {
+	sc := qt.NewQShortcut2(qt.NewQKeySequence2(keySeq), parent.QObject)
+	sc.SetContext(qt.WidgetWithChildrenShortcut)
+	sc.OnActivated(fn)
+}
+
+// addShortcutInt creates a QShortcut on parent using an integer key combination
+// (e.g. int(qt.ControlModifier)|int(qt.Key_1)) and connects it to fn.
+func addShortcutInt(parent *qt.QWidget, key int, fn func()) {
+	sc := qt.NewQShortcut2(qt.NewQKeySequence3(key), parent.QObject)
+	sc.SetContext(qt.WidgetWithChildrenShortcut)
+	sc.OnActivated(fn)
 }
 
 // setWidgetRole assigns a "role" dynamic property to any widget so the global

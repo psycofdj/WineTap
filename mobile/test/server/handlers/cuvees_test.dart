@@ -67,6 +67,54 @@ void main() {
       expect(response.statusCode, 200);
       expect(await jsonList(response), isEmpty);
     });
+
+    test('list returns summary without description', () async {
+      final domain = await createDomain('Château Margaux');
+      await post('/', {
+        'name': 'Grande Réserve',
+        'domain_id': domain['id'],
+        'color': 1,
+        'description': 'Flagship wine',
+      });
+      final response = await get('/');
+      final list = await jsonList(response);
+      final item = list[0] as Map;
+      expect(item['name'], 'Grande Réserve');
+      expect(item.containsKey('description'), isFalse);
+    });
+  });
+
+  group('GET /cuvees/:id', () {
+    test('returns 200 with full object including description', () async {
+      final domain = await createDomain('Château Margaux');
+      final created = await jsonBody(await post('/', {
+        'name': 'Grande Réserve',
+        'domain_id': domain['id'],
+        'color': 1,
+        'description': 'Flagship wine',
+      }));
+      final id = created['id'] as int;
+
+      final response = await get('/$id');
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body['id'], id);
+      expect(body['name'], 'Grande Réserve');
+      expect(body['description'], 'Flagship wine');
+      expect(body['domain_name'], 'Château Margaux');
+    });
+
+    test('returns 404 for non-existent id', () async {
+      final response = await get('/9999');
+      expect(response.statusCode, 404);
+      final body = await jsonBody(response);
+      expect(body['error'], 'not_found');
+    });
+
+    test('returns 400 for non-integer id', () async {
+      final response = await get('/abc');
+      expect(response.statusCode, 400);
+    });
   });
 
   group('POST /cuvees', () {
@@ -139,18 +187,18 @@ void main() {
       expect(body['error'], 'invalid_argument');
     });
 
-    test('returns 400 when domain_id does not exist (FK violation)', () async {
+    test('returns 412 when domain_id does not exist (FK violation)', () async {
       final response = await post('/', {
         'name': 'Test',
         'domain_id': 9999,
         'color': 1,
       });
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'invalid_argument');
+      expect(body['error'], 'referenced');
     });
 
-    test('returns 400 when designation_id does not exist (FK violation)', () async {
+    test('returns 412 when designation_id does not exist (FK violation)', () async {
       final domain = await createDomain('Pomerol');
       final response = await post('/', {
         'name': 'Test',
@@ -158,9 +206,9 @@ void main() {
         'color': 1,
         'designation_id': 9999,
       });
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'invalid_argument');
+      expect(body['error'], 'referenced');
     });
   });
 
@@ -203,7 +251,7 @@ void main() {
       expect(response.statusCode, 400);
     });
 
-    test('returns 400 when domain_id does not exist (FK violation)', () async {
+    test('returns 412 when domain_id does not exist (FK violation)', () async {
       final domain = await createDomain('Pomerol');
       final created = await jsonBody(await post('/', {
         'name': 'Test',
@@ -215,7 +263,7 @@ void main() {
         'domain_id': 9999,
         'color': 1,
       });
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
     });
   });
 

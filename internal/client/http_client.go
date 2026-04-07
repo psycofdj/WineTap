@@ -41,6 +41,9 @@ func (c *WineTapHTTPClient) doJSON(ctx context.Context, method, path string, bod
 	return c.doJSONWith(ctx, c.http, method, path, body)
 }
 
+// maxBodyLog is the maximum number of bytes logged for request/response bodies.
+const maxBodyLog = 2048
+
 func (c *WineTapHTTPClient) doJSONWith(ctx context.Context, client *http.Client, method, path string, body any) (*http.Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
@@ -48,6 +51,7 @@ func (c *WineTapHTTPClient) doJSONWith(ctx context.Context, client *http.Client,
 		if err != nil {
 			return nil, fmt.Errorf("marshal request: %w", err)
 		}
+		slog.Debug("HTTP request body", "method", method, "path", path, "body", truncateLog(b))
 		bodyReader = bytes.NewReader(b)
 	}
 
@@ -70,7 +74,27 @@ func (c *WineTapHTTPClient) doJSONWith(ctx context.Context, client *http.Client,
 		return nil, err
 	}
 	slog.Info("HTTP response", "method", method, "path", path, "status", resp.StatusCode)
+
+	// Buffer response body so we can log it at Debug level and still let
+	// callers (decodeResponse, checkError) read it.
+	respBody, err := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("read response body: %w", err)
+	}
+	slog.Debug("HTTP response body", "method", method, "path", path, "body", truncateLog(respBody))
+	resp.Body = io.NopCloser(bytes.NewReader(respBody))
+
 	return resp, nil
+}
+
+// truncateLog returns s as-is when it fits in maxBodyLog, otherwise returns
+// the first maxBodyLog bytes followed by a truncation notice.
+func truncateLog(b []byte) string {
+	if len(b) <= maxBodyLog {
+		return string(b)
+	}
+	return string(b[:maxBodyLog]) + fmt.Sprintf("… (%d bytes truncated)", len(b)-maxBodyLog)
 }
 
 // checkError reads and closes a non-2xx response body and parses it into an
@@ -112,6 +136,14 @@ func (c *WineTapHTTPClient) ListDesignations(ctx context.Context) ([]Designation
 	return decodeResponse[[]Designation](resp)
 }
 
+func (c *WineTapHTTPClient) GetDesignation(ctx context.Context, id int64) (Designation, error) {
+	resp, err := c.doJSON(ctx, http.MethodGet, fmt.Sprintf("/designations/%d", id), nil)
+	if err != nil {
+		return Designation{}, err
+	}
+	return decodeResponse[Designation](resp)
+}
+
 func (c *WineTapHTTPClient) AddDesignation(ctx context.Context, d CreateDesignation) (Designation, error) {
 	resp, err := c.doJSON(ctx, http.MethodPost, "/designations", d)
 	if err != nil {
@@ -147,6 +179,14 @@ func (c *WineTapHTTPClient) ListDomains(ctx context.Context) ([]Domain, error) {
 	return decodeResponse[[]Domain](resp)
 }
 
+func (c *WineTapHTTPClient) GetDomain(ctx context.Context, id int64) (Domain, error) {
+	resp, err := c.doJSON(ctx, http.MethodGet, fmt.Sprintf("/domains/%d", id), nil)
+	if err != nil {
+		return Domain{}, err
+	}
+	return decodeResponse[Domain](resp)
+}
+
 func (c *WineTapHTTPClient) AddDomain(ctx context.Context, d CreateDomain) (Domain, error) {
 	resp, err := c.doJSON(ctx, http.MethodPost, "/domains", d)
 	if err != nil {
@@ -180,6 +220,14 @@ func (c *WineTapHTTPClient) ListCuvees(ctx context.Context) ([]Cuvee, error) {
 		return nil, err
 	}
 	return decodeResponse[[]Cuvee](resp)
+}
+
+func (c *WineTapHTTPClient) GetCuvee(ctx context.Context, id int64) (Cuvee, error) {
+	resp, err := c.doJSON(ctx, http.MethodGet, fmt.Sprintf("/cuvees/%d", id), nil)
+	if err != nil {
+		return Cuvee{}, err
+	}
+	return decodeResponse[Cuvee](resp)
 }
 
 func (c *WineTapHTTPClient) AddCuvee(ctx context.Context, cv CreateCuvee) (Cuvee, error) {
@@ -261,13 +309,6 @@ func (c *WineTapHTTPClient) UpdateBottle(ctx context.Context, id int64, fields m
 	return decodeResponse[Bottle](resp)
 }
 
-func (c *WineTapHTTPClient) BulkUpdateBottles(ctx context.Context, ids []int64, fields map[string]any) (BulkUpdateResponse, error) {
-	resp, err := c.doJSON(ctx, http.MethodPut, "/bottles/bulk", BulkUpdateRequest{IDs: ids, Fields: fields})
-	if err != nil {
-		return BulkUpdateResponse{}, err
-	}
-	return decodeResponse[BulkUpdateResponse](resp)
-}
 
 func (c *WineTapHTTPClient) DeleteBottle(ctx context.Context, id int64) error {
 	resp, err := c.doJSON(ctx, http.MethodDelete, fmt.Sprintf("/bottles/%d", id), nil)
@@ -278,13 +319,6 @@ func (c *WineTapHTTPClient) DeleteBottle(ctx context.Context, id int64) error {
 	return checkError(resp)
 }
 
-func (c *WineTapHTTPClient) SetBottleTagID(ctx context.Context, id int64, tagID string) (Bottle, error) {
-	resp, err := c.doJSON(ctx, http.MethodPut, fmt.Sprintf("/bottles/%d/tag", id), SetTagRequest{TagID: tagID})
-	if err != nil {
-		return Bottle{}, err
-	}
-	return decodeResponse[Bottle](resp)
-}
 
 // ── Completions ─────────────────────────────────────────────────────────────
 

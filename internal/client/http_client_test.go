@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -30,7 +31,29 @@ func TestDesignationJSON(t *testing.T) {
 	if err := json.Unmarshal(b, &d2); err != nil {
 		t.Fatal(err)
 	}
-	if d2 != d {
+	if !reflect.DeepEqual(d2, d) {
+		t.Errorf("roundtrip: got %+v, want %+v", d2, d)
+	}
+}
+
+func TestDesignationJSONWithPicture(t *testing.T) {
+	pic := []byte{0x89, 0x50, 0x4E, 0x47}
+	d := Designation{ID: 2, Name: "Cahors", Region: "Sud-Ouest", Description: "", Picture: pic}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// []byte marshals as base64 in JSON.
+	want := `{"id":2,"name":"Cahors","region":"Sud-Ouest","description":"","picture":"iVBORw=="}`
+	if string(b) != want {
+		t.Errorf("got %s, want %s", b, want)
+	}
+
+	var d2 Designation
+	if err := json.Unmarshal(b, &d2); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(d2, d) {
 		t.Errorf("roundtrip: got %+v, want %+v", d2, d)
 	}
 }
@@ -165,7 +188,7 @@ func TestListDesignations(t *testing.T) {
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`[{"id":1,"name":"Madiran","region":"Sud-Ouest","description":""}]`))
+		w.Write([]byte(`[{"id":1,"name":"Madiran","region":"Sud-Ouest"}]`))
 	}))
 
 	desigs, err := client.ListDesignations(bgCtx)
@@ -174,6 +197,46 @@ func TestListDesignations(t *testing.T) {
 	}
 	if len(desigs) != 1 || desigs[0].Name != "Madiran" {
 		t.Errorf("got %+v", desigs)
+	}
+	// List returns summary — description and picture should be zero-valued.
+	if desigs[0].Description != "" {
+		t.Errorf("expected empty description from summary, got %q", desigs[0].Description)
+	}
+}
+
+func TestGetDesignation(t *testing.T) {
+	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/designations/1" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(Designation{ID: 1, Name: "Madiran", Region: "Sud-Ouest", Description: "A bold red"})
+	}))
+
+	d, err := client.GetDesignation(bgCtx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.ID != 1 || d.Name != "Madiran" || d.Description != "A bold red" {
+		t.Errorf("got %+v", d)
+	}
+}
+
+func TestGetDesignation_NotFound(t *testing.T) {
+	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte(`{"error":"not_found","message":"designation 999 not found"}`))
+	}))
+
+	_, err := client.GetDesignation(bgCtx, 999)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	apiErr, ok := err.(*APIError)
+	if !ok {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.Code != "not_found" {
+		t.Errorf("got code=%s", apiErr.Code)
 	}
 }
 
@@ -227,6 +290,44 @@ func TestDeleteDesignation(t *testing.T) {
 
 	if err := client.DeleteDesignation(bgCtx, 1); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGetDomain(t *testing.T) {
+	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/domains/5" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(Domain{ID: 5, Name: "Brumont", Description: "Madiran estate"})
+	}))
+
+	d, err := client.GetDomain(bgCtx, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.ID != 5 || d.Name != "Brumont" || d.Description != "Madiran estate" {
+		t.Errorf("got %+v", d)
+	}
+}
+
+func TestGetCuvee(t *testing.T) {
+	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/cuvees/1" {
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(Cuvee{
+			ID: 1, Name: "Montus", DomainID: 5, DesignationID: 1,
+			Color: 1, Description: "Tannat blend",
+			DomainName: "Brumont", DesignationName: "Madiran", Region: "Sud-Ouest",
+		})
+	}))
+
+	c, err := client.GetCuvee(bgCtx, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ID != 1 || c.Name != "Montus" || c.Description != "Tannat blend" {
+		t.Errorf("got %+v", c)
 	}
 }
 
@@ -320,50 +421,9 @@ func TestUpdateBottle_PartialFields(t *testing.T) {
 	}
 }
 
-func TestBulkUpdateBottles(t *testing.T) {
-	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/bottles/bulk" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		var req BulkUpdateRequest
-		json.NewDecoder(r.Body).Decode(&req)
-		if len(req.IDs) != 2 {
-			t.Errorf("expected 2 IDs, got %d", len(req.IDs))
-		}
-		json.NewEncoder(w).Encode(BulkUpdateResponse{Updated: 2})
-	}))
 
-	resp, err := client.BulkUpdateBottles(bgCtx, []int64{42, 43}, map[string]any{"cuvee_id": 2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.Updated != 2 {
-		t.Errorf("got updated=%d", resp.Updated)
-	}
-}
 
-func TestSetBottleTagID(t *testing.T) {
-	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/bottles/42/tag" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		var req SetTagRequest
-		json.NewDecoder(r.Body).Decode(&req)
-		if req.TagID != "AABB" {
-			t.Errorf("expected tag_id=AABB, got %s", req.TagID)
-		}
-		tag := "AABB"
-		json.NewEncoder(w).Encode(Bottle{ID: 42, TagID: &tag, Cuvee: Cuvee{ID: 1}})
-	}))
 
-	b, err := client.SetBottleTagID(bgCtx, 42, "AABB")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if b.TagID == nil || *b.TagID != "AABB" {
-		t.Errorf("got %+v", b)
-	}
-}
 
 func TestGetCompletions(t *testing.T) {
 	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -643,6 +703,57 @@ func TestHealthResponseJSON(t *testing.T) {
 	want := `{"status":"ok","last_consumed_at":1712000000}`
 	if string(b) != want {
 		t.Errorf("got %s, want %s", b, want)
+	}
+}
+
+// ── Debug body logging tests ─────────────────────────────────────────────────
+
+func TestTruncateLog_Short(t *testing.T) {
+	in := []byte("hello")
+	got := truncateLog(in)
+	if got != "hello" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestTruncateLog_ExactLimit(t *testing.T) {
+	in := make([]byte, maxBodyLog)
+	for i := range in {
+		in[i] = 'x'
+	}
+	got := truncateLog(in)
+	if got != string(in) {
+		t.Error("expected no truncation at exact limit")
+	}
+}
+
+func TestTruncateLog_OverLimit(t *testing.T) {
+	in := make([]byte, maxBodyLog+500)
+	for i := range in {
+		in[i] = 'y'
+	}
+	got := truncateLog(in)
+	if len(got) <= maxBodyLog {
+		t.Error("expected truncation notice appended")
+	}
+	if !strings.Contains(got, "500 bytes truncated") {
+		t.Errorf("expected truncation notice, got suffix: %s", got[maxBodyLog:])
+	}
+}
+
+func TestDebugBodyLogging_ResponseBodyStillReadable(t *testing.T) {
+	// After doJSONWith buffers + logs the response body, callers must still
+	// be able to decode it.
+	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]Designation{{ID: 7, Name: "Jurançon", Region: "Sud-Ouest"}})
+	}))
+
+	d, err := client.ListDesignations(bgCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(d) != 1 || d[0].Name != "Jurançon" {
+		t.Errorf("got %+v", d)
 	}
 }
 

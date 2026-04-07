@@ -114,10 +114,11 @@ jobs:
 
       - name: Install miqt-docker
         run: go install github.com/mappu/miqt/cmd/miqt-docker@latest
-        
+
       - name: Build
-        run: 
+        run:
           miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -160,10 +161,144 @@ jobs:
           name: manager-linux-amd64
           path: manager-linux-amd64
 
+  android:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.41.6'
+          cache: false
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/upload-keystore.jks
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Check v1 embedding
+        run: |
+          echo "=== AndroidManifest.xml ==="
+          cat android/app/src/main/AndroidManifest.xml
+          echo "=== grep flutterEmbedding ==="
+          grep -r "flutterEmbedding" android/ || echo "flutterEmbedding NOT FOUND"
+          echo "=== grep FlutterApplication ==="
+          grep -r "FlutterApplication\|io\.flutter\.app" android/ || echo "No v1 references found"
+          echo "=== pwd and ls ==="
+          pwd
+          ls -la android/app/src/main/
+
+
+      - name: Build App Bundle
+        env:
+          ANDROID_KEYSTORE_PATH: /tmp/upload-keystore.jks
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          flutter build appbundle \
+            --release \
+            --verbose \
+            --build-name=${{ steps.version.outputs.name }} \
+            --build-number=${{ steps.version.outputs.code }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.aab
+          path: mobile/build/app/outputs/bundle/release/app-release.aab
+
+  ios:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install Apple certificate and provisioning profile
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          PP_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          echo "$IOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PP_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Build IPA
+        run: |
+          flutter build ipa \
+            --release \
+            --build-name=${{ steps.version.outputs.name }} \
+            --build-number=${{ steps.version.outputs.code }} \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WineTap.ipa
+          path: mobile/build/ios/ipa/*.ipa
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
 
   release:
-    needs: [linux, macos, windows]
+    needs: [linux, macos, windows, android, ios]
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -185,7 +320,7 @@ jobs:
           tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
           zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
 
-      - name: Create release
+      - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
@@ -194,4 +329,30 @@ jobs:
             --generate-notes \
             "dist/manager-${VERSION}-linux-amd64.tar.gz" \
             "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
-            "dist/manager-${VERSION}-windows-amd64.zip"
+            "dist/manager-${VERSION}-windows-amd64.zip" \
+            "dist/app-release.aab/app-release.aab" \
+            "dist/WineTap.ipa/"*.ipa
+
+      - name: Upload to Google Play (internal track)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.winetap.mobile
+          releaseFiles: dist/app-release.aab/app-release.aab
+          track: internal
+
+      - name: Upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          # Install xcrun alternative for Linux
+          pip install codemagic-cli-tools
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
+          app-store-connect publish \
+            --path dist/WineTap.ipa/*.ipa \
+            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --private-key @~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8

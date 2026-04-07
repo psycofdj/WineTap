@@ -63,6 +63,33 @@ void main() {
     });
   });
 
+  group('GET /domains/:id', () {
+    test('returns 200 with full object', () async {
+      final created = await jsonBody(
+          await post('/', {'name': 'Château Margaux', 'description': 'Grand cru'}));
+      final id = created['id'] as int;
+
+      final response = await get('/$id');
+      expect(response.statusCode, 200);
+      final body = await jsonBody(response);
+      expect(body['id'], id);
+      expect(body['name'], 'Château Margaux');
+      expect(body['description'], 'Grand cru');
+    });
+
+    test('returns 404 for non-existent id', () async {
+      final response = await get('/9999');
+      expect(response.statusCode, 404);
+      final body = await jsonBody(response);
+      expect(body['error'], 'not_found');
+    });
+
+    test('returns 400 for non-integer id', () async {
+      final response = await get('/abc');
+      expect(response.statusCode, 400);
+    });
+  });
+
   group('POST /domains', () {
     test('creates domain and returns 201 with JSON', () async {
       final response = await post('/', {'name': 'Château Margaux', 'description': 'Grand cru'});

@@ -11,9 +11,13 @@ bin/
 
 # OS
 .DS_Store
-main
-winetap
-cfru5102_read
-nfc_seed
+/main
+/winetap
+/cfru5102_read
+/nfc_seed
 /server
 /winetap.db*
+/manager
+
+# Mobile signing
+mobile/android/key.properties

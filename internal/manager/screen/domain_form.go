@@ -2,13 +2,9 @@ package screen
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
-	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -28,63 +24,30 @@ type domainForm struct {
 
 func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 	f := &domainForm{cli: cli}
-	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true, nil)
+	f.baseForm = newBaseForm("Nom", true, nil)
 
-	f.autoBtn.OnClicked(func() {
-		name := f.Name()
-		if name == "" {
+	domainPrompt := func() string {
+		return fmt.Sprintf(`
+			Tu es un expert en vins français. 
+			Rédige une courte description (3 à 4 phrases) du domaine viticole « %s »: Appellation, style des vins, réputation. 
+			Tu peux chercher sur des sites web de critique de vin tels que 
+			vivino, vinsolite, buveurdevin ou autre. 
+			Je veux aussi l'adresse postale et le numéro de téléphone. 
+			Répond moi sous forme de 3 paragraphes séparés par deux sauts de ligne:
+			- description du domaine
+			- description des méthodes de production
+			- adresse et téléphone 
+			Ne mets pas d'intitulé de paragraphe.
+			`,
+			f.Name(),
+		)
+	}
+
+	f.chatGPTBtn.OnClicked(func() {
+		if f.Name() == "" {
 			return
 		}
-		f.descEdit.Clear()
-		f.startAuto()
-
-		go func() {
-			prompt := fmt.Sprintf(
-				"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
-					"du domaine viticole « %s » : appellation, style des vins, réputation. "+
-					"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-					"Je veux aussi l'adresse postale et le numéro de téléphone. "+
-					"Répond moi sous forme d'un JSON: description, adresse, telephone. "+
-					"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
-				name,
-			)
-			slog.Debug("chatgpt domain query", "prompt", prompt)
-			raw, err := chatGPTQuery(prompt)
-			slog.Debug("chatgpt domain query result", "raw", raw, "err", err)
-
-			mainthread.Start(func() {
-				f.finishAuto()
-				if err != nil {
-					qt.QMessageBox_Warning(nil, "Recherche échouée", err.Error())
-					return
-				}
-
-				type domainInfo struct {
-					Description string `json:"description"`
-					Adresse     string `json:"adresse"`
-					Telephone   string `json:"telephone"`
-				}
-
-				jsonStr := extractJSONObject(raw)
-				var info domainInfo
-				if jsonStr == "" || json.Unmarshal([]byte(jsonStr), &info) != nil {
-					f.descEdit.SetPlainText(raw)
-					return
-				}
-
-				var parts []string
-				if info.Description != "" && info.Description != "NC" {
-					parts = append(parts, info.Description)
-				}
-				if info.Adresse != "" && info.Adresse != "NC" {
-					parts = append(parts, "Adresse : "+info.Adresse)
-				}
-				if info.Telephone != "" && info.Telephone != "NC" {
-					parts = append(parts, "Tél. : "+info.Telephone)
-				}
-				f.descEdit.SetPlainText(strings.Join(parts, "\n\n"))
-			})
-		}()
+		openChatGPT(domainPrompt())
 	})
 
 	f.alignLabels()

@@ -128,6 +128,32 @@ void main() {
       expect((b['cuvee'] as Map)['domain_name'], 'Château Margaux');
       expect((b['cuvee'] as Map)['designation_name'], 'Margaux AOC');
     });
+
+    test('list returns summary without descriptions', () async {
+      final domain = await createDomain('Pomerol');
+      final cuvee = await jsonDecode(await (await cuveesRouter(db)(Request(
+        'POST',
+        Uri.parse('http://localhost/'),
+        body: jsonEncode({
+          'name': 'Le Pin',
+          'domain_id': domain['id'],
+          'color': 1,
+          'description': 'Cuvée description',
+        }),
+        headers: {'Content-Type': 'application/json'},
+      ))).readAsString()) as Map<String, dynamic>;
+
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'description': 'Bottle notes',
+      });
+
+      final list = await jsonList(await get('/'));
+      final b = list[0] as Map;
+      expect(b.containsKey('description'), isFalse);
+      expect((b['cuvee'] as Map).containsKey('description'), isFalse);
+    });
   });
 
   group('GET /bottles/by-tag/:tag_id', () {
@@ -262,11 +288,11 @@ void main() {
       expect(body['error'], 'invalid_argument');
     });
 
-    test('returns 400 when cuvee_id does not exist', () async {
+    test('returns 412 when cuvee_id does not exist', () async {
       final response = await post('/', {'cuvee_id': 9999, 'vintage': 2019});
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'invalid_argument');
+      expect(body['error'], 'referenced');
     });
 
     test('returns 400 on duplicate tag_id', () async {
@@ -365,102 +391,14 @@ void main() {
       expect(response.statusCode, 400);
     });
 
-    test('returns 400 when cuvee_id does not exist', () async {
+    test('returns 412 when cuvee_id does not exist', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
           await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
 
       final response = await put('/${created['id']}', {'cuvee_id': 9999});
-      expect(response.statusCode, 400);
-    });
-  });
-
-  group('PUT /bottles/bulk', () {
-    test('updates all listed ids and returns updated count', () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee1 = await createCuvee(domain['id'] as int, 'Cuvée A');
-      final cuvee2 = await createCuvee(domain['id'] as int, 'Cuvée B');
-      final b1 = await jsonBody(
-          await post('/', {'cuvee_id': cuvee1['id'], 'vintage': 2019}));
-      final b2 = await jsonBody(
-          await post('/', {'cuvee_id': cuvee1['id'], 'vintage': 2020}));
-
-      final response = await put('/bulk', {
-        'ids': [b1['id'], b2['id']],
-        'fields': {'cuvee_id': cuvee2['id']},
-      });
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      expect(body['updated'], 2);
-    });
-
-    test('returns 400 when ids is missing', () async {
-      final response = await put('/bulk', {'fields': {'vintage': 2020}});
-      expect(response.statusCode, 400);
-    });
-
-    test('returns 400 when fields is missing', () async {
-      final response = await put('/bulk', {'ids': [1, 2]});
-      expect(response.statusCode, 400);
-    });
-  });
-
-  group('PUT /bottles/:id/tag', () {
-    test('sets tag and returns 200 with updated bottle', () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
-
-      final response =
-          await put('/${created['id']}/tag', {'tag_id': '04A32BFF'});
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      expect(body['tag_id'], '04A32BFF');
-    });
-
-    test('normalizes tag_id', () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
-
-      final response =
-          await put('/${created['id']}/tag', {'tag_id': '04:a3:2b:ff'});
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      expect(body['tag_id'], '04A32BFF');
-    });
-
-    test('returns 400 when tag_id already in use', () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final b1 = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'TAG1'}));
-      final b2 = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2020}));
-
-      final response = await put('/${b2['id']}/tag', {'tag_id': 'TAG1'});
-      expect(response.statusCode, 400);
-      final body = await jsonBody(response);
-      expect(body['error'], 'already_exists');
-      // keep b1 in scope
-      expect(b1['id'], isA<int>());
-    });
-
-    test('returns 404 for non-existent bottle', () async {
-      final response = await put('/9999/tag', {'tag_id': 'AABBCC'});
-      expect(response.statusCode, 404);
-    });
-
-    test('returns 400 when tag_id is missing', () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
-      final response = await put('/${created['id']}/tag', {});
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
     });
   });
 

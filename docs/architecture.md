@@ -105,7 +105,7 @@ designations (INAO appellations)
 
 ## REST API
 
-27 endpoints served by the phone on port 8080. See [rest-api-contracts.md](./rest-api-contracts.md).
+26 endpoints served by the phone on port 8080. See [rest-api-contracts.md](./rest-api-contracts.md).
 
 ### Scan Coordination Flow
 

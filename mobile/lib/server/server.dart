@@ -12,6 +12,7 @@ import 'handlers/completions.dart';
 import 'handlers/cuvees.dart';
 import 'handlers/designations.dart';
 import 'handlers/domains.dart';
+import '../services/nfc_service.dart';
 import 'handlers/scan.dart';
 import 'middleware/wakelock.dart';
 import 'scan_coordinator.dart';
@@ -29,6 +30,7 @@ Future<HttpServer> startServer(
   File dbFile,
   Future<void> Function() restartDb,
   ConsumeTracker consumeTracker, {
+  required NfcService nfcService,
   bool enableWakelock = true,
   int port = 8080,
 }) async {
@@ -48,7 +50,7 @@ Future<HttpServer> startServer(
   router.mount('/cuvees', cuveesRouter(db).call);
   router.mount('/bottles', bottlesRouter(db, consumeTracker).call);
   router.mount('/completions', completionsRouter(db).call);
-  router.mount('/scan', scanRouter(coordinator).call);
+  router.mount('/scan', scanRouter(coordinator, nfcService).call);
 
   // Data resilience (Story 8.1)
   router.get('/backup',

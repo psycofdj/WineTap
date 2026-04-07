@@ -7,6 +7,7 @@ import 'package:wine_tap_mobile/server/consume_tracker.dart';
 import 'package:wine_tap_mobile/server/database.dart';
 import 'package:wine_tap_mobile/server/scan_coordinator.dart';
 import 'package:wine_tap_mobile/server/server.dart';
+import 'package:wine_tap_mobile/services/nfc_service.dart';
 
 void main() {
   late AppDatabase db;
@@ -21,7 +22,7 @@ void main() {
     final dbFile = File('/dev/null'); // unused in server tests
     server = await startServer(db, coordinator, dbFile, () async {},
         ConsumeTracker(),
-        enableWakelock: false, port: 0);
+        nfcService: NoOpNfcService(), enableWakelock: false, port: 0);
   });
 
   tearDown(() async {

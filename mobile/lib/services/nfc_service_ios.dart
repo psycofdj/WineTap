@@ -5,17 +5,17 @@ import 'package:nfc_manager/nfc_manager_ios.dart';
 
 import 'dart:developer' as dev;
 
-import 'nfc_exceptions.dart';
 import 'nfc_service.dart';
+import 'tag_id.dart';
 
 const _tag = 'NfcServiceIos';
 
 /// iOS NFC implementation.
 ///
-/// Each read starts a new NFC session which shows the system NFC sheet.
+/// Each scan starts a new NFC session which shows the system NFC sheet.
 /// The session is stopped when a tag is read, on timeout, on error, or
 /// when the user dismisses the sheet.
-class NfcServiceIos extends NoOpNfcService {
+class NfcServiceIos extends NfcServiceBase {
   @override
   Future<bool> isAvailable() async {
     dev.log('isAvailable: start', name: _tag);
@@ -25,46 +25,41 @@ class NfcServiceIos extends NoOpNfcService {
     return result;
   }
 
-  bool _sessionActive = false;
-
   @override
-  void onReadStart() {
-    dev.log('onReadStart: starting session', name: _tag);
-    _sessionActive = true;
+  void platformStartScan({
+    required void Function(String tagId) onTagDiscovered,
+    required void Function() onCanceled,
+  }) {
+    dev.log('platformStartScan: starting session', name: _tag);
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
       alertMessageIos: 'Approchez le téléphone du tag NFC',
       onDiscovered: (NfcTag tag) {
         dev.log('onDiscovered: fired', name: _tag);
-        _stopSession(alertMessage: 'Tag lu');
-        handleTagDiscovered(tag, _extractUid);
+        NfcManager.instance
+            .stopSession(alertMessageIos: 'Tag lu')
+            .catchError((_) {});
+        try {
+          final uid = _extractUid(tag);
+          final hex =
+              uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          onTagDiscovered(normalizeTagId(hex));
+        } catch (e) {
+          dev.log('onDiscovered: extractUid error: $e', name: _tag);
+          onCanceled();
+        }
       },
       onSessionErrorIos: (error) {
         dev.log('onSessionErrorIos: $error', name: _tag);
-        _sessionActive = false;
-        failRead(NfcSessionCancelledException());
+        onCanceled();
       },
     );
   }
 
   @override
-  void onReadTimeout() {
-    dev.log('onReadTimeout: stopping session', name: _tag);
-    _stopSession();
-  }
-
-  @override
-  void onReadStop() {
-    dev.log('onReadStop: stopping session', name: _tag);
-    _stopSession();
-  }
-
-  void _stopSession({String? alertMessage}) {
-    if (!_sessionActive) return;
-    _sessionActive = false;
-    NfcManager.instance
-        .stopSession(alertMessageIos: alertMessage)
-        .catchError((_) {});
+  Future<void> platformStopScan() async {
+    dev.log('platformStopScan: stopping session', name: _tag);
+    await NfcManager.instance.stopSession().catchError((_) {});
   }
 
   Uint8List _extractUid(NfcTag tag) {

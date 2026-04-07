@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below: legacy fullBackupContent rules.
+  Include everything in the default locations except WAL/SHM temp files.
+-->
+<full-backup-content>
+    <exclude domain="database" path="winetap.sqlite-wal" />
+    <exclude domain="database" path="winetap.sqlite-shm" />
+    <exclude domain="file" path="winetap.sqlite.tmp" />
+    <exclude domain="file" path="winetap.sqlite.bak" />
+</full-backup-content>

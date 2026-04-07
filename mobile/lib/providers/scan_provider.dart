@@ -1,11 +1,11 @@
 import 'dart:developer' as dev;
 
+import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../l10n/strings.dart';
 import '../server/consume_tracker.dart';
 import '../server/database.dart';
-import '../services/nfc_exceptions.dart';
 import '../services/nfc_service.dart';
 
 /// States for the simplified consume scan flow.
@@ -46,20 +46,16 @@ class ScanProvider extends ChangeNotifier {
     _errorMessage = null;
 
     // 1. Read NFC tag
-    String uid;
-    try {
-      uid = await _nfcService.readTagId();
-    } on NfcSessionCancelledException {
-      _setState(ScanState.idle);
-      return;
-    } on NfcReadTimeoutException {
-      _setError(S.noTagDetectedWithHint);
-      return;
-    } catch (e) {
-      dev.log('NFC scan error: $e', name: 'ScanProvider');
-      _setError(S.noTagDetectedWithHint);
+    final result = await _nfcService.readTag();
+    if (result.tag == null) {
+      if (result.error == 'cancelled') {
+        _setState(ScanState.idle);
+      } else {
+        _setError(S.noTagDetectedWithHint);
+      }
       return;
     }
+    final uid = result.tag!;
 
     // Duplicate suppression (FR5): ignore if same tag just scanned
     if (uid == _lastScannedTagId) {
@@ -104,7 +100,7 @@ class ScanProvider extends ChangeNotifier {
   /// Cancels the current NFC scan session and returns to idle.
   void cancel() {
     if (_state != ScanState.scanning) return;
-    _nfcService.stopReading();
+    // NfcService state machine handles cleanup internally.
     _setState(ScanState.idle);
     _tagId = null;
     _bottle = null;
@@ -118,7 +114,7 @@ class ScanProvider extends ChangeNotifier {
   void cancelForIntake() {
     if (_state == ScanState.idle) return;
     if (_state == ScanState.scanning) {
-      _nfcService.stopReading();
+      // NfcService state machine handles cleanup internally.
     }
     _tagId = null;
     _bottle = null;
@@ -129,7 +125,7 @@ class ScanProvider extends ChangeNotifier {
 
   /// Resets to idle from consumed or error state (user taps "Terminé").
   void reset() {
-    _nfcService.stopReading();
+    // NfcService state machine handles cleanup internally.
     _tagId = null;
     _bottle = null;
     _errorMessage = null;
@@ -137,10 +133,23 @@ class ScanProvider extends ChangeNotifier {
     _setState(ScanState.idle);
   }
 
+  /// Updates the bottle description with a comment, then resets to idle.
+  Future<void> resetWithComment(String comment) async {
+    if (_bottle != null && comment.trim().isNotEmpty) {
+      final id = _bottle!.bottle.id;
+      await _db.updateBottleFields(
+        id,
+        BottlesCompanion(description: Value(comment.trim())),
+      );
+      dev.log('Bottle $id description updated', name: 'ScanProvider');
+    }
+    reset();
+  }
+
   @override
   void dispose() {
     _disposed = true;
-    _nfcService.stopReading();
+    // NfcService state machine handles cleanup internally.
     super.dispose();
   }
 

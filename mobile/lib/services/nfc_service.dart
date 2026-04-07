@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'dart:math';
-import 'dart:typed_data';
-
-import 'package:nfc_manager/nfc_manager.dart';
-
 import 'dart:developer' as dev;
 
 import 'nfc_exceptions.dart';
 import 'nfc_service_android.dart';
 import 'nfc_service_ios.dart';
-import 'tag_id.dart';
 
 const _tag = 'NfcService';
+
+enum NfcState { ready, scanning, postScanning }
+
+/// Result of [NfcService.readTag].
+/// Exactly one of [tag] or [error] is non-null.
+typedef NfcReadResult = ({String? tag, String? error});
 
 /// Platform-agnostic NFC tag reading interface.
 ///
@@ -26,130 +26,165 @@ abstract class NfcService {
     return NoOpNfcService();
   }
 
-  /// Returns whether the device has NFC hardware and it is enabled.
+  NfcState get state;
   Future<bool> isAvailable();
 
-  /// Reads one tag and returns the UID as a normalized uppercase hex string
-  /// (e.g. "04A32BFF").
-  ///
-  /// Throws [NfcReadTimeoutException] if no tag is presented.
-  /// Throws [NfcSessionCancelledException] if the user cancels (iOS sheet).
-  Future<String> readTagId();
+  /// High-level read: handles any current state, ensures scanner is ready,
+  /// then performs a scan and returns the result.
+  Future<NfcReadResult> readTag();
 
-  /// Cancels any active read and returns to idle.
-  Future<void> stopReading();
+  /// Cancels an active scan. No-op if not scanning.
+  Future<void> cancel();
 }
 
-/// Base implementation that owns the completer + timeout timer.
+/// Base implementation that owns the state machine.
 ///
-/// Subclasses override [onReadStart], [onReadStop], and [onReadTimeout]
-/// for platform-specific behavior, and call [completeRead] / [failRead]
-/// when a tag is discovered or an error occurs.
-///
-/// As-is (without subclassing), returns random fake tags prefixed with
-/// "FFFF" — useful for desktop runs and tests.
-class NoOpNfcService implements NfcService {
-  static const _readTimeout = Duration(seconds: 30);
-  final _random = Random();
+/// Subclasses override [platformStartScan] and [platformStopScan]
+/// for platform-specific NFC behavior.
+abstract class NfcServiceBase implements NfcService {
+  static const _postScanCooldown = Duration(seconds: 5);
 
-  Completer<String>? _readCompleter;
-  Timer? _readTimer;
+  NfcState _state = NfcState.ready;
+  Completer<String>? _scanCompleter;
+  DateTime? _lastScanAt;
 
+  @override
+  NfcState get state => _state;
+
+  /// Start listening for NFC tags. The implementation must call
+  /// [onTagDiscovered] with the normalized hex tag ID when a tag is read,
+  /// or [onCanceled] if the scan is cancelled by the platform (e.g. iOS
+  /// sheet dismissed).
+  void platformStartScan({
+    required void Function(String tagId) onTagDiscovered,
+    required void Function() onCanceled,
+  });
+
+  /// Stop listening for NFC tags (platform cleanup).
+  Future<void> platformStopScan();
+
+  Future<String> _scan() {
+    dev.log('scan: state=$_state', name: _tag);
+    switch (_state) {
+      case NfcState.ready:
+        _state = NfcState.scanning;
+        final completer = Completer<String>();
+        _scanCompleter = completer;
+        platformStartScan(
+          onTagDiscovered: _onTagDiscovered,
+          onCanceled: _onCanceled,
+        );
+        return completer.future;
+      case NfcState.scanning:
+        throw NfcNotReadyException('already scanning');
+      case NfcState.postScanning:
+        throw NfcNotReadyException('post-scanning');
+    }
+  }
+
+  @override
+  Future<void> cancel() async {
+    dev.log('cancel: state=$_state', name: _tag);
+    switch (_state) {
+      case NfcState.ready:
+      case NfcState.postScanning:
+        return;
+      case NfcState.scanning:
+        _state = NfcState.postScanning;
+        _lastScanAt = DateTime.now();
+        final completer = _scanCompleter;
+        _scanCompleter = null;
+        await platformStopScan();
+        if (completer != null && !completer.isCompleted) {
+          completer.completeError(NfcSessionCancelledException());
+        }
+    }
+  }
+
+  Future<void> _waitReady() async {
+    dev.log('waitReady: state=$_state', name: _tag);
+    switch (_state) {
+      case NfcState.ready:
+        return;
+      case NfcState.scanning:
+        throw NfcNotReadyException('already scanning');
+      case NfcState.postScanning:
+        final elapsed = DateTime.now().difference(_lastScanAt ?? DateTime.now());
+        final remaining = _postScanCooldown - elapsed;
+        if (remaining > Duration.zero) {
+          await Future.delayed(remaining);
+        }
+        _state = NfcState.ready;
+    }
+  }
+
+  @override
+  Future<NfcReadResult> readTag() async {
+    dev.log('readTag: state=$_state', name: _tag);
+    switch (_state) {
+      case NfcState.scanning:
+        await cancel();
+        await _waitReady();
+      case NfcState.postScanning:
+        await _waitReady();
+      case NfcState.ready:
+        break;
+    }
+    try {
+      final tag = await _scan();
+      return (tag: tag, error: null);
+    } on NfcSessionCancelledException {
+      return (tag: null, error: 'cancelled');
+    } on NfcReadTimeoutException {
+      return (tag: null, error: 'timeout');
+    } catch (e) {
+      return (tag: null, error: e.toString());
+    }
+  }
+
+  void _onTagDiscovered(String tagId) {
+    dev.log('_onTagDiscovered: tagId=$tagId, state=$_state', name: _tag);
+    platformStopScan();
+    if (_state != NfcState.scanning) return;
+    _state = NfcState.postScanning;
+    _lastScanAt = DateTime.now();
+    final completer = _scanCompleter;
+    _scanCompleter = null;
+    completer?.complete(tagId);
+  }
+
+  void _onCanceled() {
+    dev.log('_onCanceled: state=$_state', name: _tag);
+    platformStopScan();
+    if (_state != NfcState.scanning) return;
+    _state = NfcState.postScanning;
+    _lastScanAt = DateTime.now();
+    final completer = _scanCompleter;
+    _scanCompleter = null;
+    if (completer != null && !completer.isCompleted) {
+      completer.completeError(NfcSessionCancelledException());
+    }
+  }
+}
+
+/// Desktop / test fallback that produces a fake tag immediately.
+class NoOpNfcService extends NfcServiceBase {
   @override
   Future<bool> isAvailable() async => true;
 
   @override
-  Future<String> readTagId() async {
-    dev.log('readTagId: start', name: _tag);
-    _disarm();
-    final completer = Completer<String>();
-    _readCompleter = completer;
-    _readTimer = Timer(_readTimeout, () {
-      dev.log('readTagId: timeout fired, completed=${completer.isCompleted}',
-          name: _tag);
-      if (!completer.isCompleted) {
-        dev.log('readTagId: return timeout error', name: _tag);
-        _disarm();
-        onReadTimeout();
-        completer.completeError(NfcReadTimeoutException());
-      }
-    });
-    dev.log('readTagId: armed, awaiting tag', name: _tag);
-    onReadStart();
-    return completer.future;
+  void platformStartScan({
+    required void Function(String tagId) onTagDiscovered,
+    required void Function() onCanceled,
+  }) {
+    final suffix = DateTime.now().microsecondsSinceEpoch
+        .toRadixString(16)
+        .padLeft(8, '0')
+        .substring(0, 8)
+        .toUpperCase();
+    onTagDiscovered('FFFF$suffix');
   }
 
   @override
-  Future<void> stopReading() async {
-    dev.log('stopReading: start', name: _tag);
-    _disarm();
-    onReadStop();
-    dev.log('stopReading: return ok', name: _tag);
-  }
-
-  /// Called when [readTagId] arms the handler. Override to start
-  /// platform-specific NFC listening.
-  /// The default generates a random fake tag immediately.
-  void onReadStart() {
-    final suffix = List.generate(
-      4,
-      (_) => _random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-    ).join();
-    completeRead('FFFF$suffix'.toUpperCase());
-  }
-
-  /// Called when the read timer expires. Override for platform cleanup
-  /// (e.g. stopping an iOS session).
-  void onReadTimeout() {}
-
-  /// Called when [stopReading] is invoked. Override for platform cleanup.
-  void onReadStop() {}
-
-  /// Extracts the UID from a discovered tag, normalizes it, and resolves
-  /// the pending read. Subclasses call this from their onDiscovered callback.
-  void handleTagDiscovered(NfcTag tag, Uint8List Function(NfcTag) extractUid) {
-    dev.log('handleTagDiscovered: fired', name: _tag);
-    try {
-      final uid = extractUid(tag);
-      final hex = uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-      final normalized = normalizeTagId(hex);
-      dev.log('handleTagDiscovered: tag=$normalized', name: _tag);
-      completeRead(normalized);
-    } catch (e) {
-      dev.log('handleTagDiscovered: extractUid error: $e', name: _tag);
-      failRead(e);
-    }
-  }
-
-  /// Resolves the pending read with a tag ID.
-  void completeRead(String tagId) {
-    dev.log('completeRead: tagId=$tagId', name: _tag);
-    final completer = _readCompleter;
-    _disarm();
-    if (completer != null && !completer.isCompleted) {
-      dev.log('completeRead: return success', name: _tag);
-      completer.complete(tagId);
-    } else {
-      dev.log('completeRead: skipped (no pending read)', name: _tag);
-    }
-  }
-
-  /// Rejects the pending read with an error.
-  void failRead(Object error) {
-    dev.log('failRead: error=$error', name: _tag);
-    final completer = _readCompleter;
-    _disarm();
-    if (completer != null && !completer.isCompleted) {
-      dev.log('failRead: return error', name: _tag);
-      completer.completeError(error);
-    } else {
-      dev.log('failRead: skipped (no pending read)', name: _tag);
-    }
-  }
-
-  void _disarm() {
-    _readTimer?.cancel();
-    _readTimer = null;
-    _readCompleter = null;
-  }
+  Future<void> platformStopScan() async {}
 }

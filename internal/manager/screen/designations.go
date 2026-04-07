@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
+	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -55,10 +56,9 @@ func BuildDesignationsScreen(ctx *Ctx) *DesignationsScreen {
 		OnSelectionChange: func(srcRow int) {
 			if srcRow >= 0 && srcRow < len(s.all) {
 				d := s.all[srcRow]
-				s.desigForm.loadForEdit(d, s.regionCompletions())
 				s.desigForm.SetTitle(fmt.Sprintf("Modifier « %s »", d.Name))
 				s.ts.ShowRight()
-				s.desigForm.regionEdit.SetFocus()
+				s.fetchAndLoadDesignation(d.ID)
 			} else {
 				s.ts.HideRight()
 			}
@@ -148,6 +148,22 @@ func (s *DesignationsScreen) regionCompletions() []string {
 		regions = append(regions, s.regionListPop.Item(i).Text())
 	}
 	return regions
+}
+
+func (s *DesignationsScreen) fetchAndLoadDesignation(id int64) {
+	go func() {
+		d, err := s.ctx.Client.GetDesignation(context.Background(), id)
+		if err != nil {
+			s.ctx.Log.Error("get designation", "id", id, "error", err)
+			return
+		}
+		mainthread.Start(func() {
+			s.desigForm.loadForEdit(d, s.regionCompletions())
+			if !s.ts.SearchHasFocus() {
+				s.desigForm.regionEdit.SetFocus()
+			}
+		})
+	}()
 }
 
 func (s *DesignationsScreen) onSave() {

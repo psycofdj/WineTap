@@ -6,23 +6,38 @@ import 'package:nfc_manager/nfc_manager_android.dart';
 import 'dart:developer' as dev;
 
 import 'nfc_service.dart';
+import 'tag_id.dart';
 
 const _tag = 'NfcServiceAndroid';
 
 /// Android NFC implementation.
 ///
 /// A single NFC session is kept alive for the entire app lifetime.
-/// By default, tag discoveries are silently ignored (prevents Android from
-/// showing its "New tag analyzed" system dialog).
-/// When [readTagId] is called the handler is armed so the next tag discovery
-/// resolves the future, then returns to no-op.
-class NfcServiceAndroid extends NoOpNfcService {
+/// By default, tag discoveries are silently ignored.
+/// When [platformStartScan] is called the handler is armed so the next
+/// tag discovery resolves via the callback, then disarms.
+class NfcServiceAndroid extends NfcServiceBase {
+  void Function(String tagId)? _pendingOnTagDiscovered;
+
   NfcServiceAndroid() {
     dev.log('constructor: starting persistent session', name: _tag);
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
-      onDiscovered: (tag) => handleTagDiscovered(tag, _extractUid),
+      onDiscovered: _handleTag,
     );
+  }
+
+  void _handleTag(NfcTag tag) {
+    final callback = _pendingOnTagDiscovered;
+    if (callback == null) return;
+    _pendingOnTagDiscovered = null;
+    try {
+      final uid = _extractUid(tag);
+      final hex = uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      callback(normalizeTagId(hex));
+    } catch (e) {
+      dev.log('_handleTag: extractUid error: $e', name: _tag);
+    }
   }
 
   @override
@@ -35,8 +50,18 @@ class NfcServiceAndroid extends NoOpNfcService {
   }
 
   @override
-  void onReadStart() {
-    dev.log('onReadStart: armed', name: _tag);
+  void platformStartScan({
+    required void Function(String tagId) onTagDiscovered,
+    required void Function() onCanceled,
+  }) {
+    dev.log('platformStartScan: armed', name: _tag);
+    _pendingOnTagDiscovered = onTagDiscovered;
+  }
+
+  @override
+  Future<void> platformStopScan() async {
+    dev.log('platformStopScan: disarmed', name: _tag);
+    _pendingOnTagDiscovered = null;
   }
 
   Uint8List _extractUid(NfcTag tag) {

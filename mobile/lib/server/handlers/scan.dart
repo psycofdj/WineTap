@@ -4,9 +4,10 @@ import 'dart:developer' as dev;
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import '../../services/nfc_service.dart';
 import '../scan_coordinator.dart';
 
-Router scanRouter(ScanCoordinator coordinator) {
+Router scanRouter(ScanCoordinator coordinator, NfcService nfcService) {
   final router = Router();
 
   // POST /request — start a new scan
@@ -46,6 +47,7 @@ Router scanRouter(ScanCoordinator coordinator) {
   // POST /cancel — cancel pending scan
   router.post('/cancel', (Request req) async {
     coordinator.cancel();
+    await nfcService.cancel();
     dev.log('Scan cancelled', name: 'scan');
     return _json(200, {'status': 'cancelled'});
   });

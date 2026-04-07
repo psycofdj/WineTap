@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ (API 31+): data extraction rules for cloud and D2D backup.
+  Include everything by default; exclude WAL/SHM temp files.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="winetap.sqlite-wal" />
+        <exclude domain="database" path="winetap.sqlite-shm" />
+        <exclude domain="file" path="winetap.sqlite.tmp" />
+        <exclude domain="file" path="winetap.sqlite.bak" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="winetap.sqlite-wal" />
+        <exclude domain="database" path="winetap.sqlite-shm" />
+        <exclude domain="file" path="winetap.sqlite.tmp" />
+        <exclude domain="file" path="winetap.sqlite.bak" />
+    </device-transfer>
+</data-extraction-rules>

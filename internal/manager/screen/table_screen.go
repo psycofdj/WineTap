@@ -58,8 +58,9 @@ type tableScreenCfg struct {
 	FormContent        *qt.QWidget
 	RightPanelMinWidth int // 0 → 420
 
-	OnSave   func()
-	OnCancel func() // nil → default: HideRight()
+	OnSave         func()
+	OnSaveContinue func() // nil → no "Save & Continue" button
+	OnCancel       func() // nil → default: HideRight()
 }
 
 // tableScreen is the reusable left-table + right-panel layout used by all
@@ -76,6 +77,7 @@ type tableScreen struct {
 	DelBtn          *qt.QPushButton
 	CopyBtn         *qt.QPushButton // nil when OnCopy was not set
 	SaveBtn         *qt.QPushButton
+	SaveContBtn     *qt.QPushButton // nil when OnSaveContinue was not set
 	CancelBtn       *qt.QPushButton
 
 	sortCol   int
@@ -90,6 +92,16 @@ type tableScreen struct {
 func (ts *tableScreen) SetSaveEnabled(enabled bool) {
 	if ts.SaveBtn != nil {
 		ts.SaveBtn.SetEnabled(enabled)
+	}
+	if ts.SaveContBtn != nil {
+		ts.SaveContBtn.SetEnabled(enabled)
+	}
+}
+
+// SetSaveContinueVisible shows or hides the "Save & Continue" button.
+func (ts *tableScreen) SetSaveContinueVisible(visible bool) {
+	if ts.SaveContBtn != nil {
+		ts.SaveContBtn.SetVisible(visible)
 	}
 }
 
@@ -120,6 +132,30 @@ func (ts *tableScreen) HideRight() {
 		ts.RightPanel.Update()
 	}
 	ts.TableView.ClearSelection()
+}
+
+// SearchHasFocus reports whether the search bar currently has focus (i.e. the
+// user is actively typing a filter query).  Async form-load callbacks should
+// skip their SetFocus call when this returns true so the search bar is not
+// stolen from the user.
+func (ts *tableScreen) SearchHasFocus() bool {
+	return ts.SearchEdit.HasFocus()
+}
+
+// SelectFirstRow selects the first visible row in the table, or clears the
+// selection when the table is empty.  Call after populating the model.
+func (ts *tableScreen) SelectFirstRow() {
+	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
+	if rowCount == 0 {
+		ts.TableView.ClearSelection()
+		return
+	}
+	idx := ts.Proxy.Index(0, 0, qt.NewQModelIndex())
+	ts.TableView.SetCurrentIndex(idx)
+	ts.TableView.SelectRow(0)
+	if !ts.SearchEdit.HasFocus() {
+		ts.TableView.SetFocus()
+	}
 }
 
 // SelectedSourceRow returns the source-model row of the current selection,
@@ -258,6 +294,7 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	ts.SearchEdit = qt.NewQLineEdit2()
 	ts.SearchEdit.SetPlaceholderText(ph)
 	ts.SearchEdit.SetClearButtonEnabled(true)
+	ts.SearchEdit.SetToolTip("Rechercher  (Ctrl+R)")
 	setWidgetRole(ts.SearchEdit.QWidget, "search")
 	ts.SearchEdit.OnTextChanged(func(_ string) { ts.Proxy.InvalidateFilter() })
 
@@ -316,12 +353,18 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 			ts.RightPanel.Style().Polish(ts.RightPanel)
 			ts.RightPanel.Update()
 		}
+		// Remember whether the search bar has focus so we can restore it
+		// after the callback (which may SetFocus a form field).
+		searchHadFocus := ts.SearchEdit.HasFocus()
 		if cfg.OnSelectionChange != nil {
 			if selected {
 				cfg.OnSelectionChange(ts.Proxy.MapToSource(&rows[0]).Row())
 			} else {
 				cfg.OnSelectionChange(-1)
 			}
+		}
+		if searchHadFocus {
+			ts.SearchEdit.SetFocus()
 		}
 	})
 
@@ -364,6 +407,7 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	// ── Splitter or plain layout ───────────────────────────────────────────────
 	if cfg.FormContent == nil {
 		root.AddWidget2(leftWidget, 1)
+		ts.installShortcuts(cfg)
 		return ts
 	}
 
@@ -405,6 +449,13 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	if cfg.OnSave != nil {
 		ts.SaveBtn.OnClicked(func() { cfg.OnSave() })
 	}
+	if cfg.OnSaveContinue != nil {
+		ts.SaveContBtn = newStdBtn("save-continue")
+		ts.SaveContBtn.SetEnabled(false)
+		ts.SaveContBtn.SetFocusPolicy(qt.StrongFocus)
+		ts.SaveContBtn.OnClicked(func() { cfg.OnSaveContinue() })
+		ts.SaveContBtn.Hide()
+	}
 	ts.CancelBtn = newStdBtn("cancel")
 	if cfg.OnCancel != nil {
 		ts.CancelBtn.OnClicked(func() { cfg.OnCancel() })
@@ -413,6 +464,9 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	}
 	panelBtnRow := qt.NewQHBoxLayout2()
 	panelBtnRow.AddWidget(ts.SaveBtn.QAbstractButton.QWidget)
+	if ts.SaveContBtn != nil {
+		panelBtnRow.AddWidget(ts.SaveContBtn.QAbstractButton.QWidget)
+	}
 	panelBtnRow.AddWidget(ts.CancelBtn.QAbstractButton.QWidget)
 	panelBtnRow.AddWidget2(qt.NewQWidget2(), 1)
 	bodyLayout.AddLayout(panelBtnRow.QBoxLayout.QLayout)
@@ -421,5 +475,69 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	splitter.SetStretchFactor(1, 0)
 	ts.ShowRight()
 
+	ts.installShortcuts(cfg)
+
 	return ts
+}
+
+// installShortcuts wires keyboard shortcuts to the action buttons and table
+// navigation on the root Widget.
+func (ts *tableScreen) installShortcuts(cfg tableScreenCfg) {
+	w := ts.Widget
+
+	// ── Action buttons ────────────────────────────────────────────────────
+	if cfg.OnAdd != nil {
+		addShortcut(w, "Ctrl+A", func() { cfg.OnAdd() })
+	}
+	if cfg.OnDelete != nil {
+		addShortcut(w, "Ctrl+Del", func() {
+			if ts.DelBtn.IsEnabled() {
+				cfg.OnDelete()
+			}
+		})
+	}
+	if cfg.OnCopy != nil {
+		addShortcut(w, "Ctrl+D", func() {
+			if ts.CopyBtn != nil && ts.CopyBtn.IsEnabled() {
+				cfg.OnCopy()
+			}
+		})
+	}
+	// Ctrl+R → focus search bar
+	addShortcut(w, "Ctrl+R", func() {
+		ts.SearchEdit.SetFocus()
+		ts.SearchEdit.SelectAll()
+	})
+
+	// ── Table navigation ──────────────────────────────────────────────────
+	addShortcut(w, "Ctrl+Down", func() { ts.selectRelative(+1) })
+	addShortcut(w, "Ctrl+Up", func() { ts.selectRelative(-1) })
+}
+
+// selectRelative moves the table selection by delta rows (+1 = down, -1 = up).
+// If nothing is selected, +1 selects the first row, -1 selects the last.
+func (ts *tableScreen) selectRelative(delta int) {
+	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
+	if rowCount == 0 {
+		return
+	}
+	cur := ts.TableView.QAbstractItemView.CurrentIndex()
+	var targetRow int
+	if !cur.IsValid() {
+		if delta > 0 {
+			targetRow = 0
+		} else {
+			targetRow = rowCount - 1
+		}
+	} else {
+		targetRow = cur.Row() + delta
+		if targetRow < 0 {
+			targetRow = rowCount - 1
+		} else if targetRow >= rowCount {
+			targetRow = 0
+		}
+	}
+	idx := ts.Proxy.Index(targetRow, 0, qt.NewQModelIndex())
+	ts.TableView.SetCurrentIndex(idx)
+	ts.TableView.SelectRow(targetRow)
 }

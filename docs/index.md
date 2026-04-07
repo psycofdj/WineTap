@@ -21,8 +21,7 @@
 - [Project Overview](./project-overview.md) — Purpose, architecture summary, tech stack, key decisions
 - [Architecture](./architecture.md) — System diagram, component details, data model, scan flow, deployment
 - [Data Models](./data-models.md) — Drift/SQLite schema, entity relationships, migration strategy
-- [REST API Contracts](./rest-api-contracts.md) — All 27 HTTP endpoints with request/response shapes
-- [API Contracts (Legacy)](./api-contracts.md) — v1 gRPC API reference (no longer in use)
+- [REST API Contracts](./rest-api-contracts.md) — All 26 HTTP endpoints with request/response shapes
 - [Development Guide](./development-guide.md) — Prerequisites, build commands, local setup, testing
 
 ## Getting Started

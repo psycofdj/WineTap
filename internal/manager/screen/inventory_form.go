@@ -44,7 +44,7 @@ type inventoryBottleForm struct {
 
 func newInventoryBottleForm(ctx *Ctx) *inventoryBottleForm {
 	f := &inventoryBottleForm{ctx: ctx}
-	f.baseForm = newBaseForm("Cuvée", "", true, nil)
+	f.baseForm = newBaseForm("Cuvée", true, nil)
 
 	// Hide the auto-fill row — bottles have no AI auto-fill.
 	f.autoContainer.Hide()

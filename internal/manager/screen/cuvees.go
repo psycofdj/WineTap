@@ -98,6 +98,12 @@ func BuildCuveesScreen(ctx *Ctx) *CuveesScreen {
 	return s
 }
 
+func (s *CuveesScreen) OnActivate() {
+	s.ts.HideRight()
+	s.loadCombos(nil)
+	s.refresh()
+}
+
 func (s *CuveesScreen) populate() {
 	root := qt.NewQModelIndex()
 	s.ts.SrcModel.RemoveRows(0, s.ts.SrcModel.RowCount(root), root)
@@ -148,20 +154,35 @@ func (s *CuveesScreen) openAddForm() {
 func (s *CuveesScreen) openCopyForm(c client.Cuvee) {
 	s.ts.TableView.ClearSelection()
 	s.loadCombos(func() {
-		s.cuvForm.loadForCopy(c)
-		s.cuvForm.SetTitle(fmt.Sprintf("Copie de « %s »", c.Name))
-		s.ts.ShowRight()
-		s.cuvForm.nameEdit.SetFocus()
+		s.fetchAndLoadCuvee(c.ID, func(full client.Cuvee) {
+			s.cuvForm.loadForCopy(full)
+			s.cuvForm.SetTitle(fmt.Sprintf("Copie de « %s »", full.Name))
+			s.ts.ShowRight()
+			s.cuvForm.nameEdit.SetFocus()
+		})
 	})
 }
 
 func (s *CuveesScreen) openEditForm(c client.Cuvee) {
-	s.loadCombos(func() {
-		s.cuvForm.loadForEdit(c)
-		s.cuvForm.SetTitle(fmt.Sprintf("Modifier « %s »", c.Name))
+	s.fetchAndLoadCuvee(c.ID, func(full client.Cuvee) {
+		s.cuvForm.loadForEdit(full)
+		s.cuvForm.SetTitle(fmt.Sprintf("Modifier « %s »", full.Name))
 		s.ts.ShowRight()
-		s.cuvForm.nameEdit.SetFocus()
+		if !s.ts.SearchHasFocus() {
+			s.cuvForm.nameEdit.SetFocus()
+		}
 	})
+}
+
+func (s *CuveesScreen) fetchAndLoadCuvee(id int64, then func(client.Cuvee)) {
+	go func() {
+		c, err := s.ctx.Client.GetCuvee(context.Background(), id)
+		if err != nil {
+			s.ctx.Log.Error("get cuvee", "id", id, "error", err)
+			return
+		}
+		mainthread.Start(func() { then(c) })
+	}()
 }
 
 func (s *CuveesScreen) onSave() {
@@ -177,6 +198,7 @@ func (s *CuveesScreen) onSave() {
 				return
 			}
 			s.ts.HideRight()
+			s.loadCombos(nil)
 			s.refresh()
 		})
 	}()

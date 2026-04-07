@@ -3,7 +3,6 @@ package screen
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
@@ -41,7 +40,7 @@ type cuveeForm struct {
 func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f := &cuveeForm{cli: cli}
 	// canEnable: button requires name + domain + designation all non-empty.
-	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true,
+	f.baseForm = newBaseForm("Nom", true,
 		func() bool {
 			return strings.TrimSpace(f.nameEdit.Text()) != "" &&
 				strings.TrimSpace(f.domainCombo.CurrentText()) != "" &&
@@ -66,42 +65,32 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f.designCombo.SetPlaceholderText("Appellation (obligatoire)")
 	f.addBody("Appellation", f.designCombo.QWidget, true)
 
-	f.autoBtn.OnClicked(func() {
-		name := f.Name()
-		domain := strings.TrimSpace(f.domainCombo.CurrentText())
-		design := strings.TrimSpace(f.designCombo.CurrentText())
-		color := colorNames[f.Color()]
-		if name == "" || domain == "" || design == "" {
+	cuveePrompt := func() string {
+		return fmt.Sprintf(`
+			Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé (5 à 6 phrases) 
+			à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » en « %s ». 
+			Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, et combien de temps
+			puis-je espérer le conserver pour maximiser son goût. 
+			Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre.
+			Repond en 5 paragraphes:
+			- presentation de la cuvee
+			- presentation du nez
+			- presentation en bouche
+			- prestation des accords a table
+			- presentation de la garde
+			N'affiche pas les liens et ne mets pas les titres de paragraphe.`,
+			f.Name(),
+			strings.TrimSpace(f.domainCombo.CurrentText()),
+			strings.TrimSpace(f.designCombo.CurrentText()),
+			colorNames[f.Color()],
+		)
+	}
+
+	f.chatGPTBtn.OnClicked(func() {
+		if f.Name() == "" || strings.TrimSpace(f.domainCombo.CurrentText()) == "" || strings.TrimSpace(f.designCombo.CurrentText()) == "" {
 			return
 		}
-		f.descEdit.Clear()
-		f.startAuto()
-
-		go func() {
-			prompt := fmt.Sprintf(
-				"Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé "+
-					"(5 à 6 phrases) à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » "+
-					"en « %s ». Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, "+
-					"et combien de temps puis-je espérer le conserver pour maximiser son goût. "+
-					"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-					"Si tu ne connais pas tu répond \"NC\". "+
-					"Donne juste la réponse, pas d'intriduction type \"Voici un résumé...\" "+
-					"et pas de conclusion du type \"Si tu veux...\".",
-				name, domain, design, color,
-			)
-			slog.Debug("chatgpt cuvee query", "prompt", prompt)
-			raw, err := chatGPTQuery(prompt)
-			slog.Debug("chatgpt cuvee query result", "raw", raw, "err", err)
-
-			mainthread.Start(func() {
-				f.finishAuto()
-				if err != nil {
-					qt.QMessageBox_Warning(nil, "Recherche échouée", err.Error())
-					return
-				}
-				f.descEdit.SetPlainText(raw)
-			})
-		}()
+		openChatGPT(cuveePrompt())
 	})
 
 	// Domain inline panel — single domainForm instance, hidden by default.
@@ -143,7 +132,7 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 		f.domainSect.Widget.Hide()
 	})
 
-	// Same for designation.
+	// Same for designation — fetch full object for inline edit (list is summary-only).
 	f.designCombo.OnCurrentTextChanged(func(text string) {
 		f.recheckAuto()
 		text = strings.TrimSpace(text)
@@ -162,9 +151,17 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 			for _, d := range f.allDesig {
 				if strings.EqualFold(d.Name, text) {
 					f.designSect.SetTitle("Modifier l'appellation")
-					f.designForm.loadForInlineEdit(d)
 					f.designSect.SetExpanded(false)
 					f.designSect.Widget.Show()
+					go func() {
+						full, err := f.cli.GetDesignation(context.Background(), d.ID)
+						if err != nil {
+							return
+						}
+						mainthread.Start(func() {
+							f.designForm.loadForInlineEdit(full)
+						})
+					}()
 					return
 				}
 			}

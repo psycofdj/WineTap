@@ -1,13 +1,11 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-
 import '../consume_tracker.dart';
 import '../database.dart';
+import 'sqlite_errors.dart';
 
 String _normalizeTagId(String tagId) =>
     tagId.replaceAll(RegExp(r'[:\s\-]'), '').toUpperCase();
@@ -15,12 +13,12 @@ String _normalizeTagId(String tagId) =>
 Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
   final router = Router();
 
-  // GET /bottles — list; include_consumed=true to include consumed
+  // GET /bottles — list (summary only); include_consumed=true to include consumed
   router.get('/', (Request req) async {
     final includeConsumed =
         req.url.queryParameters['include_consumed'] == 'true';
     final list = await db.listBottles(includeConsumed: includeConsumed);
-    return _json(200, list.map((b) => b.toJson()).toList());
+    return _json(200, list.map((b) => b.toSummaryJson()).toList());
   });
 
   // GET /bottles/by-tag/:tag_id — BEFORE /<id> to prevent "by-tag" capturing as id
@@ -30,7 +28,7 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     if (bottle == null) {
       return _error(404, 'not_found', 'no in-stock bottle with tag_id=$normalized');
     }
-    return _json(200, bottle.toJson());
+    return _json(200, bottle.toApiJson());
   });
 
   // GET /bottles/:id
@@ -41,7 +39,7 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     }
     try {
       final bottle = await db.getBottleById(intId);
-      return _json(200, bottle.toJson());
+      return _json(200, bottle.toApiJson());
     } on StateError {
       return _error(404, 'not_found', 'bottle $intId not found');
     }
@@ -63,7 +61,7 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     try {
       final bottle = await db.consumeBottle(tagId);
       consumeTracker.touch();
-      return _json(200, bottle.toJson());
+      return _json(200, bottle.toApiJson());
     } on StateError {
       return _error(404, 'not_found', 'no in-stock bottle with tag_id=$tagId');
     }
@@ -131,106 +129,19 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     }
     final drinkBefore = drinkBeforeRaw as int?;
 
-    try {
-      final id = await db.insertBottle(BottlesCompanion.insert(
-        cuveeId: cuveeId,
-        vintage: vintage,
-        addedAt: DateTime.now().toUtc().toIso8601String(),
-        tagId: Value(tagId),
-        description: Value(description),
-        purchasePrice: Value(_toDouble(body['purchase_price'])),
-        drinkBefore: Value(drinkBefore),
-      ));
-      final bottle = await db.getBottleById(id);
-      return _json(201, bottle.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists', 'tag_id $tagId is already in use');
-      }
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(400, 'invalid_argument', 'cuvee_id $cuveeId does not exist');
-      }
-      dev.log('insertBottle error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
-  });
-
-  // PUT /bottles/bulk — BEFORE /<id> to prevent "bulk" capturing as id
-  router.put('/bulk', (Request req) async {
-    final Map<String, dynamic> body;
-    try {
-      body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
-    } catch (_) {
-      return _error(400, 'invalid_argument', 'request body must be valid JSON');
-    }
-
-    final idsRaw = body['ids'];
-    if (idsRaw == null || idsRaw is! List) {
-      return _error(400, 'invalid_argument', 'ids must be an array');
-    }
-    for (final element in idsRaw) {
-      if (element is! int) {
-        return _error(400, 'invalid_argument', 'ids must be an array of integers');
-      }
-    }
-    final ids = idsRaw.cast<int>();
-
-    final fieldsRaw = body['fields'];
-    if (fieldsRaw == null || fieldsRaw is! Map) {
-      return _error(400, 'invalid_argument', 'fields must be an object');
-    }
-    final fields = Map<String, dynamic>.from(fieldsRaw);
-
-    final BottlesCompanion companion;
-    try {
-      companion = _buildPartialCompanion(fields);
-    } on FormatException catch (e) {
-      return _error(400, 'invalid_argument', e.message);
-    }
-
-    try {
-      final count = await db.bulkUpdateBottles(ids, companion);
-      return _json(200, {'updated': count});
-    } on SqliteException catch (e) {
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(400, 'invalid_argument', 'one or more cuvee_id values do not exist');
-      }
-      dev.log('bulkUpdateBottles error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
-  });
-
-  // PUT /bottles/:id/tag — BEFORE /<id> (different depth, but ordered first for clarity)
-  router.put('/<id>/tag', (Request req, String id) async {
-    final intId = int.tryParse(id);
-    if (intId == null) {
-      return _error(400, 'invalid_argument', 'id must be an integer');
-    }
-
-    final Map<String, dynamic> body;
-    try {
-      body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
-    } catch (_) {
-      return _error(400, 'invalid_argument', 'request body must be valid JSON');
-    }
-    final tagIdRaw = body['tag_id'];
-    if (tagIdRaw == null || tagIdRaw is! String || tagIdRaw.trim().isEmpty) {
-      return _error(400, 'invalid_argument', 'tag_id is required');
-    }
-    final tagId = _normalizeTagId(tagIdRaw);
-
-    try {
-      final bottle = await db.setBottleTagId(intId, tagId);
-      return _json(200, bottle.toJson());
-    } on StateError {
-      return _error(404, 'not_found', 'bottle $intId not found');
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists', 'tag_id $tagId is already in use');
-      }
-      dev.log('setBottleTagId error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        final id = await db.insertBottle(BottlesCompanion.insert(
+          cuveeId: cuveeId,
+          vintage: vintage,
+          addedAt: DateTime.now().toUtc().toIso8601String(),
+          tagId: Value(tagId),
+          description: Value(description),
+          purchasePrice: Value(_toDouble(body['purchase_price'])),
+          drinkBefore: Value(drinkBefore),
+        ));
+        final bottle = await db.getBottleById(id);
+        return _json(201, bottle.toApiJson());
+      }, logTag: 'bottles');
   });
 
   // PUT /bottles/:id — partial update
@@ -254,20 +165,14 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
       return _error(400, 'invalid_argument', e.message);
     }
 
-    try {
-      final count = await db.bulkUpdateBottles([intId], companion);
-      if (count == 0) {
-        return _error(404, 'not_found', 'bottle $intId not found');
-      }
-      final bottle = await db.getBottleById(intId);
-      return _json(200, bottle.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(400, 'invalid_argument', 'cuvee_id does not exist');
-      }
-      dev.log('updateBottle error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        final count = await db.updateBottleFields(intId, companion);
+        if (count == 0) {
+          return _error(404, 'not_found', 'bottle $intId not found');
+        }
+        final bottle = await db.getBottleById(intId);
+        return _json(200, bottle.toApiJson());
+      }, logTag: 'bottles');
   });
 
   // DELETE /bottles/:id
@@ -288,7 +193,7 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
 
 /// Builds a partial BottlesCompanion — absent keys → Value.absent(), present keys → Value(v).
 /// Never updates system fields: addedAt, consumedAt, id.
-/// tag_id: null clears it; non-null string is normalized and set (use PUT /:id/tag for dedicated flow).
+/// tag_id: null clears it; non-null string is normalized and set.
 /// Throws [FormatException] on invalid field types — callers must catch and return 400.
 BottlesCompanion _buildPartialCompanion(Map<String, dynamic> body) {
   return BottlesCompanion(

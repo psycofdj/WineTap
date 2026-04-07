@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
@@ -14,6 +17,7 @@ class Designations extends Table {
   TextColumn get name => text().unique()();
   TextColumn get region => text().withDefault(const Constant(''))();
   TextColumn get description => text().withDefault(const Constant(''))();
+  BlobColumn get picture => blob().nullable()();
 }
 
 class Domains extends Table {
@@ -82,25 +86,37 @@ class BottleWithCuvee {
 // toJson() extensions — snake_case keys matching docs/rest-api-contracts.md
 // ---------------------------------------------------------------------------
 
-extension DesignationToJson on Designation {
-  Map<String, dynamic> toJson() => {
+extension DesignationToApiJson on Designation {
+  Map<String, dynamic> toApiJson() {
+    final json = <String, dynamic>{
+      'id': id,
+      'name': name,
+      'region': region,
+      'description': description,
+    };
+    if (picture != null) json['picture'] = base64Encode(picture!);
+    return json;
+  }
+
+  /// Lightweight representation for list endpoints — excludes description and
+  /// picture to keep payloads small.
+  Map<String, dynamic> toSummaryJson() => {
         'id': id,
         'name': name,
         'region': region,
-        'description': description,
       };
 }
 
-extension DomainToJson on Domain {
-  Map<String, dynamic> toJson() => {
+extension DomainToApiJson on Domain {
+  Map<String, dynamic> toApiJson() => {
         'id': id,
         'name': name,
         'description': description,
       };
 }
 
-extension CuveeWithNamesToJson on CuveeWithNames {
-  Map<String, dynamic> toJson() => {
+extension CuveeWithNamesToApiJson on CuveeWithNames {
+  Map<String, dynamic> toApiJson() => {
         'id': cuvee.id,
         'name': cuvee.name,
         'domain_id': cuvee.domainId,
@@ -111,15 +127,56 @@ extension CuveeWithNamesToJson on CuveeWithNames {
         'designation_name': designationName,
         'region': region,
       };
+
+  /// Lightweight representation for list endpoints — excludes description.
+  Map<String, dynamic> toSummaryJson() => {
+        'id': cuvee.id,
+        'name': cuvee.name,
+        'domain_id': cuvee.domainId,
+        'designation_id': cuvee.designationId,
+        'color': cuvee.color,
+        'domain_name': domainName,
+        'designation_name': designationName,
+        'region': region,
+      };
 }
 
-extension BottleWithCuveeToJson on BottleWithCuvee {
-  Map<String, dynamic> toJson() {
+extension BottleWithCuveeToApiJson on BottleWithCuvee {
+  Map<String, dynamic> toApiJson() {
     final json = <String, dynamic>{
       'id': bottle.id,
       'cuvee_id': bottle.cuveeId,
       'vintage': bottle.vintage,
       'description': bottle.description,
+      'added_at': bottle.addedAt,
+      'cuvee': {
+        'id': cuvee.id,
+        'name': cuvee.name,
+        'domain_id': cuvee.domainId,
+        'designation_id': cuvee.designationId,
+        'color': cuvee.color,
+        'description': cuvee.description,
+        'domain_name': domainName,
+        'designation_name': designationName,
+        'region': region,
+      },
+    };
+    if (bottle.tagId != null) json['tag_id'] = bottle.tagId;
+    if (bottle.purchasePrice != null) {
+      json['purchase_price'] = bottle.purchasePrice;
+    }
+    if (bottle.drinkBefore != null) json['drink_before'] = bottle.drinkBefore;
+    if (bottle.consumedAt != null) json['consumed_at'] = bottle.consumedAt;
+    return json;
+  }
+
+  /// Lightweight representation for list endpoints — excludes descriptions
+  /// from both the bottle and nested cuvée.
+  Map<String, dynamic> toSummaryJson() {
+    final json = <String, dynamic>{
+      'id': bottle.id,
+      'cuvee_id': bottle.cuveeId,
+      'vintage': bottle.vintage,
       'added_at': bottle.addedAt,
       'cuvee': {
         'id': cuvee.id,
@@ -155,7 +212,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _seedOnCreate;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -171,6 +228,11 @@ class AppDatabase extends _$AppDatabase {
           );
           // Seed reference data (designations & domains).
           if (_seedOnCreate) await seedDatabase(this);
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(designations, designations.picture);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -357,20 +419,14 @@ class AppDatabase extends _$AppDatabase {
     return update(bottles).replace(entry);
   }
 
-  Future<int> bulkUpdateBottles(List<int> ids, BottlesCompanion fields) {
-    if (ids.isEmpty) return Future.value(0);
-    return (update(bottles)..where((t) => t.id.isIn(ids))).write(fields);
+  Future<int> updateBottleFields(int id, BottlesCompanion fields) {
+    return (update(bottles)..where((t) => t.id.equals(id))).write(fields);
   }
 
   Future<int> deleteBottle(int id) {
     return (delete(bottles)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<BottleWithCuvee> setBottleTagId(int id, String tagId) async {
-    await (update(bottles)..where((t) => t.id.equals(id)))
-        .write(BottlesCompanion(tagId: Value(tagId)));
-    return getBottleById(id);
-  }
 
   // -------------------------------------------------------------------------
   // Completions

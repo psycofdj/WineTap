@@ -15,6 +15,7 @@ class S {
   // Consume flow
   static const cancel = 'Annuler';
   static const done = 'Terminé';
+  static const addComment = 'Ajouter un commentaire';
   static const markedAsConsumed = 'Marquée comme consommée ✓';
 
   // Errors
@@ -51,6 +52,16 @@ class S {
   static const serverAddress = 'Adresse du serveur';
   static const serverRunning = 'Serveur actif';
   static const intakeUnavailable = 'Prise en charge\nnon disponible';
+
+  // Bottle details labels
+  static const labelCuvee = 'Cuvée';
+  static const labelMillesime = 'Millésime';
+  static const labelColor = 'Couleur';
+  static const labelDomain = 'Domaine';
+  static const labelDesignation = 'Appellation';
+  static const labelRegion = 'Région';
+  static const labelDrinkBefore = 'À boire avant';
+  static const labelDescription = 'Description';
 
   // Backup / restore
   static const dataManagement = 'Gestion des données';

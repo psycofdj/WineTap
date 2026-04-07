@@ -54,8 +54,19 @@ class $DesignationsTable extends Designations
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _pictureMeta = const VerificationMeta(
+    'picture',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, region, description];
+  late final GeneratedColumn<Uint8List> picture = GeneratedColumn<Uint8List>(
+    'picture',
+    aliasedName,
+    true,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, region, description, picture];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -94,6 +105,12 @@ class $DesignationsTable extends Designations
         ),
       );
     }
+    if (data.containsKey('picture')) {
+      context.handle(
+        _pictureMeta,
+        picture.isAcceptableOrUnknown(data['picture']!, _pictureMeta),
+      );
+    }
     return context;
   }
 
@@ -119,6 +136,10 @@ class $DesignationsTable extends Designations
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       )!,
+      picture: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}picture'],
+      ),
     );
   }
 
@@ -133,11 +154,13 @@ class Designation extends DataClass implements Insertable<Designation> {
   final String name;
   final String region;
   final String description;
+  final Uint8List? picture;
   const Designation({
     required this.id,
     required this.name,
     required this.region,
     required this.description,
+    this.picture,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -146,6 +169,9 @@ class Designation extends DataClass implements Insertable<Designation> {
     map['name'] = Variable<String>(name);
     map['region'] = Variable<String>(region);
     map['description'] = Variable<String>(description);
+    if (!nullToAbsent || picture != null) {
+      map['picture'] = Variable<Uint8List>(picture);
+    }
     return map;
   }
 
@@ -155,6 +181,9 @@ class Designation extends DataClass implements Insertable<Designation> {
       name: Value(name),
       region: Value(region),
       description: Value(description),
+      picture: picture == null && nullToAbsent
+          ? const Value.absent()
+          : Value(picture),
     );
   }
 
@@ -168,6 +197,7 @@ class Designation extends DataClass implements Insertable<Designation> {
       name: serializer.fromJson<String>(json['name']),
       region: serializer.fromJson<String>(json['region']),
       description: serializer.fromJson<String>(json['description']),
+      picture: serializer.fromJson<Uint8List?>(json['picture']),
     );
   }
   @override
@@ -178,6 +208,7 @@ class Designation extends DataClass implements Insertable<Designation> {
       'name': serializer.toJson<String>(name),
       'region': serializer.toJson<String>(region),
       'description': serializer.toJson<String>(description),
+      'picture': serializer.toJson<Uint8List?>(picture),
     };
   }
 
@@ -186,11 +217,13 @@ class Designation extends DataClass implements Insertable<Designation> {
     String? name,
     String? region,
     String? description,
+    Value<Uint8List?> picture = const Value.absent(),
   }) => Designation(
     id: id ?? this.id,
     name: name ?? this.name,
     region: region ?? this.region,
     description: description ?? this.description,
+    picture: picture.present ? picture.value : this.picture,
   );
   Designation copyWithCompanion(DesignationsCompanion data) {
     return Designation(
@@ -200,6 +233,7 @@ class Designation extends DataClass implements Insertable<Designation> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      picture: data.picture.present ? data.picture.value : this.picture,
     );
   }
 
@@ -209,13 +243,14 @@ class Designation extends DataClass implements Insertable<Designation> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('region: $region, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('picture: $picture')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, region, description);
+  int get hashCode => Object.hash(id, name, region, description, picture);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -223,7 +258,8 @@ class Designation extends DataClass implements Insertable<Designation> {
           other.id == this.id &&
           other.name == this.name &&
           other.region == this.region &&
-          other.description == this.description);
+          other.description == this.description &&
+          other.picture == this.picture);
 }
 
 class DesignationsCompanion extends UpdateCompanion<Designation> {
@@ -231,29 +267,34 @@ class DesignationsCompanion extends UpdateCompanion<Designation> {
   final Value<String> name;
   final Value<String> region;
   final Value<String> description;
+  final Value<Uint8List?> picture;
   const DesignationsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.region = const Value.absent(),
     this.description = const Value.absent(),
+    this.picture = const Value.absent(),
   });
   DesignationsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.region = const Value.absent(),
     this.description = const Value.absent(),
+    this.picture = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Designation> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? region,
     Expression<String>? description,
+    Expression<Uint8List>? picture,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (region != null) 'region': region,
       if (description != null) 'description': description,
+      if (picture != null) 'picture': picture,
     });
   }
 
@@ -262,12 +303,14 @@ class DesignationsCompanion extends UpdateCompanion<Designation> {
     Value<String>? name,
     Value<String>? region,
     Value<String>? description,
+    Value<Uint8List?>? picture,
   }) {
     return DesignationsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       region: region ?? this.region,
       description: description ?? this.description,
+      picture: picture ?? this.picture,
     );
   }
 
@@ -286,6 +329,9 @@ class DesignationsCompanion extends UpdateCompanion<Designation> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (picture.present) {
+      map['picture'] = Variable<Uint8List>(picture.value);
+    }
     return map;
   }
 
@@ -295,7 +341,8 @@ class DesignationsCompanion extends UpdateCompanion<Designation> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('region: $region, ')
-          ..write('description: $description')
+          ..write('description: $description, ')
+          ..write('picture: $picture')
           ..write(')'))
         .toString();
   }
