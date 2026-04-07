@@ -366,11 +366,6 @@ class AppDatabase extends _$AppDatabase {
     return (delete(bottles)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<BottleWithCuvee> setBottleTagId(int id, String tagId) async {
-    await (update(bottles)..where((t) => t.id.equals(id)))
-        .write(BottlesCompanion(tagId: Value(tagId)));
-    return getBottleById(id);
-  }
 
   // -------------------------------------------------------------------------
   // Completions

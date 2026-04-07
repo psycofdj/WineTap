@@ -360,16 +360,6 @@ void main() {
       );
     });
 
-    test('setTagId updates tag', () async {
-      final id = await db.insertBottle(BottlesCompanion.insert(
-        cuveeId: cuvId,
-        vintage: 2020,
-        addedAt: '2026-01-01T00:00:00Z',
-      ));
-
-      final result = await db.setBottleTagId(id, 'NEWTAGID');
-      expect(result.bottle.tagId, 'NEWTAGID');
-    });
 
     test('bulkUpdate updates multiple bottles', () async {
       final id1 = await db.insertBottle(BottlesCompanion.insert(

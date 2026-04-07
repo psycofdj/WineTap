@@ -320,50 +320,9 @@ func TestUpdateBottle_PartialFields(t *testing.T) {
 	}
 }
 
-func TestBulkUpdateBottles(t *testing.T) {
-	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/bottles/bulk" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		var req BulkUpdateRequest
-		json.NewDecoder(r.Body).Decode(&req)
-		if len(req.IDs) != 2 {
-			t.Errorf("expected 2 IDs, got %d", len(req.IDs))
-		}
-		json.NewEncoder(w).Encode(BulkUpdateResponse{Updated: 2})
-	}))
 
-	resp, err := client.BulkUpdateBottles(bgCtx, []int64{42, 43}, map[string]any{"cuvee_id": 2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.Updated != 2 {
-		t.Errorf("got updated=%d", resp.Updated)
-	}
-}
 
-func TestSetBottleTagID(t *testing.T) {
-	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut || r.URL.Path != "/bottles/42/tag" {
-			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
-		}
-		var req SetTagRequest
-		json.NewDecoder(r.Body).Decode(&req)
-		if req.TagID != "AABB" {
-			t.Errorf("expected tag_id=AABB, got %s", req.TagID)
-		}
-		tag := "AABB"
-		json.NewEncoder(w).Encode(Bottle{ID: 42, TagID: &tag, Cuvee: Cuvee{ID: 1}})
-	}))
 
-	b, err := client.SetBottleTagID(bgCtx, 42, "AABB")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if b.TagID == nil || *b.TagID != "AABB" {
-		t.Errorf("got %+v", b)
-	}
-}
 
 func TestGetCompletions(t *testing.T) {
 	client, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

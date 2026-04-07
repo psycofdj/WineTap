@@ -261,13 +261,6 @@ func (c *WineTapHTTPClient) UpdateBottle(ctx context.Context, id int64, fields m
 	return decodeResponse[Bottle](resp)
 }
 
-func (c *WineTapHTTPClient) BulkUpdateBottles(ctx context.Context, ids []int64, fields map[string]any) (BulkUpdateResponse, error) {
-	resp, err := c.doJSON(ctx, http.MethodPut, "/bottles/bulk", BulkUpdateRequest{IDs: ids, Fields: fields})
-	if err != nil {
-		return BulkUpdateResponse{}, err
-	}
-	return decodeResponse[BulkUpdateResponse](resp)
-}
 
 func (c *WineTapHTTPClient) DeleteBottle(ctx context.Context, id int64) error {
 	resp, err := c.doJSON(ctx, http.MethodDelete, fmt.Sprintf("/bottles/%d", id), nil)
@@ -278,13 +271,6 @@ func (c *WineTapHTTPClient) DeleteBottle(ctx context.Context, id int64) error {
 	return checkError(resp)
 }
 
-func (c *WineTapHTTPClient) SetBottleTagID(ctx context.Context, id int64, tagID string) (Bottle, error) {
-	resp, err := c.doJSON(ctx, http.MethodPut, fmt.Sprintf("/bottles/%d/tag", id), SetTagRequest{TagID: tagID})
-	if err != nil {
-		return Bottle{}, err
-	}
-	return decodeResponse[Bottle](resp)
-}
 
 // ── Completions ─────────────────────────────────────────────────────────────
 

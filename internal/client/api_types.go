@@ -113,16 +113,7 @@ type CreateBottle struct {
 	DrinkBefore   *int32   `json:"drink_before,omitempty"`
 }
 
-// BulkUpdateRequest is the request body for PUT /bottles/bulk.
-type BulkUpdateRequest struct {
-	IDs    []int64        `json:"ids"`
-	Fields map[string]any `json:"fields"`
-}
 
-// SetTagRequest is the request body for PUT /bottles/:id/tag.
-type SetTagRequest struct {
-	TagID string `json:"tag_id"`
-}
 
 // ConsumeRequest is the request body for POST /bottles/consume.
 type ConsumeRequest struct {
@@ -139,10 +130,6 @@ type ScanResult struct {
 	TagID  string `json:"tag_id"`
 }
 
-// BulkUpdateResponse is the response body for PUT /bottles/bulk.
-type BulkUpdateResponse struct {
-	Updated int `json:"updated"`
-}
 
 // HealthResponse is the response body for GET /.
 type HealthResponse struct {
