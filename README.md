@@ -168,70 +168,27 @@ Manager                           Phone
 
 ## REST API
 
-27 endpoints served by the phone on port 8080. All JSON with `snake_case` fields, no authentication.
+26 endpoints served by the phone on port 8080. All JSON with `snake_case` fields, no authentication.
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/designations` | List all designations |
-| POST | `/designations` | Create designation |
-| PUT | `/designations/:id` | Update designation |
-| DELETE | `/designations/:id` | Delete designation |
-| GET | `/domains` | List all domains |
-| POST | `/domains` | Create domain |
-| PUT | `/domains/:id` | Update domain |
-| DELETE | `/domains/:id` | Delete domain |
-| GET | `/cuvees` | List all cuvees |
-| POST | `/cuvees` | Create cuvee |
-| PUT | `/cuvees/:id` | Update cuvee |
-| DELETE | `/cuvees/:id` | Delete cuvee |
-| GET | `/bottles` | List bottles (`?include_consumed=true` for history) |
-| GET | `/bottles/:id` | Get bottle by ID |
-| GET | `/bottles/by-tag/:tag_id` | Get bottle by NFC tag |
-| POST | `/bottles` | Add bottle |
-| POST | `/bottles/consume` | Consume bottle by tag |
-| PUT | `/bottles/:id` | Partial update bottle |
-| PUT | `/bottles/bulk` | Bulk update bottles |
-| DELETE | `/bottles/:id` | Hard delete bottle |
-| PUT | `/bottles/:id/tag` | Set/update bottle tag |
-| GET | `/completions` | Autocomplete (`?field=...&prefix=...`) |
-| POST | `/scan/request` | Initiate NFC scan |
-| GET | `/scan/result` | Long-poll for scan result |
-| POST | `/scan/cancel` | Cancel pending scan |
-| GET | `/backup` | Download SQLite database |
-| POST | `/restore` | Upload replacement database |
-
-Error responses follow a consistent format:
-
-```json
-{"error": "<code>", "message": "<description>"}
-```
-
-| HTTP Status | Code | Meaning |
-|-------------|------|---------|
-| 400 | `invalid_argument` | Missing or malformed field |
-| 404 | `not_found` | Resource does not exist |
-| 409 | `already_exists` | Unique constraint violation |
-| 412 | `failed_precondition` | FK prevents deletion |
-| 500 | `internal` | Unexpected server error |
+See [docs/rest-api-contracts.md](docs/rest-api-contracts.md) for the full specification with request/response shapes, error codes, and examples.
 
 ## Project structure
 
 ```
 winetap/
 |-- cmd/
-|   |-- manager/main.go           # Desktop GUI entry point
-|   +-- cfru5102_read/main.go      # Standalone RFID reader debug tool
+|   +-- manager/main.go           # Desktop GUI entry point
 |-- internal/
 |   |-- client/                    # HTTP client for the phone API
-|   |-- manager/
-|   |   |-- screen/                # Qt6 UI screens (inventory, add, read, settings, ...)
-|   |   |-- widget/                # Reusable Qt widgets
-|   |   |-- assets/                # Embedded icon + stylesheet
-|   |   |-- manager.go             # Manager orchestration
-|   |   |-- nfc_scanner.go         # NFC scan coordination via HTTP
-|   |   |-- discovery.go           # mDNS phone discovery
-|   |   +-- config.go              # YAML config loading/saving
-|   +-- integration/cfru5102/      # Chafon CF-RU5102 RFID reader driver
+|   +-- manager/
+|       |-- screen/                # Qt6 UI screens (inventory, add, read, settings, ...)
+|       |-- widget/                # Reusable Qt widgets (dashboard, charts)
+|       |-- assets/                # Embedded icon + stylesheet
+|       |-- manager.go             # Manager orchestration
+|       |-- nfc_scanner.go         # NFC scan coordination via HTTP
+|       |-- rfid_scanner.go        # Chafon CF-RU5102 RFID reader
+|       |-- discovery.go           # mDNS phone discovery
+|       +-- config.go              # YAML config loading/saving
 |-- mobile/
 |   +-- lib/
 |       |-- server/                # HTTP server (shelf), database (drift), handlers
@@ -239,7 +196,6 @@ winetap/
 |       |-- screens/               # Flutter UI screens
 |       |-- services/              # NFC, mDNS, tag normalization
 |       |-- widgets/               # Reusable Flutter widgets
-|       |-- models/                # Data classes
 |       +-- l10n/                  # Localization (French)
 |-- docs/                          # Detailed documentation
 +-- spec.md                        # Full project specification

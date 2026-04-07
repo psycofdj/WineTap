@@ -1,10 +1,8 @@
-# WineTap — REST API Contracts (v2)
+# WineTap — REST API Contracts
 
 ## Overview
 
-HTTP REST API served by the phone (Dart shelf on port 8080). Desktop manager connects as HTTP client. All request/response bodies are JSON with `snake_case` field names. No authentication — WiFi-only trust model.
-
-Replaces the gRPC API from v1 (see `api-contracts.md` for legacy reference).
+26 endpoints served by the phone (Dart shelf on port 8080). Desktop manager connects as HTTP client. All request/response bodies are JSON with `snake_case` field names. No authentication — WiFi-only trust model.
 
 ## Conventions
 
@@ -28,9 +26,12 @@ All errors return a JSON body with an HTTP status code:
 | HTTP Status | Error Code | Meaning |
 |-------------|------------|---------|
 | 400 | `invalid_argument` | Missing or malformed required field |
+| 400 | `already_exists` | Unique constraint violation (name, tag_id) |
 | 404 | `not_found` | Resource does not exist |
-| 409 | `already_exists` | Unique constraint violation (name, tag_id) |
-| 412 | `failed_precondition` | Foreign key prevents deletion |
+| 409 | `already_exists` | Conflict (e.g. scan already in progress) |
+| 412 | `referenced` | Foreign key prevents deletion |
+| 412 | `failed_precondition` | Sentinel entity cannot be deleted |
+| 413 | `payload_too_large` | Upload exceeds size limit (restore) |
 | 500 | `internal` | Unexpected server error |
 
 ---
@@ -169,7 +170,7 @@ Create a designation.
 {"id": 3, "name": "Cahors", "region": "Sud-Ouest", "description": ""}
 ```
 
-**Errors**: `409 already_exists` (name unique)
+**Errors**: `400 already_exists` (name unique)
 
 ### PUT /designations/:id
 
@@ -188,7 +189,7 @@ Delete a designation.
 
 **Response**: `204` (no body)
 
-**Errors**: `404 not_found`, `412 failed_precondition` (referenced by cuvees)
+**Errors**: `404 not_found`, `412 referenced` (referenced by cuvees)
 
 ---
 
@@ -206,7 +207,7 @@ List all domains ordered by name.
 
 **Response**: `201` — Domain
 
-**Errors**: `409 already_exists`
+**Errors**: `400 already_exists`
 
 ### PUT /domains/:id
 
@@ -218,7 +219,7 @@ List all domains ordered by name.
 
 **Response**: `204`
 
-**Errors**: `404`, `412 failed_precondition` (referenced by cuvees)
+**Errors**: `404`, `412 referenced` (referenced by cuvees)
 
 ---
 
@@ -255,7 +256,7 @@ List all cuvees ordered by domain then name. Response includes denormalized fiel
 
 **Response**: `204`
 
-**Errors**: `404`, `412 failed_precondition` (referenced by bottles)
+**Errors**: `404`, `412 referenced` (referenced by bottles)
 
 ---
 
@@ -301,7 +302,7 @@ Add a new bottle.
 
 **Response**: `201` — Bottle
 
-**Errors**: `409 already_exists` (tag_id in use by another in-stock bottle)
+**Errors**: `400 already_exists` (tag_id in use by another bottle), `400 invalid_argument` (cuvee_id does not exist)
 
 ### POST /bottles/consume
 
@@ -330,27 +331,7 @@ Partial update a bottle. Only provided fields are written.
 
 **Response**: `200` — Bottle
 
-**Errors**: `404`
-
-### PUT /bottles/bulk
-
-Bulk update — apply same changes to multiple bottles.
-
-**Request**:
-```json
-{
-  "ids": [42, 43, 44],
-  "fields": {
-    "cuvee_id": 2,
-    "vintage": 2020
-  }
-}
-```
-
-**Response**: `200`
-```json
-{"updated": 3}
-```
+**Errors**: `404`, `400 already_exists` (tag_id in use), `400 invalid_argument` (cuvee_id does not exist)
 
 ### DELETE /bottles/:id
 
@@ -359,19 +340,6 @@ Hard delete a bottle.
 **Response**: `204`
 
 **Errors**: `404`
-
-### PUT /bottles/:id/tag
-
-Set or update a bottle's tag ID.
-
-**Request**:
-```json
-{"tag_id": "04A32BFF"}
-```
-
-**Response**: `200` — Bottle
-
-**Errors**: `404` (bottle not found), `409 already_exists` (tag in use by another bottle)
 
 ---
 
@@ -478,6 +446,7 @@ Upload a SQLite database file to replace the current one.
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | / | Health check |
 | GET | /designations | List all |
 | POST | /designations | Create |
 | PUT | /designations/:id | Update |
@@ -496,13 +465,11 @@ Upload a SQLite database file to replace the current one.
 | POST | /bottles | Add |
 | POST | /bottles/consume | Consume by tag |
 | PUT | /bottles/:id | Partial update |
-| PUT | /bottles/bulk | Bulk update |
 | DELETE | /bottles/:id | Delete |
-| PUT | /bottles/:id/tag | Set tag ID |
 | GET | /completions | Autocomplete |
 | POST | /scan/request | Initiate scan |
 | GET | /scan/result | Long-poll for result |
 | POST | /scan/cancel | Cancel scan |
 | GET | /backup | Download database |
 | POST | /restore | Upload database |
-| **Total** | **27 routes** | |
+| **Total** | **26 routes** | |
