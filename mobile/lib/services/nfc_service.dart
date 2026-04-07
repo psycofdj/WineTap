@@ -61,7 +61,7 @@ class NoOpNfcService implements NfcService {
   @override
   Future<String> readTagId() async {
     dev.log('readTagId: start', name: _tag);
-    _disarm();
+    _cancelPendingRead();
     final completer = Completer<String>();
     _readCompleter = completer;
     _readTimer = Timer(_readTimeout, () {
@@ -144,6 +144,19 @@ class NoOpNfcService implements NfcService {
       completer.completeError(error);
     } else {
       dev.log('failRead: skipped (no pending read)', name: _tag);
+    }
+  }
+
+  /// Cancels any pending read by completing it with [NfcSessionCancelledException]
+  /// and stopping the platform session. This ensures callers always get a
+  /// resolution (instead of a dangling future) when a new read pre-empts them.
+  void _cancelPendingRead() {
+    final prev = _readCompleter;
+    _disarm();
+    if (prev != null && !prev.isCompleted) {
+      dev.log('_cancelPendingRead: cancelling previous read', name: _tag);
+      onReadStop();
+      prev.completeError(NfcSessionCancelledException());
     }
   }
 
