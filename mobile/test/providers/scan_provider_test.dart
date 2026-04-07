@@ -15,9 +15,6 @@ class MockNfcService implements NfcService {
   bool stopReadingCalled = false;
 
   @override
-  bool get isSessionActive => false;
-
-  @override
   Future<bool> isAvailable() async => true;
 
   @override
