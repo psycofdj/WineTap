@@ -361,36 +361,23 @@ void main() {
     });
 
 
-    test('bulkUpdate updates multiple bottles', () async {
-      final id1 = await db.insertBottle(BottlesCompanion.insert(
+    test('updateBottleFields updates only specified fields', () async {
+      final id = await db.insertBottle(BottlesCompanion.insert(
         cuveeId: cuvId,
         vintage: 2019,
         addedAt: '2026-01-01T00:00:00Z',
-      ));
-      final id2 = await db.insertBottle(BottlesCompanion.insert(
-        cuveeId: cuvId,
-        vintage: 2020,
-        addedAt: '2026-01-01T00:00:00Z',
+        description: const Value('original'),
       ));
 
-      final count = await db.bulkUpdateBottles(
-        [id1, id2],
+      final count = await db.updateBottleFields(
+        id,
         const BottlesCompanion(vintage: Value(2021)),
       );
-      expect(count, 2);
+      expect(count, 1);
 
-      final b1 = await db.getBottleById(id1);
-      final b2 = await db.getBottleById(id2);
-      expect(b1.bottle.vintage, 2021);
-      expect(b2.bottle.vintage, 2021);
-    });
-
-    test('bulkUpdate with empty list returns 0', () async {
-      final count = await db.bulkUpdateBottles(
-        [],
-        const BottlesCompanion(vintage: Value(2021)),
-      );
-      expect(count, 0);
+      final b = await db.getBottleById(id);
+      expect(b.bottle.vintage, 2021);
+      expect(b.bottle.description, 'original');
     });
 
     test('getById returns denormalized cuvee data', () async {

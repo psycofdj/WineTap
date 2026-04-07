@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-
 import '../database.dart';
+import 'sqlite_errors.dart';
 
 Router designationsRouter(AppDatabase db) {
   final router = Router();
@@ -30,22 +28,16 @@ Router designationsRouter(AppDatabase db) {
     if (name == null || name.trim().isEmpty) {
       return _error(400, 'invalid_argument', 'name is required');
     }
-    try {
-      final id = await db.insertDesignation(DesignationsCompanion.insert(
-        name: name.trim(),
-        region: Value((body['region'] as String?)?.trim() ?? ''),
-        description: Value((body['description'] as String?)?.trim() ?? ''),
-      ));
-      final d = await db.getDesignationById(id);
-      return _json(201, d.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists',
-            'designation "${name.trim()}" already exists');
-      }
-      dev.log('insertDesignation error: $e', name: 'designations');
-      return _error(500, 'internal', e.toString());
-    }
+
+    return guardDb(() async {
+        final id = await db.insertDesignation(DesignationsCompanion.insert(
+          name: name.trim(),
+          region: Value((body['region'] as String?)?.trim() ?? ''),
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ));
+        final d = await db.getDesignationById(id);
+        return _json(201, d.toJson());
+      }, logTag: 'designations');
   });
 
   // PUT /designations/<id> — update
@@ -73,23 +65,16 @@ Router designationsRouter(AppDatabase db) {
       return _error(404, 'not_found', 'designation $intId not found');
     }
 
-    try {
-      await db.updateDesignation(DesignationsCompanion(
-        id: Value(intId),
-        name: Value(name.trim()),
-        region: Value((body['region'] as String?)?.trim() ?? ''),
-        description: Value((body['description'] as String?)?.trim() ?? ''),
-      ));
-      final d = await db.getDesignationById(intId);
-      return _json(200, d.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists',
-            'designation "${name.trim()}" already exists');
-      }
-      dev.log('updateDesignation error: $e', name: 'designations');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        await db.updateDesignation(DesignationsCompanion(
+          id: Value(intId),
+          name: Value(name.trim()),
+          region: Value((body['region'] as String?)?.trim() ?? ''),
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ));
+        final d = await db.getDesignationById(intId);
+        return _json(200, d.toJson());
+      }, logTag: 'designations');
   });
 
   // DELETE /designations/<id>
@@ -103,25 +88,14 @@ Router designationsRouter(AppDatabase db) {
       return _error(412, 'failed_precondition',
           'sentinel designation cannot be deleted');
     }
-    try {
-      final count = await db.deleteDesignation(intId);
-      if (count == 0) {
-        return _error(404, 'not_found', 'designation $intId not found');
-      }
-      return Response(204);
-    } on SqliteException catch (e) {
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(412, 'referenced', 'entity is still referenced');
-      }
-      dev.log('deleteDesignation error: $e', name: 'designations');
-      return _error(500, 'internal', e.toString());
-    } catch (e) {
-      if (e.toString().contains('FOREIGN KEY constraint')) {
-        return _error(412, 'referenced', 'entity is still referenced');
-      }
-      dev.log('deleteDesignation error: $e', name: 'designations');
-      return _error(500, 'internal', e.toString());
-    }
+
+    return guardDb(() async {
+        final count = await db.deleteDesignation(intId);
+        if (count == 0) {
+          return _error(404, 'not_found', 'designation $intId not found');
+        }
+        return Response(204);
+      }, logTag: 'designations');
   });
 
   return router;

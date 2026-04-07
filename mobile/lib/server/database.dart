@@ -357,9 +357,8 @@ class AppDatabase extends _$AppDatabase {
     return update(bottles).replace(entry);
   }
 
-  Future<int> bulkUpdateBottles(List<int> ids, BottlesCompanion fields) {
-    if (ids.isEmpty) return Future.value(0);
-    return (update(bottles)..where((t) => t.id.isIn(ids))).write(fields);
+  Future<int> updateBottleFields(int id, BottlesCompanion fields) {
+    return (update(bottles)..where((t) => t.id.equals(id))).write(fields);
   }
 
   Future<int> deleteBottle(int id) {

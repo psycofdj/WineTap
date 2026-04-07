@@ -1,13 +1,11 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-
 import '../consume_tracker.dart';
 import '../database.dart';
+import 'sqlite_errors.dart';
 
 String _normalizeTagId(String tagId) =>
     tagId.replaceAll(RegExp(r'[:\s\-]'), '').toUpperCase();
@@ -131,28 +129,19 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     }
     final drinkBefore = drinkBeforeRaw as int?;
 
-    try {
-      final id = await db.insertBottle(BottlesCompanion.insert(
-        cuveeId: cuveeId,
-        vintage: vintage,
-        addedAt: DateTime.now().toUtc().toIso8601String(),
-        tagId: Value(tagId),
-        description: Value(description),
-        purchasePrice: Value(_toDouble(body['purchase_price'])),
-        drinkBefore: Value(drinkBefore),
-      ));
-      final bottle = await db.getBottleById(id);
-      return _json(201, bottle.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists', 'tag_id $tagId is already in use');
-      }
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(400, 'invalid_argument', 'cuvee_id $cuveeId does not exist');
-      }
-      dev.log('insertBottle error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        final id = await db.insertBottle(BottlesCompanion.insert(
+          cuveeId: cuveeId,
+          vintage: vintage,
+          addedAt: DateTime.now().toUtc().toIso8601String(),
+          tagId: Value(tagId),
+          description: Value(description),
+          purchasePrice: Value(_toDouble(body['purchase_price'])),
+          drinkBefore: Value(drinkBefore),
+        ));
+        final bottle = await db.getBottleById(id);
+        return _json(201, bottle.toJson());
+      }, logTag: 'bottles');
   });
 
   // PUT /bottles/:id — partial update
@@ -176,23 +165,14 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
       return _error(400, 'invalid_argument', e.message);
     }
 
-    try {
-      final count = await db.bulkUpdateBottles([intId], companion);
-      if (count == 0) {
-        return _error(404, 'not_found', 'bottle $intId not found');
-      }
-      final bottle = await db.getBottleById(intId);
-      return _json(200, bottle.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(400, 'already_exists', 'tag_id is already in use');
-      }
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(400, 'invalid_argument', 'cuvee_id does not exist');
-      }
-      dev.log('updateBottle error: $e', name: 'bottles');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        final count = await db.updateBottleFields(intId, companion);
+        if (count == 0) {
+          return _error(404, 'not_found', 'bottle $intId not found');
+        }
+        final bottle = await db.getBottleById(intId);
+        return _json(200, bottle.toJson());
+      }, logTag: 'bottles');
   });
 
   // DELETE /bottles/:id
@@ -213,7 +193,7 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
 
 /// Builds a partial BottlesCompanion — absent keys → Value.absent(), present keys → Value(v).
 /// Never updates system fields: addedAt, consumedAt, id.
-/// tag_id: null clears it; non-null string is normalized and set (use PUT /:id/tag for dedicated flow).
+/// tag_id: null clears it; non-null string is normalized and set.
 /// Throws [FormatException] on invalid field types — callers must catch and return 400.
 BottlesCompanion _buildPartialCompanion(Map<String, dynamic> body) {
   return BottlesCompanion(

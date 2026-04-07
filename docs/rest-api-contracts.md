@@ -29,7 +29,7 @@ All errors return a JSON body with an HTTP status code:
 | 400 | `already_exists` | Unique constraint violation (name, tag_id) |
 | 404 | `not_found` | Resource does not exist |
 | 409 | `already_exists` | Conflict (e.g. scan already in progress) |
-| 412 | `referenced` | Foreign key prevents deletion |
+| 412 | `referenced` | Foreign key constraint violation (on delete: entity still referenced; on create/update: referenced entity does not exist) |
 | 412 | `failed_precondition` | Sentinel entity cannot be deleted |
 | 413 | `payload_too_large` | Upload exceeds size limit (restore) |
 | 500 | `internal` | Unexpected server error |
@@ -302,7 +302,7 @@ Add a new bottle.
 
 **Response**: `201` — Bottle
 
-**Errors**: `400 already_exists` (tag_id in use by another bottle), `400 invalid_argument` (cuvee_id does not exist)
+**Errors**: `400 already_exists` (tag_id in use), `412 referenced` (cuvee_id does not exist)
 
 ### POST /bottles/consume
 
@@ -331,7 +331,7 @@ Partial update a bottle. Only provided fields are written.
 
 **Response**: `200` — Bottle
 
-**Errors**: `404`, `400 already_exists` (tag_id in use), `400 invalid_argument` (cuvee_id does not exist)
+**Errors**: `404`, `400 already_exists` (tag_id in use), `412 referenced` (cuvee_id does not exist)
 
 ### DELETE /bottles/:id
 

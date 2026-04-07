@@ -262,11 +262,11 @@ void main() {
       expect(body['error'], 'invalid_argument');
     });
 
-    test('returns 400 when cuvee_id does not exist', () async {
+    test('returns 412 when cuvee_id does not exist', () async {
       final response = await post('/', {'cuvee_id': 9999, 'vintage': 2019});
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
       final body = await jsonBody(response);
-      expect(body['error'], 'invalid_argument');
+      expect(body['error'], 'referenced');
     });
 
     test('returns 400 on duplicate tag_id', () async {
@@ -365,14 +365,14 @@ void main() {
       expect(response.statusCode, 400);
     });
 
-    test('returns 400 when cuvee_id does not exist', () async {
+    test('returns 412 when cuvee_id does not exist', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
           await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
 
       final response = await put('/${created['id']}', {'cuvee_id': 9999});
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 412);
     });
   });
 

@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:developer' as dev;
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import 'package:sqlite3/sqlite3.dart' show SqliteException;
-
 import '../database.dart';
+import 'sqlite_errors.dart';
 
 Router domainsRouter(AppDatabase db) {
   final router = Router();
@@ -29,21 +27,15 @@ Router domainsRouter(AppDatabase db) {
     if (name == null || name.trim().isEmpty) {
       return _error(400, 'invalid_argument', 'name is required');
     }
-    try {
-      final id = await db.insertDomain(DomainsCompanion.insert(
-        name: name.trim(),
-        description: Value((body['description'] as String?)?.trim() ?? ''),
-      ));
-      final d = await db.getDomainById(id);
-      return _json(201, d.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(
-            400, 'already_exists', 'domain "${name.trim()}" already exists');
-      }
-      dev.log('insertDomain error: $e', name: 'domains');
-      return _error(500, 'internal', e.toString());
-    }
+
+    return guardDb(() async {
+        final id = await db.insertDomain(DomainsCompanion.insert(
+          name: name.trim(),
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ));
+        final d = await db.getDomainById(id);
+        return _json(201, d.toJson());
+      }, logTag: 'domains');
   });
 
   // PUT /domains/<id> — update
@@ -71,22 +63,15 @@ Router domainsRouter(AppDatabase db) {
       return _error(404, 'not_found', 'domain $intId not found');
     }
 
-    try {
-      await db.updateDomain(DomainsCompanion(
-        id: Value(intId),
-        name: Value(name.trim()),
-        description: Value((body['description'] as String?)?.trim() ?? ''),
-      ));
-      final d = await db.getDomainById(intId);
-      return _json(200, d.toJson());
-    } on SqliteException catch (e) {
-      if (e.message.contains('UNIQUE constraint')) {
-        return _error(
-            400, 'already_exists', 'domain "${name.trim()}" already exists');
-      }
-      dev.log('updateDomain error: $e', name: 'domains');
-      return _error(500, 'internal', e.toString());
-    }
+    return guardDb(() async {
+        await db.updateDomain(DomainsCompanion(
+          id: Value(intId),
+          name: Value(name.trim()),
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ));
+        final d = await db.getDomainById(intId);
+        return _json(200, d.toJson());
+      }, logTag: 'domains');
   });
 
   // DELETE /domains/<id>
@@ -95,25 +80,14 @@ Router domainsRouter(AppDatabase db) {
     if (intId == null) {
       return _error(400, 'invalid_argument', 'id must be an integer');
     }
-    try {
-      final count = await db.deleteDomain(intId);
-      if (count == 0) {
-        return _error(404, 'not_found', 'domain $intId not found');
-      }
-      return Response(204);
-    } on SqliteException catch (e) {
-      if (e.message.contains('FOREIGN KEY constraint')) {
-        return _error(412, 'referenced', 'entity is still referenced');
-      }
-      dev.log('deleteDomain error: $e', name: 'domains');
-      return _error(500, 'internal', e.toString());
-    } catch (e) {
-      if (e.toString().contains('FOREIGN KEY constraint')) {
-        return _error(412, 'referenced', 'entity is still referenced');
-      }
-      dev.log('deleteDomain error: $e', name: 'domains');
-      return _error(500, 'internal', e.toString());
-    }
+
+    return guardDb(() async {
+        final count = await db.deleteDomain(intId);
+        if (count == 0) {
+          return _error(404, 'not_found', 'domain $intId not found');
+        }
+        return Response(204);
+      }, logTag: 'domains');
   });
 
   return router;
