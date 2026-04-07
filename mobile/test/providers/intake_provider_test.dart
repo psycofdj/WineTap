@@ -14,6 +14,10 @@ import 'package:wine_tap_mobile/services/nfc_service.dart';
 class MockNfcService implements NfcService {
   Completer<String>? _readCompleter;
   bool stopReadingCalled = false;
+  bool sessionActive = false;
+
+  @override
+  bool get isSessionActive => sessionActive;
 
   @override
   Future<bool> isAvailable() async => true;
@@ -113,6 +117,28 @@ void main() {
     coordinator.cancel();
     await Future<void>.delayed(const Duration(milliseconds: 600));
     expect(provider.state, IntakeState.waitingForRequest);
+  });
+
+  // --- Manager cancel waits for iOS session ---
+  test('manager cancel waits for session to end before transitioning', () async {
+    provider.startListening();
+    coordinator.request();
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(provider.state, IntakeState.scanning);
+
+    // Simulate iOS scan sheet still active
+    mockNfc.sessionActive = true;
+    coordinator.cancel();
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    // Should still be scanning — session not dismissed yet
+    expect(provider.state, IntakeState.scanning);
+    expect(provider.shouldShowIntakeScreen, true);
+
+    // Simulate iOS scan sheet dismissed
+    mockNfc.sessionActive = false;
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(provider.state, IntakeState.waitingForRequest);
+    expect(provider.shouldShowIntakeScreen, false);
   });
 
   // --- NFC errors auto-retry ---

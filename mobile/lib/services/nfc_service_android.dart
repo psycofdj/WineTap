@@ -26,6 +26,9 @@ class NfcServiceAndroid extends NoOpNfcService {
   }
 
   @override
+  bool get isSessionActive => false;
+
+  @override
   Future<bool> isAvailable() async {
     dev.log('isAvailable: start', name: _tag);
     final availability = await NfcManager.instance.checkAvailability();

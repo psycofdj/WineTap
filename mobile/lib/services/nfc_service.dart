@@ -38,6 +38,9 @@ abstract class NfcService {
 
   /// Cancels any active read and returns to idle.
   Future<void> stopReading();
+
+  /// Whether a platform NFC session is currently active (e.g. iOS scan sheet).
+  bool get isSessionActive;
 }
 
 /// Base implementation that owns the completer + timeout timer.
@@ -54,6 +57,9 @@ class NoOpNfcService implements NfcService {
 
   Completer<String>? _readCompleter;
   Timer? _readTimer;
+
+  @override
+  bool get isSessionActive => false;
 
   @override
   Future<bool> isAvailable() async => true;

@@ -86,8 +86,11 @@ class IntakeProvider extends ChangeNotifier {
       // Manager cancelled or scan completed and reset.
       // Skip when tagSent — the reset timer will stop reader-mode after the
       // 1-second feedback, preventing Android from re-dispatching the tag.
-      _hadActiveRequest = false;
       _nfcService.stopReading();
+      // On iOS the scan sheet may still be dismissing — keep polling until
+      // the platform session is fully closed before navigating away.
+      if (_nfcService.isSessionActive) return;
+      _hadActiveRequest = false;
       if (_state != IntakeState.waitingForRequest &&
           _state != IntakeState.error) {
         _setState(IntakeState.waitingForRequest);

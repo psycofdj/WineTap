@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:nfc_manager/nfc_manager.dart';
@@ -26,11 +27,28 @@ class NfcServiceIos extends NoOpNfcService {
   }
 
   bool _sessionActive = false;
+  bool _stopRequested = false;
+  Completer<void>? _sessionEndCompleter;
+
+  @override
+  bool get isSessionActive => _sessionActive;
+
+  @override
+  Future<String> readTagId() async {
+    // Wait for a previous session to fully dismiss before starting a new one.
+    if (_sessionActive) {
+      dev.log('readTagId: waiting for previous session to end', name: _tag);
+      _sessionEndCompleter ??= Completer<void>();
+      await _sessionEndCompleter!.future;
+    }
+    return super.readTagId();
+  }
 
   @override
   void onReadStart() {
     dev.log('onReadStart: starting session', name: _tag);
     _sessionActive = true;
+    _stopRequested = false;
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
       alertMessageIos: 'Approchez le téléphone du tag NFC',
@@ -42,6 +60,9 @@ class NfcServiceIos extends NoOpNfcService {
       onSessionErrorIos: (error) {
         dev.log('onSessionErrorIos: $error', name: _tag);
         _sessionActive = false;
+        _stopRequested = false;
+        _sessionEndCompleter?.complete();
+        _sessionEndCompleter = null;
         failRead(NfcSessionCancelledException());
       },
     );
@@ -60,8 +81,8 @@ class NfcServiceIos extends NoOpNfcService {
   }
 
   void _stopSession({String? alertMessage}) {
-    if (!_sessionActive) return;
-    _sessionActive = false;
+    if (!_sessionActive || _stopRequested) return;
+    _stopRequested = true;
     NfcManager.instance
         .stopSession(alertMessageIos: alertMessage)
         .catchError((_) {});
