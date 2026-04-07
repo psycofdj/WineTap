@@ -16,6 +16,8 @@ const _tag = 'NfcServiceIos';
 /// The session is stopped when a tag is read, on timeout, on error, or
 /// when the user dismisses the sheet.
 class NfcServiceIos extends NoOpNfcService {
+  bool _sessionActive = false;
+
   @override
   Future<bool> isAvailable() async {
     dev.log('isAvailable: start', name: _tag);
@@ -25,11 +27,25 @@ class NfcServiceIos extends NoOpNfcService {
     return result;
   }
 
-  bool _sessionActive = false;
-
   @override
   void onReadStart() {
-    dev.log('onReadStart: starting session', name: _tag);
+    dev.log('onReadStart: starting session (wasActive=$_sessionActive)',
+        name: _tag);
+    if (_sessionActive) {
+      // Previous session still up (e.g. identify flow pre-empted by intake).
+      // Stop it first, then start the new one after iOS finishes tearing down.
+      _sessionActive = false;
+      NfcManager.instance
+          .stopSession()
+          .catchError((_) {})
+          .whenComplete(() => _startSession());
+    } else {
+      _startSession();
+    }
+  }
+
+  void _startSession() {
+    dev.log('_startSession: opening NFC sheet', name: _tag);
     _sessionActive = true;
     NfcManager.instance.startSession(
       pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},

@@ -111,7 +111,8 @@ void main() {
 
     // Bottle info displayed — proves the tag was found (not consumed/cleared)
     expect(find.text('Domaine Brumont'), findsOneWidget);
-    expect(find.text('Château Montus 2019'), findsOneWidget);
+    expect(find.text('Château Montus'), findsOneWidget);
+    expect(find.text('2019'), findsOneWidget);
     expect(find.text('Madiran'), findsOneWidget);
     expect(find.text('Terminé'), findsOneWidget);
   });
@@ -143,7 +144,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Château Margaux'), findsOneWidget);
-    expect(find.text('Grand Vin 2020'), findsOneWidget);
+    expect(find.text('Grand Vin'), findsOneWidget);
+    expect(find.text('2020'), findsOneWidget);
     expect(find.text('Bordeaux'), findsOneWidget);
     expect(find.text('Rouge'), findsOneWidget);
   });

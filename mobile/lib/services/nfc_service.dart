@@ -147,15 +147,15 @@ class NoOpNfcService implements NfcService {
     }
   }
 
-  /// Cancels any pending read by completing it with [NfcSessionCancelledException]
-  /// and stopping the platform session. This ensures callers always get a
-  /// resolution (instead of a dangling future) when a new read pre-empts them.
+  /// Cancels any pending read by completing it with [NfcSessionCancelledException].
+  /// Does NOT call [onReadStop] — the next [onReadStart] is responsible for
+  /// tearing down any platform session (iOS needs to await the async stop
+  /// before starting a new session).
   void _cancelPendingRead() {
     final prev = _readCompleter;
     _disarm();
     if (prev != null && !prev.isCompleted) {
       dev.log('_cancelPendingRead: cancelling previous read', name: _tag);
-      onReadStop();
       prev.completeError(NfcSessionCancelledException());
     }
   }

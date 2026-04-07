@@ -34,7 +34,9 @@ void main() {
     // Second readTagId should cancel the first.
     final second = nfc.readTagId();
     expect(nfc.readStartCount, 2);
-    expect(nfc.readStopCount, 1, reason: 'onReadStop called for first session');
+    // onReadStop is NOT called — the new onReadStart is responsible for
+    // tearing down the old platform session (iOS needs async stop-then-start).
+    expect(nfc.readStopCount, 0);
 
     // First future should complete with NfcSessionCancelledException.
     await expectLater(first, throwsA(isA<NfcSessionCancelledException>()));
