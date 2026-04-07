@@ -13,6 +13,7 @@ import 'package:wine_tap_mobile/services/nfc_service.dart';
 /// Mock NfcService that allows controlling NFC reads from tests.
 class MockNfcService implements NfcService {
   Completer<String>? _readCompleter;
+  Completer<void>? _stopCompleter;
   bool stopReadingCalled = false;
   bool sessionActive = false;
 
@@ -34,6 +35,17 @@ class MockNfcService implements NfcService {
   @override
   Future<void> stopReading() async {
     stopReadingCalled = true;
+    if (sessionActive) {
+      _stopCompleter = Completer<void>();
+      await _stopCompleter!.future;
+    }
+  }
+
+  /// Simulate iOS scan sheet dismissal.
+  void endSession() {
+    sessionActive = false;
+    _stopCompleter?.complete();
+    _stopCompleter = null;
   }
 }
 
@@ -130,13 +142,13 @@ void main() {
     mockNfc.sessionActive = true;
     coordinator.cancel();
     await Future<void>.delayed(const Duration(milliseconds: 600));
-    // Should still be scanning — session not dismissed yet
+    // Should still be scanning — stopReading is awaiting session end
     expect(provider.state, IntakeState.scanning);
     expect(provider.shouldShowIntakeScreen, true);
 
     // Simulate iOS scan sheet dismissed
-    mockNfc.sessionActive = false;
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    mockNfc.endSession();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(provider.state, IntakeState.waitingForRequest);
     expect(provider.shouldShowIntakeScreen, false);
   });

@@ -38,10 +38,24 @@ class NfcServiceIos extends NoOpNfcService {
     // Wait for a previous session to fully dismiss before starting a new one.
     if (_sessionActive) {
       dev.log('readTagId: waiting for previous session to end', name: _tag);
-      _sessionEndCompleter ??= Completer<void>();
-      await _sessionEndCompleter!.future;
+      await _awaitSessionEnd();
     }
     return super.readTagId();
+  }
+
+  @override
+  Future<void> stopReading() async {
+    final wasActive = _sessionActive;
+    super.stopReading(); // _disarm + _stopSession
+    if (wasActive && _sessionActive) {
+      dev.log('stopReading: waiting for session to end', name: _tag);
+      await _awaitSessionEnd();
+    }
+  }
+
+  Future<void> _awaitSessionEnd() {
+    _sessionEndCompleter ??= Completer<void>();
+    return _sessionEndCompleter!.future;
   }
 
   @override
@@ -85,16 +99,7 @@ class NfcServiceIos extends NoOpNfcService {
     _stopRequested = true;
     NfcManager.instance
         .stopSession(alertMessageIos: alertMessage)
-        .then((_) => _onSessionEnded())
-        .catchError((_) => _onSessionEnded());
-  }
-
-  void _onSessionEnded() {
-    if (!_sessionActive) return; // already handled by onSessionErrorIos
-    _sessionActive = false;
-    _stopRequested = false;
-    _sessionEndCompleter?.complete();
-    _sessionEndCompleter = null;
+        .catchError((_) {});
   }
 
   Uint8List _extractUid(NfcTag tag) {
