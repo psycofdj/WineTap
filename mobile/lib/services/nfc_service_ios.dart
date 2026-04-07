@@ -43,6 +43,10 @@ class NfcServiceIos extends NoOpNfcService {
       dev.log('teardownSession: awaiting pending stop', name: _tag);
       await _pendingStop;
       _pendingStop = null;
+      // iOS NFC sheet has a dismiss animation; startSession will fail if the
+      // sheet is still visible. Wait for it to fully disappear.
+      dev.log('teardownSession: waiting for sheet dismiss', name: _tag);
+      await Future<void>.delayed(const Duration(milliseconds: 3000));
     }
   }
 
