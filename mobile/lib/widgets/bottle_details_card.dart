@@ -21,7 +21,7 @@ String? _colorLabel(int color) {
   }
 }
 
-/// Displays bottle details: domain, cuvee name, vintage, appellation, color.
+/// Displays bottle details in a "label : value" table layout.
 class BottleDetailsCard extends StatelessWidget {
   const BottleDetailsCard({super.key, required this.bottle});
 
@@ -31,40 +31,54 @@ class BottleDetailsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = _colorLabel(bottle.cuvee.color);
+    final drinkBefore = bottle.bottle.drinkBefore;
+    final description = bottle.bottle.description;
+
+    final rows = <(String, String)>[
+      (S.labelCuvee, bottle.cuvee.name),
+      (S.labelMillesime, bottle.bottle.vintage.toString()),
+      if (color != null) (S.labelColor, color),
+      (S.labelDomain, bottle.domainName),
+      (S.labelDesignation, bottle.designationName),
+      (S.labelRegion, bottle.region),
+      if (drinkBefore != null) (S.labelDrinkBefore, drinkBefore.toString()),
+      if (description.isNotEmpty) (S.labelDescription, description),
+    ];
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Table(
+          columnWidths: const {
+            0: IntrinsicColumnWidth(),
+            1: FlexColumnWidth(),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(
-              bottle.domainName,
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${bottle.cuvee.name} ${bottle.bottle.vintage}',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+            for (final (label, value) in rows)
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12, bottom: 6),
+                    child: Text(
+                      label,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      value,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              bottle.designationName,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (color != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                color,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
           ],
         ),
       ),

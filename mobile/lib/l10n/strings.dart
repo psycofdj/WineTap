@@ -52,6 +52,16 @@ class S {
   static const serverRunning = 'Serveur actif';
   static const intakeUnavailable = 'Prise en charge\nnon disponible';
 
+  // Bottle details labels
+  static const labelCuvee = 'Cuvée';
+  static const labelMillesime = 'Millésime';
+  static const labelColor = 'Couleur';
+  static const labelDomain = 'Domaine';
+  static const labelDesignation = 'Appellation';
+  static const labelRegion = 'Région';
+  static const labelDrinkBefore = 'À boire avant';
+  static const labelDescription = 'Description';
+
   // Backup / restore
   static const dataManagement = 'Gestion des données';
   static const exportDatabase = 'Exporter la base';
