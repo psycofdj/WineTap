@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -30,7 +31,29 @@ func TestDesignationJSON(t *testing.T) {
 	if err := json.Unmarshal(b, &d2); err != nil {
 		t.Fatal(err)
 	}
-	if d2 != d {
+	if !reflect.DeepEqual(d2, d) {
+		t.Errorf("roundtrip: got %+v, want %+v", d2, d)
+	}
+}
+
+func TestDesignationJSONWithPicture(t *testing.T) {
+	pic := []byte{0x89, 0x50, 0x4E, 0x47}
+	d := Designation{ID: 2, Name: "Cahors", Region: "Sud-Ouest", Description: "", Picture: pic}
+	b, err := json.Marshal(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// []byte marshals as base64 in JSON.
+	want := `{"id":2,"name":"Cahors","region":"Sud-Ouest","description":"","picture":"iVBORw=="}`
+	if string(b) != want {
+		t.Errorf("got %s, want %s", b, want)
+	}
+
+	var d2 Designation
+	if err := json.Unmarshal(b, &d2); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(d2, d) {
 		t.Errorf("roundtrip: got %+v, want %+v", d2, d)
 	}
 }

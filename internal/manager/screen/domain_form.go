@@ -2,13 +2,9 @@ package screen
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
-	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -28,7 +24,7 @@ type domainForm struct {
 
 func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 	f := &domainForm{cli: cli}
-	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true, nil)
+	f.baseForm = newBaseForm("Nom", true, nil)
 
 	domainPrompt := func() string {
 		return fmt.Sprintf(`
@@ -52,54 +48,6 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 			return
 		}
 		openChatGPT(domainPrompt())
-	})
-
-	f.autoBtn.OnClicked(func() {
-		if f.Name() == "" {
-			return
-		}
-		f.descEdit.Clear()
-		f.startAuto()
-
-		go func() {
-			prompt := domainPrompt()
-			slog.Debug("chatgpt domain query", "prompt", prompt)
-			raw, err := chatGPTQuery(prompt)
-			slog.Debug("chatgpt domain query result", "raw", raw, "err", err)
-
-			mainthread.Start(func() {
-				f.finishAuto()
-				if err != nil {
-					qt.QMessageBox_Warning(nil, "Recherche échouée", err.Error())
-					return
-				}
-
-				type domainInfo struct {
-					Description string `json:"description"`
-					Adresse     string `json:"adresse"`
-					Telephone   string `json:"telephone"`
-				}
-
-				jsonStr := extractJSONObject(raw)
-				var info domainInfo
-				if jsonStr == "" || json.Unmarshal([]byte(jsonStr), &info) != nil {
-					f.descEdit.SetPlainText(raw)
-					return
-				}
-
-				var parts []string
-				if info.Description != "" && info.Description != "NC" {
-					parts = append(parts, info.Description)
-				}
-				if info.Adresse != "" && info.Adresse != "NC" {
-					parts = append(parts, "Adresse : "+info.Adresse)
-				}
-				if info.Telephone != "" && info.Telephone != "NC" {
-					parts = append(parts, "Tél. : "+info.Telephone)
-				}
-				f.descEdit.SetPlainText(strings.Join(parts, "\n\n"))
-			})
-		}()
 	})
 
 	f.alignLabels()

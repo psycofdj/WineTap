@@ -145,7 +145,9 @@ func (ts *tableScreen) SelectFirstRow() {
 	idx := ts.Proxy.Index(0, 0, qt.NewQModelIndex())
 	ts.TableView.SetCurrentIndex(idx)
 	ts.TableView.SelectRow(0)
-	ts.TableView.SetFocus()
+	if !ts.SearchEdit.HasFocus() {
+		ts.TableView.SetFocus()
+	}
 }
 
 // SelectedSourceRow returns the source-model row of the current selection,
@@ -343,12 +345,18 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 			ts.RightPanel.Style().Polish(ts.RightPanel)
 			ts.RightPanel.Update()
 		}
+		// Remember whether the search bar has focus so we can restore it
+		// after the callback (which may SetFocus a form field).
+		searchHadFocus := ts.SearchEdit.HasFocus()
 		if cfg.OnSelectionChange != nil {
 			if selected {
 				cfg.OnSelectionChange(ts.Proxy.MapToSource(&rows[0]).Row())
 			} else {
 				cfg.OnSelectionChange(-1)
 			}
+		}
+		if searchHadFocus {
+			ts.SearchEdit.SetFocus()
 		}
 	})
 
@@ -474,7 +482,7 @@ func (ts *tableScreen) installShortcuts(cfg tableScreenCfg) {
 		addShortcut(w, "Ctrl+A", func() { cfg.OnAdd() })
 	}
 	if cfg.OnDelete != nil {
-		addShortcut(w, "Del", func() {
+		addShortcut(w, "Ctrl+Del", func() {
 			if ts.DelBtn.IsEnabled() {
 				cfg.OnDelete()
 			}

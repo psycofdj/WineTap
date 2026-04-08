@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
@@ -29,11 +30,18 @@ Router designationsRouter(AppDatabase db) {
       return _error(400, 'invalid_argument', 'name is required');
     }
 
+    Uint8List? picBytes;
+    final picB64 = body['picture'] as String?;
+    if (picB64 != null && picB64.isNotEmpty) {
+      picBytes = base64Decode(picB64);
+    }
+
     return guardDb(() async {
         final id = await db.insertDesignation(DesignationsCompanion.insert(
           name: name.trim(),
           region: Value((body['region'] as String?)?.trim() ?? ''),
           description: Value((body['description'] as String?)?.trim() ?? ''),
+          picture: Value(picBytes),
         ));
         final d = await db.getDesignationById(id);
         return _json(201, d.toJson());
@@ -65,12 +73,21 @@ Router designationsRouter(AppDatabase db) {
       return _error(404, 'not_found', 'designation $intId not found');
     }
 
+    Value<Uint8List?> picValue = const Value.absent();
+    if (body.containsKey('picture')) {
+      final picB64 = body['picture'] as String?;
+      picValue = (picB64 != null && picB64.isNotEmpty)
+          ? Value(base64Decode(picB64))
+          : const Value(null);
+    }
+
     return guardDb(() async {
         await db.updateDesignation(DesignationsCompanion(
           id: Value(intId),
           name: Value(name.trim()),
           region: Value((body['region'] as String?)?.trim() ?? ''),
           description: Value((body['description'] as String?)?.trim() ?? ''),
+          picture: picValue,
         ));
         final d = await db.getDesignationById(intId);
         return _json(200, d.toJson());

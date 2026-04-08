@@ -45,7 +45,8 @@ All errors return a JSON body with an HTTP status code:
   "id": 1,
   "name": "Madiran",
   "region": "Sud-Ouest",
-  "description": ""
+  "description": "",
+  "picture": "iVBORw0KGgo..."
 }
 ```
 
@@ -55,8 +56,7 @@ All errors return a JSON body with an HTTP status code:
 | `name` | string | yes | unique |
 | `region` | string | no | |
 | `description` | string | no | |
-
-Note: `picture` (BLOB) excluded from JSON API for MVP. Served separately if needed later.
+| `picture` | string? | no | base64-encoded image bytes; omitted from response when null |
 
 ### Domain
 
@@ -151,7 +151,7 @@ List all designations ordered by name.
 **Response**: `200`
 ```json
 [
-  {"id": 1, "name": "Madiran", "region": "Sud-Ouest", "description": ""},
+  {"id": 1, "name": "Madiran", "region": "Sud-Ouest", "description": "", "picture": "iVBORw0KGgo..."},
   {"id": 2, "name": "Saint-Émilion", "region": "Bordeaux", "description": ""}
 ]
 ```
@@ -162,12 +162,12 @@ Create a designation.
 
 **Request**:
 ```json
-{"name": "Cahors", "region": "Sud-Ouest", "description": ""}
+{"name": "Cahors", "region": "Sud-Ouest", "description": "", "picture": "iVBORw0KGgo..."}
 ```
 
 **Response**: `201`
 ```json
-{"id": 3, "name": "Cahors", "region": "Sud-Ouest", "description": ""}
+{"id": 3, "name": "Cahors", "region": "Sud-Ouest", "description": "", "picture": "iVBORw0KGgo..."}
 ```
 
 **Errors**: `400 already_exists` (name unique)
@@ -178,7 +178,7 @@ Update a designation.
 
 **Request**:
 ```json
-{"name": "Cahors", "region": "Sud-Ouest", "description": "Malbec country"}
+{"name": "Cahors", "region": "Sud-Ouest", "description": "Malbec country", "picture": "iVBORw0KGgo..."}
 ```
 
 **Response**: `200` — updated Designation
@@ -441,6 +441,7 @@ Upload a SQLite database file to replace the current one.
 | `int?` (nullable) | `int?` | `*int32` | `INTEGER` (nullable) |
 | `float?` (nullable) | `double?` | `*float64` | `REAL` (nullable) |
 | `bool` | `bool` | `bool` | `INTEGER` (0/1) |
+| `string?` (base64 blob) | `Uint8List?` | `[]byte` | `BLOB` (nullable) |
 
 ## Route Summary
 

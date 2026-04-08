@@ -3,11 +3,9 @@ package screen
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
-	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -41,7 +39,7 @@ type cuveeForm struct {
 func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f := &cuveeForm{cli: cli}
 	// canEnable: button requires name + domain + designation all non-empty.
-	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true,
+	f.baseForm = newBaseForm("Nom", true,
 		func() bool {
 			return strings.TrimSpace(f.nameEdit.Text()) != "" &&
 				strings.TrimSpace(f.domainCombo.CurrentText()) != "" &&
@@ -67,15 +65,19 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f.addBody("Appellation", f.designCombo.QWidget, true)
 
 	cuveePrompt := func() string {
-		return fmt.Sprintf(
-			"Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé "+
-				"(5 à 6 phrases) à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » "+
-				"en « %s ». Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, "+
-				"et combien de temps puis-je espérer le conserver pour maximiser son goût. "+
-				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-				"Si tu ne connais pas tu répond \"NC\". "+
-				"Donne juste la réponse, pas d'intriduction type \"Voici un résumé...\" "+
-				"et pas de conclusion du type \"Si tu veux...\".",
+		return fmt.Sprintf(`
+			Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé (5 à 6 phrases) 
+			à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » en « %s ». 
+			Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, et combien de temps
+			puis-je espérer le conserver pour maximiser son goût. 
+			Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre.
+			Repond en 5 paragraphes:
+			- presentation de la cuvee
+			- presentation du nez
+			- presentation en bouche
+			- prestation des accords a table
+			- presentation de la garde
+			N'affiche pas les liens et ne mets pas les titres de paragraphe.`,
 			f.Name(),
 			strings.TrimSpace(f.domainCombo.CurrentText()),
 			strings.TrimSpace(f.designCombo.CurrentText()),
@@ -88,30 +90,6 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 			return
 		}
 		openChatGPT(cuveePrompt())
-	})
-
-	f.autoBtn.OnClicked(func() {
-		if f.Name() == "" || strings.TrimSpace(f.domainCombo.CurrentText()) == "" || strings.TrimSpace(f.designCombo.CurrentText()) == "" {
-			return
-		}
-		f.descEdit.Clear()
-		f.startAuto()
-
-		go func() {
-			prompt := cuveePrompt()
-			slog.Debug("chatgpt cuvee query", "prompt", prompt)
-			raw, err := chatGPTQuery(prompt)
-			slog.Debug("chatgpt cuvee query result", "raw", raw, "err", err)
-
-			mainthread.Start(func() {
-				f.finishAuto()
-				if err != nil {
-					qt.QMessageBox_Warning(nil, "Recherche échouée", err.Error())
-					return
-				}
-				f.descEdit.SetPlainText(raw)
-			})
-		}()
 	})
 
 	// Domain inline panel — single domainForm instance, hidden by default.

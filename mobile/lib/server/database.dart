@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
@@ -14,6 +17,7 @@ class Designations extends Table {
   TextColumn get name => text().unique()();
   TextColumn get region => text().withDefault(const Constant(''))();
   TextColumn get description => text().withDefault(const Constant(''))();
+  BlobColumn get picture => blob().nullable()();
 }
 
 class Domains extends Table {
@@ -83,12 +87,16 @@ class BottleWithCuvee {
 // ---------------------------------------------------------------------------
 
 extension DesignationToJson on Designation {
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'region': region,
-        'description': description,
-      };
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      'id': id,
+      'name': name,
+      'region': region,
+      'description': description,
+    };
+    if (picture != null) json['picture'] = base64Encode(picture!);
+    return json;
+  }
 }
 
 extension DomainToJson on Domain {
@@ -156,7 +164,7 @@ class AppDatabase extends _$AppDatabase {
   final bool _seedOnCreate;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -172,6 +180,11 @@ class AppDatabase extends _$AppDatabase {
           );
           // Seed reference data (designations & domains).
           if (_seedOnCreate) await seedDatabase(this);
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(designations, designations.picture);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

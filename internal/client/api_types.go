@@ -27,6 +27,7 @@ type Designation struct {
 	Name        string `json:"name"`
 	Region      string `json:"region"`
 	Description string `json:"description"`
+	Picture     []byte `json:"picture,omitempty"`
 }
 
 // Domain represents a wine producer/estate.
@@ -86,6 +87,7 @@ type CreateDesignation struct {
 	Name        string `json:"name"`
 	Region      string `json:"region"`
 	Description string `json:"description"`
+	Picture     []byte `json:"picture,omitempty"`
 }
 
 // CreateDomain is the request body for POST /domains and PUT /domains/:id.

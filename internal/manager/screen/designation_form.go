@@ -2,14 +2,11 @@ package screen
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
 	qt "github.com/mappu/miqt/qt6"
-	"github.com/mappu/miqt/qt6/mainthread"
 
 	"winetap/internal/client"
 )
@@ -32,14 +29,13 @@ type designationForm struct {
 
 func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 	f := &designationForm{cli: cli}
-	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description et la région via une recherche IA", false, nil)
+	f.baseForm = newBaseForm("Nom", false, nil)
 
 	// Region.
 	f.regionEdit = qt.NewQLineEdit2()
 	f.addBody("Région", f.regionEdit.QWidget, true)
 
-	// Picture (UI kept for future REST endpoint; currently non-functional).
-	// Placed in footer after description.
+	// Picture — placed in footer after description.
 	f.picLabel = qt.NewQLabel2()
 	f.picLabel.SetFixedSize2(200, 120)
 	f.picLabel.SetAlignment(qt.AlignCenter)
@@ -65,12 +61,32 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 			f.picLabel.SetPixmap(pm)
 		}
 	})
+	pasteBtn := qt.NewQPushButton3("Coller depuis le presse-papier")
+	pasteBtn.SetFixedWidth(200)
+	pasteBtn.OnClicked(func() {
+		cb := qt.QGuiApplication_Clipboard()
+		img := cb.Image()
+		if img.IsNull() {
+			qt.QMessageBox_Warning(nil, "Erreur", "Le presse-papier ne contient pas d'image.")
+			return
+		}
+		buf := qt.NewQBuffer()
+		buf.Open(qt.QIODeviceBase__WriteOnly)
+		img.Save4(&buf.QIODevice, "PNG")
+		data := buf.Data()
+		f.picBytes = data
+		pm := qt.NewQPixmap()
+		if pm.LoadFromDataWithData(data) {
+			f.picLabel.SetPixmap(pm)
+		}
+	})
 	picV := qt.NewQWidget2()
 	picVL := qt.NewQVBoxLayout(picV)
 	picVL.SetContentsMargins(0, 0, 0, 0)
 	picVL.SetSpacing(4)
 	picVL.AddWidget(f.picLabel.QFrame.QWidget)
 	picVL.AddWidget(browseBtn.QAbstractButton.QWidget)
+	picVL.AddWidget(pasteBtn.QAbstractButton.QWidget)
 
 	picH := qt.NewQWidget2()
 	picHL := qt.NewQHBoxLayout(picH)
@@ -82,16 +98,14 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 	f.addFooter("Carte", picH, false)
 
 	designPrompt := func() string {
-		return fmt.Sprintf(
-			"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
-				"de l'appellation « %s » : caractéristiques gustatives et géographiques. "+
-				"Je veux aussi la région viticole associée. "+
-				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-				"La région doit être dans la liste : "+
-				"Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura, "+
-				"Languedoc, Loire, Provence, Rhône, Roussillon, Savoie, Sud-Ouest. "+
-				"Répond moi sous forme d'un JSON : description, region. "+
-				"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
+		return fmt.Sprintf(`
+			Tu es un expert en vins français. 
+			Rédige une courte description (3 à 4 phrases) de l'appellation « %s »: caractéristiques
+			gustatives et géographiques. Je veux aussi la région viticole associée. 
+			Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre.
+			La région doit être dans la liste: Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura,
+			Languedoc, Loire, Provence, Rhône, Roussillon, Savoie, Sud-Ouest.
+			Donne moi aussi une image d'un carte pour situer géographiquement cette appellation.`,
 			f.Name(),
 		)
 	}
@@ -101,48 +115,6 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 			return
 		}
 		openChatGPT(designPrompt())
-	})
-
-	f.autoBtn.OnClicked(func() {
-		if f.Name() == "" {
-			return
-		}
-		f.descEdit.Clear()
-		f.startAuto()
-
-		go func() {
-			prompt := designPrompt()
-			slog.Debug("chatgpt designation query", "prompt", prompt)
-			raw, err := chatGPTQuery(prompt)
-			slog.Debug("chatgpt designation query result", "raw", raw, "err", err)
-
-			mainthread.Start(func() {
-				f.finishAuto()
-				if err != nil {
-					qt.QMessageBox_Warning(nil, "Recherche échouée", err.Error())
-					return
-				}
-
-				type desigInfo struct {
-					Description string `json:"description"`
-					Region      string `json:"region"`
-				}
-
-				jsonStr := extractJSONObject(raw)
-				var info desigInfo
-				if jsonStr == "" || json.Unmarshal([]byte(jsonStr), &info) != nil {
-					f.descEdit.SetPlainText(raw)
-					return
-				}
-
-				if info.Description != "" && info.Description != "NC" {
-					f.descEdit.SetPlainText(info.Description)
-				}
-				if info.Region != "" && !strings.EqualFold(info.Region, "nc") {
-					f.regionEdit.SetText(info.Region)
-				}
-			})
-		}()
 	})
 
 	f.alignLabels()
@@ -201,6 +173,7 @@ func (f *designationForm) save(ctx context.Context) (client.Designation, error) 
 		Name:        f.Name(),
 		Region:      f.Region(),
 		Description: f.Description(),
+		Picture:     f.picBytes,
 	}
 	if f.editingID == 0 {
 		return f.cli.AddDesignation(ctx, req)
@@ -218,14 +191,23 @@ func (f *designationForm) setRegionCompletions(regions []string) {
 }
 
 // populate fills all fields from an existing designation.
-// Note: picture data is not in the REST API for MVP; picLabel is cleared.
 func (f *designationForm) populate(d client.Designation) {
 	f.nameEdit.SetText(d.Name)
 	f.regionEdit.SetText(d.Region)
 	f.descEdit.SetPlainText(d.Description)
-	f.picBytes = nil
-	f.picLabel.Clear()
-	f.picLabel.SetText("Aucune image")
+	f.picBytes = d.Picture
+	if len(d.Picture) > 0 {
+		pm := qt.NewQPixmap()
+		if pm.LoadFromDataWithData(d.Picture) {
+			f.picLabel.SetPixmap(pm)
+		} else {
+			f.picLabel.Clear()
+			f.picLabel.SetText("Aucune image")
+		}
+	} else {
+		f.picLabel.Clear()
+		f.picLabel.SetText("Aucune image")
+	}
 }
 
 // clearFields resets all fields to their empty state.

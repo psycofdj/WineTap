@@ -32,20 +32,17 @@ type baseForm struct {
 	labels        []*qt.QLabel    // all field labels; used by alignLabels
 	nameLabel     *qt.QLabel
 	nameEdit      *qt.QLineEdit
-	autoContainer *qt.QWidget // row containing chatGPTBtn + autoBtn + progressBar; hide to remove the row
+	autoContainer *qt.QWidget // row containing chatGPTBtn; hide to remove the row
 	chatGPTBtn    *qt.QPushButton
-	autoBtn       *qt.QPushButton
-	progressBar   *qt.QProgressBar
 	descEdit      *qt.QTextEdit
 	formBox       *qt.QWidget // rounded container for header+body+footer
 	canEnable     func() bool // nil → enabled whenever nameEdit is non-empty
 }
 
 // newBaseForm builds the common skeleton.
-// autoTooltip is set on the auto button.
 // canEnable, if non-nil, is called by recheckAuto to determine whether the
-// auto button should be enabled (use this when more than the name matters).
-func newBaseForm(nameLabel, autoTooltip string, nameRequired bool, canEnable func() bool) *baseForm {
+// ChatGPT button should be enabled (use this when more than the name matters).
+func newBaseForm(nameLabel string, nameRequired bool, canEnable func() bool) *baseForm {
 	f := &baseForm{canEnable: canEnable}
 
 	f.widget = qt.NewQWidget2()
@@ -76,27 +73,15 @@ func newBaseForm(nameLabel, autoTooltip string, nameRequired bool, canEnable fun
 	f.header.SetRowWrapPolicy(qt.QFormLayout__WrapLongRows)
 
 	f.chatGPTBtn = qt.NewQPushButton3("💬 Demander à ChatGPT")
-	f.chatGPTBtn.SetToolTip("Ouvrir ChatGPT dans le navigateur avec la même requête")
+	f.chatGPTBtn.SetToolTip("Ouvrir ChatGPT dans le navigateur")
 	f.chatGPTBtn.SetEnabled(false)
 	f.chatGPTBtn.SetSizePolicy2(qt.QSizePolicy__Expanding, qt.QSizePolicy__Fixed)
-
-	f.autoBtn = qt.NewQPushButton3("🪄 Remplir automatiquement")
-	f.autoBtn.SetToolTip(autoTooltip)
-	f.autoBtn.SetEnabled(false)
-	f.autoBtn.SetSizePolicy2(qt.QSizePolicy__Expanding, qt.QSizePolicy__Fixed)
-
-	f.progressBar = qt.NewQProgressBar2()
-	f.progressBar.SetRange(0, 0)
-	f.progressBar.SetMaximumHeight(8)
-	f.progressBar.Hide()
 
 	f.autoContainer = qt.NewQWidget2()
 	autoVL := qt.NewQVBoxLayout(f.autoContainer)
 	autoVL.SetContentsMargins(0, 0, 0, 0)
 	autoVL.SetSpacing(2)
 	autoVL.AddWidget(f.chatGPTBtn.QAbstractButton.QWidget)
-	autoVL.AddWidget(f.autoBtn.QAbstractButton.QWidget)
-	autoVL.AddWidget(f.progressBar.QWidget)
 	f.header.AddRowWithWidget(f.autoContainer)
 
 	f.nameLabel = f.addHeader(nameLabel, f.nameEdit_init(), nameRequired)
@@ -210,34 +195,15 @@ func (f *baseForm) adjustDescHeight() {
 	w.SetMaximumHeight(docH)
 }
 
-// recheckAuto enables or disables the auto button based on canEnable / name.
+// recheckAuto enables or disables the ChatGPT button based on canEnable / name.
 func (f *baseForm) recheckAuto() {
-	if f.progressBar.IsVisible() {
-		return
-	}
 	var enabled bool
 	if f.canEnable != nil {
 		enabled = f.canEnable()
 	} else {
 		enabled = f.nameEdit.Text() != ""
 	}
-	f.autoBtn.SetEnabled(enabled)
 	f.chatGPTBtn.SetEnabled(enabled)
-}
-
-// startAuto disables the button and shows the progress bar.
-// Call before launching the AI goroutine.
-func (f *baseForm) startAuto() {
-	f.autoBtn.SetEnabled(false)
-	f.chatGPTBtn.SetEnabled(false)
-	f.progressBar.Show()
-}
-
-// finishAuto hides the progress bar and re-evaluates the button state.
-// Call from the Qt main thread when the AI goroutine finishes.
-func (f *baseForm) finishAuto() {
-	f.progressBar.Hide()
-	f.recheckAuto()
 }
 
 // showName shows or hides the name row.
