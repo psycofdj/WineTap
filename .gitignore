@@ -1,9 +1,3 @@
-# Generated protobuf code
-gen/
-
-# Build output
-bin/
-
 # IDE
 .idea/
 .vscode/

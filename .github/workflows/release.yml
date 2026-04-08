@@ -9,226 +9,219 @@ permissions:
   contents: write
 
 jobs:
-  macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+  # macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Install Qt 6.5
-        run: |
-          pipx install aqtinstall
-          # mitqt doesn't qt6.6 which is default for "brew install"
-          aqt install-qt mac desktop 6.5.3 clang_64
-          QT_DIR=$(pwd)/6.5.3/macos
-          echo "Qt6_DIR=${QT_DIR}" >> $GITHUB_ENV
-          echo "${QT_DIR}/bin" >> $GITHUB_PATH
+  #     - name: Install Qt 6.5
+  #       run: |
+  #         pipx install aqtinstall
+  #         # mitqt doesn't qt6.6 which is default for "brew install"
+  #         aqt install-qt mac desktop 6.5.3 clang_64
+  #         QT_DIR=$(pwd)/6.5.3/macos
+  #         echo "Qt6_DIR=${QT_DIR}" >> $GITHUB_ENV
+  #         echo "${QT_DIR}/bin" >> $GITHUB_PATH
 
-          # aqtinstall doesn't ship pkg-config files — generate them
-          mkdir -p "${QT_DIR}/lib/pkgconfig"
+  #         # aqtinstall doesn't ship pkg-config files — generate them
+  #         mkdir -p "${QT_DIR}/lib/pkgconfig"
 
-          cat > "${QT_DIR}/lib/pkgconfig/Qt6Core.pc" <<EOS
-          prefix=${QT_DIR}
-          libdir=\${prefix}/lib
-          includedir=\${libdir}/QtCore.framework/Headers
+  #         cat > "${QT_DIR}/lib/pkgconfig/Qt6Core.pc" <<EOS
+  #         prefix=${QT_DIR}
+  #         libdir=\${prefix}/lib
+  #         includedir=\${libdir}/QtCore.framework/Headers
 
-          Name: Qt6Core
-          Description: Qt6 Core module
-          Version: 6.5.3
-          Libs: -F\${prefix}/lib -framework QtCore
-          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_CORE_LIB
-          EOS
+  #         Name: Qt6Core
+  #         Description: Qt6 Core module
+  #         Version: 6.5.3
+  #         Libs: -F\${prefix}/lib -framework QtCore
+  #         Cflags: -F\${prefix}/lib -I\${includedir} -DQT_CORE_LIB
+  #         EOS
 
-          cat > "${QT_DIR}/lib/pkgconfig/Qt6Gui.pc" <<EOS
-          prefix=${QT_DIR}
-          libdir=\${prefix}/lib
-          includedir=\${libdir}/QtGui.framework/Headers
+  #         cat > "${QT_DIR}/lib/pkgconfig/Qt6Gui.pc" <<EOS
+  #         prefix=${QT_DIR}
+  #         libdir=\${prefix}/lib
+  #         includedir=\${libdir}/QtGui.framework/Headers
 
-          Name: Qt6Gui
-          Description: Qt6 Gui module
-          Version: 6.5.3
-          Requires: Qt6Core
-          Libs: -F\${prefix}/lib -framework QtGui
-          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_GUI_LIB
-          EOS
+  #         Name: Qt6Gui
+  #         Description: Qt6 Gui module
+  #         Version: 6.5.3
+  #         Requires: Qt6Core
+  #         Libs: -F\${prefix}/lib -framework QtGui
+  #         Cflags: -F\${prefix}/lib -I\${includedir} -DQT_GUI_LIB
+  #         EOS
 
-          cat > "${QT_DIR}/lib/pkgconfig/Qt6Widgets.pc" <<EOS
-          prefix=${QT_DIR}
-          libdir=\${prefix}/lib
-          includedir=\${libdir}/QtWidgets.framework/Headers
+  #         cat > "${QT_DIR}/lib/pkgconfig/Qt6Widgets.pc" <<EOS
+  #         prefix=${QT_DIR}
+  #         libdir=\${prefix}/lib
+  #         includedir=\${libdir}/QtWidgets.framework/Headers
 
-          Name: Qt6Widgets
-          Description: Qt6 Widgets module
-          Version: 6.5.3
-          Requires: Qt6Gui
-          Libs: -F\${prefix}/lib -framework QtWidgets
-          Cflags: -F\${prefix}/lib -I\${includedir} -DQT_WIDGETS_LIB
-          EOS
-          echo "PKG_CONFIG_PATH=${QT_DIR}/lib/pkgconfig" >> $GITHUB_ENV
-          export PKG_CONFIG_PATH="${QT_DIR}/lib/pkgconfig"
-          pkg-config --cflags --libs Qt6Core Qt6Gui Qt6Widgets
+  #         Name: Qt6Widgets
+  #         Description: Qt6 Widgets module
+  #         Version: 6.5.3
+  #         Requires: Qt6Gui
+  #         Libs: -F\${prefix}/lib -framework QtWidgets
+  #         Cflags: -F\${prefix}/lib -I\${includedir} -DQT_WIDGETS_LIB
+  #         EOS
+  #         echo "PKG_CONFIG_PATH=${QT_DIR}/lib/pkgconfig" >> $GITHUB_ENV
+  #         export PKG_CONFIG_PATH="${QT_DIR}/lib/pkgconfig"
+  #         pkg-config --cflags --libs Qt6Core Qt6Gui Qt6Widgets
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v6
+  #       with:
+  #         go-version-file: go.mod
+  #         cache: true
 
-      - name: Download dependencies
-        run: go mod download
+  #     - name: Download dependencies
+  #       run: go mod download
 
-      - name: Build
-        env:
-          CGO_ENABLED: "1"
-          GOOS: darwin
-          GOARCH: arm64
-          CGO_CXXFLAGS: "-std=c++17"
-        run: |
-          echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
-          go build -v -ldflags='-s -w' -o manager-darwin-arm64 ./cmd/manager
+  #     - name: Build
+  #       env:
+  #         CGO_ENABLED: "1"
+  #         GOOS: darwin
+  #         GOARCH: arm64
+  #         CGO_CXXFLAGS: "-std=c++17"
+  #       run: |
+  #         echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
+  #         go build -v -ldflags='-s -w' -o manager-darwin-arm64 ./cmd/manager
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: manager-darwin-arm64
-          path: manager-darwin-arm64
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: manager-darwin-arm64
+  #         path: manager-darwin-arm64
 
-  windows:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+  # windows:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v6
+  #       with:
+  #         go-version-file: go.mod
+  #         cache: true
 
-      - name: Install ca-certificates
-        run: sudo apt-get update && sudo apt-get install -y ca-certificates && sudo update-ca-certificates
+  #     - name: Install ca-certificates
+  #       run: sudo apt-get update && sudo apt-get install -y ca-certificates && sudo update-ca-certificates
 
-      - name: Install miqt-docker
-        run: go install github.com/mappu/miqt/cmd/miqt-docker@latest
+  #     - name: Install miqt-docker
+  #       run: go install github.com/mappu/miqt/cmd/miqt-docker@latest
 
-      - name: Build
-        run:
-          miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
+  #     - name: Build
+  #       run:
+  #         miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: manager-windows-amd64.exe
-          path: manager-windows-amd64.exe
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: manager-windows-amd64.exe
+  #         path: manager-windows-amd64.exe
 
-  linux:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+  # linux:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Install Qt6 dependencies
-        run: sudo apt-get update && sudo apt-get install -y qt6-base-dev
+  #     - name: Install Qt6 dependencies
+  #       run: sudo apt-get update && sudo apt-get install -y qt6-base-dev
 
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          cache: true
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v6
+  #       with:
+  #         go-version-file: go.mod
+  #         cache: true
 
-      - name: Download dependencies
-        run: go mod download
+  #     - name: Download dependencies
+  #       run: go mod download
 
-      - name: Build
-        env:
-          CGO_ENABLED: "1"
-          GOOS: linux
-          GOARCH: amd64
-          CGO_CXXFLAGS: "-std=c++17"
-        run: |
-          echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
-          go build -v -ldflags='-s -w' -o manager-linux-amd64 ./cmd/manager
+  #     - name: Build
+  #       env:
+  #         CGO_ENABLED: "1"
+  #         GOOS: linux
+  #         GOARCH: amd64
+  #         CGO_CXXFLAGS: "-std=c++17"
+  #       run: |
+  #         echo "Takes ~10min minutes to build dependency github.com/mappu/miqt/qt6"
+  #         go build -v -ldflags='-s -w' -o manager-linux-amd64 ./cmd/manager
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: manager-linux-amd64
-          path: manager-linux-amd64
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: manager-linux-amd64
+  #         path: manager-linux-amd64
 
-  android:
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: mobile
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+  # android:
+  #   runs-on: ubuntu-24.04
+  #   defaults:
+  #     run:
+  #       working-directory: mobile
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
+  #     - name: Setup Java
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: "17"
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: '3.41.6'
-          cache: false
+  #     - name: Setup Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: stable
+  #         cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+  #     - name: Install dependencies
+  #       run: flutter pub get
 
-      - name: Decode keystore
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/upload-keystore.jks
+  #     - name: Decode keystore
+  #       env:
+  #         ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+  #       run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/upload-keystore.jks
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          echo "name=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+  #     - name: Extract version from tag
+  #       id: version
+  #       run: |
+  #         TAG="${GITHUB_REF_NAME#v}"
+  #         echo "name=${TAG}" >> "$GITHUB_OUTPUT"
+  #         echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - name: Check v1 embedding
-        run: |
-          echo "=== AndroidManifest.xml ==="
-          cat android/app/src/main/AndroidManifest.xml
-          echo "=== grep flutterEmbedding ==="
-          grep -r "flutterEmbedding" android/ || echo "flutterEmbedding NOT FOUND"
-          echo "=== grep FlutterApplication ==="
-          grep -r "FlutterApplication\|io\.flutter\.app" android/ || echo "No v1 references found"
-          echo "=== pwd and ls ==="
-          pwd
-          ls -la android/app/src/main/
+  #     - name: Build App Bundle
+  #       env:
+  #         ANDROID_KEYSTORE_PATH: /tmp/upload-keystore.jks
+  #         ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+  #         ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  #         ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+  #       run: |
+  #         flutter build appbundle \
+  #           --release \
+  #           --build-name=${{ steps.version.outputs.name }} \
+  #           --build-number=${{ steps.version.outputs.code }}
 
+  #     - name: Upload to Google Play (internal track)
+  #       uses: r0adkll/upload-google-play@v1
+  #       with:
+  #         serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+  #         packageName: com.winetap.mobile
+  #         releaseFiles: dist/WineTap-${{ github.ref_name }}-android.aab
+  #         track: internal
 
-      - name: Build App Bundle
-        env:
-          ANDROID_KEYSTORE_PATH: /tmp/upload-keystore.jks
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-        run: |
-          flutter build appbundle \
-            --release \
-            --verbose \
-            --build-name=${{ steps.version.outputs.name }} \
-            --build-number=${{ steps.version.outputs.code }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release.aab
-          path: mobile/build/app/outputs/bundle/release/app-release.aab
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: app-release.aab
+  #         path: mobile/build/app/outputs/bundle/release/app-release.aab
 
   ios:
     runs-on: macos-latest
@@ -287,6 +280,20 @@ jobs:
             --build-number=${{ steps.version.outputs.code }} \
             --export-options-plist=ios/ExportOptions.plist
 
+      - name: Upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          pip install codemagic-cli-tools
+          app-store-connect publish \
+            --verbose \
+            --path build/ios/ipa/*.ipa \
+            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --private-key "$APP_STORE_CONNECT_API_KEY_P8"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -298,7 +305,12 @@ jobs:
         run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
 
   release:
-    needs: [linux, macos, windows, android, ios]
+    needs:
+      # - linux
+      # - macos
+      # - windows
+      # - android
+      - ios
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -311,48 +323,27 @@ jobs:
         with:
           path: dist
 
-      - name: Create archives
-        env:
-          VERSION: ${{ github.ref_name }}
-        run: |
-          cd dist
-          tar czf "manager-${VERSION}-linux-amd64.tar.gz" -C manager-linux-amd64 manager-linux-amd64
-          tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
-          zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
+      # - name: Create archives
+      #   env:
+      #     VERSION: ${{ github.ref_name }}
+      #   run: |
+      #     cd dist
+      #     tar czf "manager-${VERSION}-linux-amd64.tar.gz" -C manager-linux-amd64 manager-linux-amd64
+      #     tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
+      #     zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
+      #     mv app-release.aab/app-release.aab WineTap-${VERSION}-android.aab
+      #     mv WineTap.ipa/WineTap.ipa WineTap-${VERSION}-ios.ipa
 
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.ref_name }}
-        run: |
-          gh release create "${VERSION}" \
-            --generate-notes \
-            "dist/manager-${VERSION}-linux-amd64.tar.gz" \
-            "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
-            "dist/manager-${VERSION}-windows-amd64.zip" \
-            "dist/app-release.aab/app-release.aab" \
-            "dist/WineTap.ipa/"*.ipa
+      # - name: Create GitHub release
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     VERSION: ${{ github.ref_name }}
+      #   run: |
+      #     gh release create "${VERSION}" \
+      #       --generate-notes \
+      #       "dist/manager-${VERSION}-linux-amd64.tar.gz" \
+      #       "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
+      #       "dist/manager-${VERSION}-windows-amd64.zip" \
+      #       "dist/WineTap-${VERSION}-android.ipa" \
+      #       "dist/WineTap-${VERSION}-ios.aab"
 
-      - name: Upload to Google Play (internal track)
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.winetap.mobile
-          releaseFiles: dist/app-release.aab/app-release.aab
-          track: internal
-
-      - name: Upload to App Store Connect
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
-        run: |
-          # Install xcrun alternative for Linux
-          pip install codemagic-cli-tools
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_API_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
-          app-store-connect publish \
-            --path dist/WineTap.ipa/*.ipa \
-            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
-            --issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --private-key @~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
