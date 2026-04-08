@@ -180,8 +180,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: '3.41.6'
-          cache: false
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -198,19 +197,6 @@ jobs:
           echo "name=${TAG}" >> "$GITHUB_OUTPUT"
           echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
-      - name: Check v1 embedding
-        run: |
-          echo "=== AndroidManifest.xml ==="
-          cat android/app/src/main/AndroidManifest.xml
-          echo "=== grep flutterEmbedding ==="
-          grep -r "flutterEmbedding" android/ || echo "flutterEmbedding NOT FOUND"
-          echo "=== grep FlutterApplication ==="
-          grep -r "FlutterApplication\|io\.flutter\.app" android/ || echo "No v1 references found"
-          echo "=== pwd and ls ==="
-          pwd
-          ls -la android/app/src/main/
-
-
       - name: Build App Bundle
         env:
           ANDROID_KEYSTORE_PATH: /tmp/upload-keystore.jks
@@ -220,9 +206,16 @@ jobs:
         run: |
           flutter build appbundle \
             --release \
-            --verbose \
             --build-name=${{ steps.version.outputs.name }} \
             --build-number=${{ steps.version.outputs.code }}
+
+      - name: Upload to Google Play (internal track)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.winetap.mobile
+          releaseFiles: mobile/build/app/outputs/bundle/release/app-release.aab
+          track: internal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -231,7 +224,7 @@ jobs:
           path: mobile/build/app/outputs/bundle/release/app-release.aab
 
   ios:
-    runs-on: macos-latest
+    runs-on: macos-26
     defaults:
       run:
         working-directory: mobile
@@ -287,6 +280,19 @@ jobs:
             --build-number=${{ steps.version.outputs.code }} \
             --export-options-plist=ios/ExportOptions.plist
 
+      - name: Upload to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          pip install codemagic-cli-tools
+          app-store-connect publish \
+            --path build/ios/ipa/*.ipa \
+            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
+            --issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --private-key "$APP_STORE_CONNECT_API_KEY_P8"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -298,7 +304,12 @@ jobs:
         run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true
 
   release:
-    needs: [linux, macos, windows, android, ios]
+    needs:
+      - linux
+      - macos
+      - windows
+      - android
+      - ios
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -319,6 +330,8 @@ jobs:
           tar czf "manager-${VERSION}-linux-amd64.tar.gz" -C manager-linux-amd64 manager-linux-amd64
           tar czf "manager-${VERSION}-darwin-arm64.tar.gz" -C manager-darwin-arm64 manager-darwin-arm64
           zip "manager-${VERSION}-windows-amd64.zip" manager-windows-amd64.exe/manager-windows-amd64.exe
+          mv app-release.aab/app-release.aab WineTap-${VERSION}-android.aab
+          mv WineTap.ipa/WineTap.ipa WineTap-${VERSION}-ios.ipa
 
       - name: Create GitHub release
         env:
@@ -330,29 +343,6 @@ jobs:
             "dist/manager-${VERSION}-linux-amd64.tar.gz" \
             "dist/manager-${VERSION}-darwin-arm64.tar.gz" \
             "dist/manager-${VERSION}-windows-amd64.zip" \
-            "dist/app-release.aab/app-release.aab" \
-            "dist/WineTap.ipa/"*.ipa
+            "dist/WineTap-${VERSION}-android.aab" \
+            "dist/WineTap-${VERSION}-ios.ipa"
 
-      - name: Upload to Google Play (internal track)
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.winetap.mobile
-          releaseFiles: dist/app-release.aab/app-release.aab
-          track: internal
-
-      - name: Upload to App Store Connect
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
-        run: |
-          # Install xcrun alternative for Linux
-          pip install codemagic-cli-tools
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "$APP_STORE_CONNECT_API_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8
-          app-store-connect publish \
-            --path dist/WineTap.ipa/*.ipa \
-            --key-id "$APP_STORE_CONNECT_API_KEY_ID" \
-            --issuer-id "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --private-key @~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8

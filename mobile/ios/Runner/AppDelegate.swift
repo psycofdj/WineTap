@@ -12,5 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if #available(iOS 14.0, *),
+       let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "FileIOPlugin") {
+      FileIOPlugin.register(with: registrar)
+    }
   }
 }
