@@ -31,13 +31,18 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 	f.baseForm = newBaseForm("Nom", "Remplir automatiquement la description via une recherche IA", true, nil)
 
 	domainPrompt := func() string {
-		return fmt.Sprintf(
-			"Tu es un expert en vins français. Rédige une courte description (3 à 4 phrases) "+
-				"du domaine viticole « %s » : appellation, style des vins, réputation. "+
-				"Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre."+
-				"Je veux aussi l'adresse postale et le numéro de téléphone. "+
-				"Répond moi sous forme d'un JSON: description, adresse, telephone. "+
-				"Si tu ne connais pas l'un de ces champs, mets la valeur \"NC\".",
+		return fmt.Sprintf(`
+			Tu es un expert en vins français. 
+			Rédige une courte description (3 à 4 phrases) du domaine viticole « %s »: Appellation, style des vins, réputation. 
+			Tu peux chercher sur des sites web de critique de vin tels que 
+			vivino, vinsolite, buveurdevin ou autre. 
+			Je veux aussi l'adresse postale et le numéro de téléphone. 
+			Répond moi sous forme de 3 paragraphes séparés par deux sauts de ligne:
+			- description du domaine
+			- description des méthodes de production
+			- adresse et téléphone 
+			Ne mets pas d'intitulé de paragraphe.
+			`,
 			f.Name(),
 		)
 	}

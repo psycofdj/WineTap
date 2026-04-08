@@ -22,14 +22,14 @@ import (
 // width.  Use addHeader / addBody / addFooter to add labelled rows, then call
 // alignLabels once all rows have been added.
 type baseForm struct {
-	widget      *qt.QWidget
-	vl          *qt.QVBoxLayout // top-level layout; child sections appended here
-	titleLabel  *qt.QLabel      // form title; set via SetTitle
-	titleSep    *qt.QFrame      // separator below titleLabel
-	header      *qt.QFormLayout // auto button + name field
-	form        *qt.QFormLayout // body — subclass fields go here
-	footer      *qt.QFormLayout // description + extra footer rows
-	labels      []*qt.QLabel    // all field labels; used by alignLabels
+	widget        *qt.QWidget
+	vl            *qt.QVBoxLayout // top-level layout; child sections appended here
+	titleLabel    *qt.QLabel      // form title; set via SetTitle
+	titleSep      *qt.QFrame      // separator below titleLabel
+	header        *qt.QFormLayout // auto button + name field
+	form          *qt.QFormLayout // body — subclass fields go here
+	footer        *qt.QFormLayout // description + extra footer rows
+	labels        []*qt.QLabel    // all field labels; used by alignLabels
 	nameLabel     *qt.QLabel
 	nameEdit      *qt.QLineEdit
 	autoContainer *qt.QWidget // row containing chatGPTBtn + autoBtn + progressBar; hide to remove the row
