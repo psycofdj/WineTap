@@ -39,6 +39,7 @@ const sortRole = 257 // Qt::UserRole + 1, used for numeric sort keys
 func nonEditableItem(text string) *qt.QStandardItem {
 	item := qt.NewQStandardItem2(text)
 	item.SetEditable(false)
+	item.SetTextAlignment(qt.AlignCenter)
 	return item
 }
 
@@ -90,6 +91,7 @@ func newStdBtn(class string) *qt.QPushButton {
 		"save-continue": {"✔➜", "Enregistrer et continuer"},
 		"cancel":        {"✕", "Annuler"},
 		"search":        {"⌕", "Rechercher"},
+		"pdf":            {"📄", "Exporter en PDF"},
 		"warning":       {"🍷", "Marquée comme bue"},
 	}
 	d := defs[class]
@@ -188,6 +190,83 @@ func doAsync(log *slog.Logger, logMsg, uiMsg string, work func() error, then fun
 			mainthread.Start(then)
 		}
 	}()
+}
+
+// ── Debounced completer ──────────────────────────────────────────────────────
+//
+// On international keyboards, accented characters are typed via dead-key
+// sequences (e.g. ^ then a → â on French AZERTY).  Qt's built-in
+// QLineEdit/QComboBox completer integration installs an event filter that can
+// swallow the second keystroke before the input method composes the final
+// character.
+//
+// debouncedCompleter avoids the problem by NOT using QLineEdit.SetCompleter /
+// QComboBox.SetCompleter.  Instead it positions the popup via
+// QCompleter.SetWidget and triggers completion manually after a short timer,
+// giving the input method time to finish composition.
+
+// debouncedCompleter wraps a QCompleter + QTimer for dead-key-safe autocomplete.
+type debouncedCompleter struct {
+	completer *qt.QCompleter
+	timer     *qt.QTimer
+	widget    *qt.QWidget // the widget the popup is anchored to
+	getText   func() string
+	suppress  bool
+}
+
+// newDebouncedCompleter creates a debounced completer.
+//   - items: completion candidates
+//   - w: the widget to position the popup against
+//   - getText: returns the current field text
+//   - setText: called when the user accepts a completion
+//
+// The caller must invoke trigger() from their text-changed handler.
+func newDebouncedCompleter(items []string, w *qt.QWidget, getText func() string, setText func(string)) *debouncedCompleter {
+	dc := &debouncedCompleter{getText: getText, widget: w}
+	dc.timer = qt.NewQTimer()
+	dc.timer.SetSingleShot(true)
+	dc.timer.SetInterval(150)
+	dc.timer.OnTimeout(func() {
+		// Only show the popup when the user is actively typing in the field.
+		// Programmatic SetText / SetCurrentText calls (e.g. loadForEdit) also
+		// fire text-changed signals; showing a popup then causes phantom inputs
+		// and Wayland grab errors.
+		if dc.widget != nil && !dc.widget.HasFocus() {
+			return
+		}
+		prefix := dc.getText()
+		dc.completer.SetCompletionPrefix(prefix)
+		if prefix != "" && dc.completer.CompletionCount() > 0 {
+			dc.completer.Complete()
+		}
+	})
+	dc.setItems(items, w, setText)
+	return dc
+}
+
+// setItems replaces the completion candidates, reusing the existing timer.
+func (dc *debouncedCompleter) setItems(items []string, w *qt.QWidget, setText func(string)) {
+	dc.timer.Stop()
+	dc.widget = w
+	dc.completer = qt.NewQCompleter3(items)
+	dc.completer.SetCompletionMode(qt.QCompleter__PopupCompletion)
+	dc.completer.SetFilterMode(qt.MatchContains)
+	dc.completer.SetCaseSensitivity(qt.CaseInsensitive)
+	dc.completer.SetWidget(w)
+	dc.completer.OnActivated(func(text string) {
+		dc.suppress = true
+		dc.timer.Stop()
+		setText(text)
+	})
+}
+
+// trigger restarts the debounce timer.  Call this from the text-changed handler.
+func (dc *debouncedCompleter) trigger() {
+	if dc.suppress {
+		dc.suppress = false
+		return
+	}
+	dc.timer.Start2()
 }
 
 // ── Filter popup helpers ──────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ type inventoryBottleForm struct {
 
 	allCuvees   []client.Cuvee
 	cuveeLabels []string // "CuveeName — DomainName", parallel to allCuvees
+	cuveeDC     *debouncedCompleter
 
 	epcLabel        *qt.QLabel // read-only EPC display
 	addedAtLabel    *qt.QLabel // read-only added_at (edit mode only)
@@ -84,7 +85,7 @@ func newInventoryBottleForm(ctx *Ctx) *inventoryBottleForm {
 	f.drinkSpin.SetMaximum(2200)
 	f.drinkSpin.SetSpecialValueText("Non défini")
 	f.drinkSpin.SetValue(currentYear + 5)
-	f.addBody("À boire avant", f.drinkSpin.QWidget, false)
+	f.addBody("Apogée", f.drinkSpin.QWidget, false)
 
 	f.priceEdit = qt.NewQLineEdit2()
 	f.priceEdit.SetPlaceholderText("Optionnel")
@@ -98,11 +99,18 @@ func newInventoryBottleForm(ctx *Ctx) *inventoryBottleForm {
 
 	// ── Child section: inline cuvée form ──────────────────────────────────────
 	f.cuveeForm = newCuveeForm(ctx.Client)
+	f.cuveeForm.setAIProviderGetter(func() string { return ctx.GetSettings().AIProvider })
 	f.cuveeForm.loadForInlineAdd("")
 	f.cuveeSect = f.addChildSection("Cuvée", f.cuveeForm.baseForm)
 
+	f.cuveeDC = newDebouncedCompleter(nil, f.nameEdit.QWidget,
+		func() string { return f.nameEdit.Text() },
+		func(s string) { f.nameEdit.SetText(s) },
+	)
+
 	// Show/hide inline cuvée form as the user types.
 	f.nameEdit.OnTextChanged(func(text string) {
+		f.cuveeDC.trigger()
 		text = strings.TrimSpace(text)
 		if text == "" {
 			f.cuveeSect.Widget.Hide()
@@ -138,6 +146,7 @@ func newInventoryBottleForm(ctx *Ctx) *inventoryBottleForm {
 		f.priceEdit.QWidget,
 		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
 	})
+
 	return f
 }
 
@@ -187,7 +196,7 @@ func (f *inventoryBottleForm) loadBottle(b client.Bottle) {
 	if b.Cuvee.ID != 0 {
 		f.cuveeSect.SetTitle("Modifier la cuvée")
 		f.cuveeForm.loadForInlineEdit(b.Cuvee)
-		f.cuveeSect.SetExpanded(false)
+		f.cuveeSect.SetExpanded(true)
 		f.cuveeSect.Widget.Show()
 	} else {
 		f.cuveeSect.Widget.Hide()
@@ -248,13 +257,11 @@ func (f *inventoryBottleForm) setCuvees(cuvees []client.Cuvee) {
 	f.rebuildCompleter()
 }
 
-// rebuildCompleter recreates the QCompleter attached to nameEdit from the current cuveeLabels.
+// rebuildCompleter replaces the autocomplete candidates on nameEdit.
 func (f *inventoryBottleForm) rebuildCompleter() {
-	comp := qt.NewQCompleter3(f.cuveeLabels)
-	comp.SetCompletionMode(qt.QCompleter__PopupCompletion)
-	comp.SetFilterMode(qt.MatchContains)
-	comp.SetCaseSensitivity(qt.CaseInsensitive)
-	f.nameEdit.SetCompleter(comp)
+	f.cuveeDC.setItems(f.cuveeLabels, f.nameEdit.QWidget,
+		func(s string) { f.nameEdit.SetText(s) },
+	)
 }
 
 // clearFields resets all fields to their default empty (add) state.

@@ -37,7 +37,8 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 			- description du domaine
 			- description des méthodes de production
 			- adresse et téléphone 
-			Ne mets pas d'intitulé de paragraphe.
+			Ne mets pas d'intitulé de paragraphe ni de lien, je veux pouvoir
+			copier/coller ta réponse sans avoir de liens web.
 			`,
 			f.Name(),
 		)
@@ -47,7 +48,7 @@ func newDomainForm(cli *client.WineTapHTTPClient) *domainForm {
 		if f.Name() == "" {
 			return
 		}
-		openChatGPT(domainPrompt())
+		openAIChat(f.aiProvider(), domainPrompt())
 	})
 
 	f.alignLabels()

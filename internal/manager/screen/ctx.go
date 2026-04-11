@@ -18,6 +18,7 @@ type SettingsData struct {
 	LogLevel     string
 	LogFormat    string
 	QtStyle      string // Qt widget style name; empty = system default
+	AIProvider   string // "chatgpt" or "claude"; empty defaults to "chatgpt"
 }
 
 // Filter type constants for dashboard drill-down navigation.

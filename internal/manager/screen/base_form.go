@@ -36,7 +36,8 @@ type baseForm struct {
 	chatGPTBtn    *qt.QPushButton
 	descEdit      *qt.QTextEdit
 	formBox       *qt.QWidget // rounded container for header+body+footer
-	canEnable     func() bool // nil → enabled whenever nameEdit is non-empty
+	canEnable      func() bool   // nil → enabled whenever nameEdit is non-empty
+	getAIProvider  func() string // returns "chatgpt" or "claude"; nil → "chatgpt"
 }
 
 // newBaseForm builds the common skeleton.
@@ -72,8 +73,8 @@ func newBaseForm(nameLabel string, nameRequired bool, canEnable func() bool) *ba
 	f.header = qt.NewQFormLayout2()
 	f.header.SetRowWrapPolicy(qt.QFormLayout__WrapLongRows)
 
-	f.chatGPTBtn = qt.NewQPushButton3("💬 Demander à ChatGPT")
-	f.chatGPTBtn.SetToolTip("Ouvrir ChatGPT dans le navigateur")
+	f.chatGPTBtn = qt.NewQPushButton3("💬 Demander à l'IA")
+	f.chatGPTBtn.SetToolTip("Ouvrir l'assistant IA dans le navigateur")
 	f.chatGPTBtn.SetEnabled(false)
 	f.chatGPTBtn.SetSizePolicy2(qt.QSizePolicy__Expanding, qt.QSizePolicy__Fixed)
 
@@ -220,9 +221,25 @@ func chainTabOrder(widgets []*qt.QWidget) {
 	}
 }
 
-// openChatGPT opens the default browser to chatgpt.com with the given query.
-func openChatGPT(query string) {
-	u := "https://chatgpt.com/?q=" + url.QueryEscape(query)
+// aiProvider returns the configured AI provider, defaulting to "chatgpt".
+func (f *baseForm) aiProvider() string {
+	if f.getAIProvider != nil {
+		if p := f.getAIProvider(); p != "" {
+			return p
+		}
+	}
+	return "chatgpt"
+}
+
+// openAIChat opens the default browser to the configured AI assistant with the given query.
+func openAIChat(provider, query string) {
+	var u string
+	switch provider {
+	case "claude":
+		u = "https://claude.ai/new?q=" + url.QueryEscape(query)
+	default:
+		u = "https://chatgpt.com/?q=" + url.QueryEscape(query)
+	}
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
@@ -234,6 +251,9 @@ func openChatGPT(query string) {
 	}
 	_ = cmd.Start()
 }
+
+// setAIProviderGetter sets the callback used to determine which AI provider to open.
+func (f *baseForm) setAIProviderGetter(fn func() string) { f.getAIProvider = fn }
 
 func (f *baseForm) Name() string            { return strings.TrimSpace(f.nameEdit.Text()) }
 func (f *baseForm) SetTitle(t string)       { f.titleLabel.SetText(t) }

@@ -14,7 +14,8 @@ type Config struct {
 	PhoneAddress string `yaml:"phone_address"` // cached from mDNS discovery; "http://host:port"
 	LogLevel     string `yaml:"log_level"`
 	LogFormat    string `yaml:"log_format"`
-	QtStyle      string `yaml:"qt_style"` // Qt widget style name (e.g. "Fusion"); empty = system default
+	QtStyle      string `yaml:"qt_style"`   // Qt widget style name (e.g. "Fusion"); empty = system default
+	AIProvider   string `yaml:"ai_provider"` // "chatgpt" or "claude"; empty defaults to "chatgpt"
 }
 
 // saveConfig writes cfg to path, creating directories as needed.

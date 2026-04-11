@@ -35,6 +35,10 @@ abstract class NfcService {
 
   /// Cancels an active scan. No-op if not scanning.
   Future<void> cancel();
+
+  /// Re-establish the platform NFC session after the app returns
+  /// from background.  No-op on platforms without persistent sessions.
+  Future<void> restartSession();
 }
 
 /// Base implementation that owns the state machine.
@@ -152,6 +156,9 @@ abstract class NfcServiceBase implements NfcService {
     _scanCompleter = null;
     completer?.complete(tagId);
   }
+
+  @override
+  Future<void> restartSession() async {}
 
   void _onCanceled() {
     dev.log('_onCanceled: state=$_state', name: _tag);

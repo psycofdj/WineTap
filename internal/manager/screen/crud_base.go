@@ -22,14 +22,14 @@ type crudBase[T any] struct {
 	ts     *tableScreen
 	ctx    *Ctx
 
-	all     []T
-	listFn  func(context.Context) ([]T, error)
-	popFn   func()
-	delMsg  func(T) string
-	delFn   func(context.Context, T) error
-	nameFn  func(T) string // human-readable name of the item
-	name    string         // used in log messages, e.g. "domain"
-	refMsg  string         // French message shown on FK violation
+	all    []T
+	listFn func(context.Context) ([]T, error)
+	popFn  func()
+	delMsg func(T) string
+	delFn  func(context.Context, T) error
+	nameFn func(T) string // human-readable name of the item
+	name   string         // used in log messages, e.g. "domain"
+	refMsg string         // French message shown on FK violation
 }
 
 // OnActivate hides the right panel and refreshes the list.
@@ -49,7 +49,7 @@ func (b *crudBase[T]) refresh() {
 		mainthread.Start(func() {
 			b.all = items
 			b.popFn()
-			b.ts.SelectFirstRow()
+			b.ts.FitColumns()
 		})
 	}()
 }

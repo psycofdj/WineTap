@@ -262,6 +262,7 @@ func (m *Manager) makeCtx() *screen.Ctx {
 				LogLevel:     m.appCfg.LogLevel,
 				LogFormat:    m.appCfg.LogFormat,
 				QtStyle:      m.appCfg.QtStyle,
+				AIProvider:   m.appCfg.AIProvider,
 			}
 		},
 		SaveSettings: func(d screen.SettingsData) error {
@@ -270,6 +271,7 @@ func (m *Manager) makeCtx() *screen.Ctx {
 			m.appCfg.LogLevel = d.LogLevel
 			m.appCfg.LogFormat = d.LogFormat
 			m.appCfg.QtStyle = d.QtStyle
+			m.appCfg.AIProvider = d.AIProvider
 			cfgSnapshot := m.appCfg
 			m.mu.Unlock()
 

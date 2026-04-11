@@ -36,6 +36,7 @@ func BuildCuveesScreen(ctx *Ctx) *CuveesScreen {
 	s.refMsg = "cette cuvée est encore utilisée par une ou plusieurs bouteilles"
 
 	s.cuvForm = newCuveeForm(ctx.Client)
+	s.cuvForm.setAIProviderGetter(func() string { return ctx.GetSettings().AIProvider })
 
 	s.ts = newTableScreen(tableScreenCfg{
 		ScreenTitle:       "Cuvées",
