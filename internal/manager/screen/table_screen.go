@@ -1,7 +1,9 @@
 package screen
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
 	qt "github.com/mappu/miqt/qt6"
 )
@@ -31,6 +33,10 @@ type tableScreenCfg struct {
 	// check.  src is the source model; srcRow is the source row.  Return false
 	// to hide the row.  nil = accept all rows.
 	ExtraFilterAccepts func(src *qt.QStandardItemModel, srcRow int) bool
+
+	// StretchColumns, when true, makes all columns stretch evenly to fill the
+	// table width instead of sizing to content.
+	StretchColumns bool
 
 	// LessThanOverride replaces the default foldAccents / col-0 tie-break sort.
 	// Use this when a column requires a non-text sort key (e.g. a numeric role).
@@ -76,6 +82,7 @@ type tableScreen struct {
 	AddBtn          *qt.QPushButton
 	DelBtn          *qt.QPushButton
 	CopyBtn         *qt.QPushButton // nil when OnCopy was not set
+	PdfBtn          *qt.QPushButton
 	SaveBtn         *qt.QPushButton
 	SaveContBtn     *qt.QPushButton // nil when OnSaveContinue was not set
 	CancelBtn       *qt.QPushButton
@@ -142,19 +149,31 @@ func (ts *tableScreen) SearchHasFocus() bool {
 	return ts.SearchEdit.HasFocus()
 }
 
-// SelectFirstRow selects the first visible row in the table, or clears the
-// selection when the table is empty.  Call after populating the model.
-func (ts *tableScreen) SelectFirstRow() {
-	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
-	if rowCount == 0 {
-		ts.TableView.ClearSelection()
+// FitColumns resizes every column to its content then distributes any leftover
+// space proportionally so the table fills its width.  The mode stays Interactive
+// so the user can still drag column borders afterwards.
+func (ts *tableScreen) FitColumns() {
+	hdr := ts.TableView.HorizontalHeader()
+	cols := hdr.Count()
+	if cols == 0 {
 		return
 	}
-	idx := ts.Proxy.Index(0, 0, qt.NewQModelIndex())
-	ts.TableView.SetCurrentIndex(idx)
-	ts.TableView.SelectRow(0)
-	if !ts.SearchEdit.HasFocus() {
-		ts.TableView.SetFocus()
+	// First pass: auto-size each column to its content (header + cells).
+	for i := 0; i < cols; i++ {
+		ts.TableView.ResizeColumnToContents(i)
+	}
+	// Second pass: if there is leftover space, distribute it proportionally
+	// so the table doesn't have a blank strip on the right.
+	used := 0
+	for i := 0; i < cols; i++ {
+		used += hdr.SectionSize(i)
+	}
+	avail := ts.TableView.Viewport().Width()
+	if slack := avail - used; slack > 0 && used > 0 {
+		for i := 0; i < cols; i++ {
+			extra := slack * hdr.SectionSize(i) / used
+			hdr.ResizeSection(i, hdr.SectionSize(i)+extra)
+		}
 	}
 }
 
@@ -198,6 +217,104 @@ func isFilterActive(list *qt.QListWidget) bool {
 	}
 	// none or all items unchecked → no filter
 	return (count != 0) && (count != list.Count())
+}
+
+// exportPDF generates a landscape A4 PDF of the currently visible table data
+// and opens a "Save As" dialog for the user to choose the destination.
+func (ts *tableScreen) exportPDF(title string) {
+	path := qt.QFileDialog_GetSaveFileName4(
+		ts.Widget, "Exporter en PDF", title+".pdf", "PDF (*.pdf)",
+	)
+	if path == "" {
+		return
+	}
+	if !strings.HasSuffix(strings.ToLower(path), ".pdf") {
+		path += ".pdf"
+	}
+
+	// Collect visible columns.
+	hdr := ts.TableView.HorizontalHeader()
+	cols := ts.SrcModel.ColumnCount(qt.NewQModelIndex())
+	type colInfo struct {
+		logical int
+		header  string
+	}
+	var visCols []colInfo
+	for i := 0; i < cols; i++ {
+		if ts.TableView.IsColumnHidden(i) {
+			continue
+		}
+		h := ts.SrcModel.HorizontalHeaderItem(i)
+		name := ""
+		if h != nil {
+			name = h.Text()
+		}
+		visCols = append(visCols, colInfo{logical: i, header: name})
+	}
+	_ = hdr // used above for col iteration
+
+	// Collect visible rows from the proxy (respects search + filters + sort).
+	rowCount := ts.Proxy.RowCount(qt.NewQModelIndex())
+	var rows [][]string
+	for r := 0; r < rowCount; r++ {
+		var row []string
+		srcIdx := ts.Proxy.MapToSource(ts.Proxy.Index(r, 0, qt.NewQModelIndex()))
+		srcRow := srcIdx.Row()
+		for _, c := range visCols {
+			item := ts.SrcModel.Item2(srcRow, c.logical)
+			text := ""
+			if item != nil {
+				text = item.Text()
+			}
+			row = append(row, text)
+		}
+		rows = append(rows, row)
+	}
+
+	// Build HTML table.
+	var b strings.Builder
+	b.WriteString(`<html><head><style>
+		table { border-collapse: collapse; width: 100%; font-size: 10pt; font-family: sans-serif; }
+		th { background-color: #34495e; color: white; padding: 6px 8px; text-align: left; }
+		td { padding: 4px 8px; border-bottom: 1px solid #ddd; }
+		tr:nth-child(even) { background-color: #f2f2f2; }
+		h2 { font-family: sans-serif; color: #2c3e50; }
+		.footer { font-size: 8pt; color: #888; margin-top: 12px; }
+	</style></head><body>`)
+	b.WriteString(fmt.Sprintf("<h2>%s</h2>", title))
+	b.WriteString("<table><thead><tr>")
+	for _, c := range visCols {
+		b.WriteString(fmt.Sprintf("<th>%s</th>", c.header))
+	}
+	b.WriteString("</tr></thead><tbody>")
+	for _, row := range rows {
+		b.WriteString("<tr>")
+		for _, cell := range row {
+			b.WriteString(fmt.Sprintf("<td>%s</td>", cell))
+		}
+		b.WriteString("</tr>")
+	}
+	b.WriteString("</tbody></table>")
+	b.WriteString(fmt.Sprintf(
+		`<p class="footer">%d lignes — exporté le %s</p>`,
+		len(rows), time.Now().Format("02/01/2006 15:04"),
+	))
+	b.WriteString("</body></html>")
+
+	// Render to PDF.
+	writer := qt.NewQPdfWriter(path)
+	writer.SetTitle(title)
+	layout := qt.NewQPageLayout2(
+		qt.NewQPageSize2(qt.QPageSize__A4),
+		qt.QPageLayout__Landscape,
+		qt.NewQMarginsF2(10, 10, 10, 10),
+	)
+	writer.QPagedPaintDevice.SetPageLayout(layout)
+
+	doc := qt.NewQTextDocument2("")
+	doc.SetHtml(b.String())
+	doc.SetDocumentMargin(0)
+	doc.Print(writer.QPagedPaintDevice)
 }
 
 // Sort updates sort state, the header indicator, and the proxy.
@@ -247,7 +364,10 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 
 	searchCols := cfg.SearchCols
 	if len(searchCols) == 0 {
-		searchCols = []int{0}
+		searchCols = make([]int, len(cfg.Headers))
+		for i := range searchCols {
+			searchCols[i] = i
+		}
 	}
 
 	ts.Proxy.OnFilterAcceptsRow(func(_ func(int, *qt.QModelIndex) bool, srcRow int, _ *qt.QModelIndex) bool {
@@ -302,7 +422,11 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	ts.TableView = qt.NewQTableView2()
 	ts.TableView.SetModel(ts.Proxy.QAbstractProxyModel.QAbstractItemModel)
 	ts.TableView.SetSortingEnabled(false)
-	ts.TableView.HorizontalHeader().SetSectionResizeMode(qt.QHeaderView__Stretch)
+	if cfg.StretchColumns {
+		ts.TableView.HorizontalHeader().SetSectionResizeMode(qt.QHeaderView__Stretch)
+	} else {
+		ts.TableView.HorizontalHeader().SetSectionResizeMode(qt.QHeaderView__Interactive)
+	}
 	ts.TableView.HorizontalHeader().SetSortIndicatorShown(true)
 	ts.TableView.HorizontalHeader().SetSortIndicator(ts.sortCol, ts.sortOrder)
 	ts.TableView.SetSelectionBehavior(qt.QAbstractItemView__SelectRows)
@@ -339,9 +463,6 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 		rows := ts.TableView.SelectionModel().SelectedRows()
 		selected := len(rows) == 1
 		ts.DelBtn.SetEnabled(selected)
-		if ts.CopyBtn != nil {
-			ts.CopyBtn.SetEnabled(selected)
-		}
 		// Hide the right-panel content without clearing the table selection;
 		// the OnSelectionChange callback may re-show it for the new row.
 		if ts.rightPanelInner != nil {
@@ -394,13 +515,17 @@ func newTableScreen(cfg tableScreenCfg) *tableScreen {
 	btnRow.AddWidget(ts.DelBtn.QAbstractButton.QWidget)
 	if cfg.OnCopy != nil {
 		ts.CopyBtn = newStdBtn("copy")
-		ts.CopyBtn.SetEnabled(false)
 		ts.CopyBtn.OnClicked(func() { cfg.OnCopy() })
 		btnRow.AddWidget(ts.CopyBtn.QAbstractButton.QWidget)
 	}
 	for _, btn := range cfg.ExtraActionBtns {
 		btnRow.AddWidget(btn.QAbstractButton.QWidget)
 	}
+
+	ts.PdfBtn = newStdBtn("pdf")
+	ts.PdfBtn.OnClicked(func() { ts.exportPDF(cfg.ScreenTitle) })
+	btnRow.AddWidget(ts.PdfBtn.QAbstractButton.QWidget)
+
 	btnRow.AddWidget2(qt.NewQWidget2(), 1)
 	ll.AddLayout(btnRow.QBoxLayout.QLayout)
 

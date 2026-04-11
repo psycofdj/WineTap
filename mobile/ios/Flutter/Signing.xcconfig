@@ -1,0 +1,5 @@
+// Default signing configuration (used by CI).
+// Override locally by creating Local.xcconfig (git-ignored).
+CODE_SIGN_IDENTITY = iPhone Distribution
+CODE_SIGN_STYLE = Manual
+PROVISIONING_PROFILE_SPECIFIER = WineTap AppStore Distribution

@@ -32,10 +32,11 @@ func BuildDomainsScreen(ctx *Ctx) *DomainsScreen {
 	s.refMsg = "ce domaine est encore utilisé par une ou plusieurs cuvées"
 
 	s.domForm = newDomainForm(ctx.Client)
+	s.domForm.setAIProviderGetter(func() string { return ctx.GetSettings().AIProvider })
 
 	s.ts = newTableScreen(tableScreenCfg{
 		ScreenTitle:       "Domaines",
-		Headers:           []string{"Nom", "Description"},
+		Headers:           []string{"Nom"},
 		SearchPlaceholder: "Rechercher par nom…",
 		FormContent:       s.domForm.widget,
 		OnSelectionChange: func(srcRow int) {
@@ -75,7 +76,6 @@ func (s *DomainsScreen) populate() {
 	for _, d := range s.all {
 		s.ts.SrcModel.AppendRow([]*qt.QStandardItem{
 			nonEditableItem(d.Name),
-			nonEditableItem(d.Description),
 		})
 	}
 }

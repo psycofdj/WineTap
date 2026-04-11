@@ -26,10 +26,12 @@ type cuveeForm struct {
 	colorCombo *qt.QComboBox
 
 	domainCombo *qt.QComboBox
+	domainDC    *debouncedCompleter
 	domainSect  *foldableSection
 	domainForm  *domainForm // single instance — switches between add/edit mode
 
 	designCombo *qt.QComboBox
+	designDC    *debouncedCompleter
 	designSect  *foldableSection
 	designForm  *designationForm
 
@@ -65,20 +67,43 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	f.designCombo.SetPlaceholderText("Appellation (obligatoire)")
 	f.addBody("Appellation", f.designCombo.QWidget, true)
 
+	f.domainDC = newDebouncedCompleter(nil, f.domainCombo.LineEdit().QWidget,
+		func() string { return f.domainCombo.CurrentText() },
+		func(s string) { f.domainCombo.SetCurrentText(s) },
+	)
+	f.designDC = newDebouncedCompleter(nil, f.designCombo.LineEdit().QWidget,
+		func() string { return f.designCombo.CurrentText() },
+		func(s string) { f.designCombo.SetCurrentText(s) },
+	)
+
 	cuveePrompt := func() string {
 		return fmt.Sprintf(`
-			Tu es un expert en vins français. Recherches sur internet puis rédige un court résumé (5 à 6 phrases) 
-			à propos de la cuvée « %s » du domaine « %s » de l'appellation « %s » en « %s ». 
-			Je cherche les arômes du vin, les plats avec lesquels ils s'accorde bien, et combien de temps
-			puis-je espérer le conserver pour maximiser son goût. 
-			Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre.
-			Repond en 5 paragraphes:
-			- presentation de la cuvee
-			- presentation du nez
-			- presentation en bouche
-			- prestation des accords a table
-			- presentation de la garde
-			N'affiche pas les liens et ne mets pas les titres de paragraphe.`,
+			Tu es un expert en vins français. Recherches sur internet 
+			puis rédige un court résumé à propos de la cuvée « %s » 
+			du domaine « %s » de l'appellation « %s » en « %s ». 
+
+			Repond en 6 paragraphes:
+			- presentation de la cuvée: style de vin (léger, corsé, etc.), 
+			  bio/naturel/sans-sulfites ou pas, type d'élevage (fût de chêne,
+			acier, etc.), cépages utilisées et autres faits saillants.
+			- presentation du nez: concis: les arômes dominants
+			- presentation en bouche: concis: l'attaque, la bouche et la finale
+			- prestation des accords à table: concis: quels types de plats et
+			  la température de service idéale
+			- presentation de la garde: concis, peu d'explication:
+			  une fourchette d'années pour  atteindre le pic de maturité, et une fourchette
+			  d'années pour la garde maximale.
+			- prix d'une bouteille: concis, sans explication, juste une
+			  fourchette de prix en euros.
+
+			Tu peux chercher sur des sites web de critique de vin tels que vivino,
+			vinsolite, buveurdevin ou autre.
+
+			Dans ta réponse:
+			- n'affiche que du texte
+			- supprime les balises de citation
+			- supprime les titres de paragraphes
+			`,
 			f.Name(),
 			strings.TrimSpace(f.domainCombo.CurrentText()),
 			strings.TrimSpace(f.designCombo.CurrentText()),
@@ -90,7 +115,7 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 		if f.Name() == "" || strings.TrimSpace(f.domainCombo.CurrentText()) == "" || strings.TrimSpace(f.designCombo.CurrentText()) == "" {
 			return
 		}
-		openChatGPT(cuveePrompt())
+		openAIChat(f.aiProvider(), cuveePrompt())
 	})
 
 	// Domain inline panel — single domainForm instance, hidden by default.
@@ -105,6 +130,7 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	// recheckAuto is merged in here to avoid duplicate signal connections.
 	f.domainCombo.OnCurrentTextChanged(func(text string) {
 		f.recheckAuto()
+		f.domainDC.trigger()
 		text = strings.TrimSpace(text)
 		if text == "" {
 			f.domainSect.Widget.Hide()
@@ -135,6 +161,7 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 	// Same for designation — fetch full object for inline edit (list is summary-only).
 	f.designCombo.OnCurrentTextChanged(func(text string) {
 		f.recheckAuto()
+		f.designDC.trigger()
 		text = strings.TrimSpace(text)
 		if text == "" {
 			f.designSect.Widget.Hide()
@@ -177,6 +204,7 @@ func newCuveeForm(cli *client.WineTapHTTPClient) *cuveeForm {
 		f.designCombo.QWidget,
 		f.descEdit.QAbstractScrollArea.QFrame.QWidget,
 	})
+
 	return f
 }
 
@@ -214,6 +242,10 @@ func (f *cuveeForm) loadForInlineEdit(c client.Cuvee) {
 	f.domainCombo.SetCurrentText(c.DomainName)
 	f.designCombo.SetCurrentText(c.DesignationName)
 	f.descEdit.SetPlainText(c.Description)
+	f.designSect.SetExpanded(true)
+	f.designSect.Widget.Show()
+	f.domainSect.SetExpanded(true)
+	f.domainSect.Widget.Show()
 }
 
 // clearFields resets all editable fields without touching name visibility or mode.
@@ -296,11 +328,9 @@ func (f *cuveeForm) setDomains(domains []client.Domain) {
 		f.domainCombo.AddItem(d.Name)
 		names = append(names, d.Name)
 	}
-	c := qt.NewQCompleter3(names)
-	c.SetCompletionMode(qt.QCompleter__PopupCompletion)
-	c.SetFilterMode(qt.MatchContains)
-	c.SetCaseSensitivity(qt.CaseInsensitive)
-	f.domainCombo.SetCompleter(c)
+	f.domainDC.setItems(names, f.domainCombo.LineEdit().QWidget,
+		func(s string) { f.domainCombo.SetCurrentText(s) },
+	)
 	f.domainCombo.BlockSignals(false)
 }
 
@@ -322,14 +352,19 @@ func (f *cuveeForm) setDesignations(desigs []client.Designation) {
 			}
 		}
 	}
-	c := qt.NewQCompleter3(names)
-	c.SetCompletionMode(qt.QCompleter__PopupCompletion)
-	c.SetFilterMode(qt.MatchContains)
-	c.SetCaseSensitivity(qt.CaseInsensitive)
-	f.designCombo.SetCompleter(c)
+	f.designDC.setItems(names, f.designCombo.LineEdit().QWidget,
+		func(s string) { f.designCombo.SetCurrentText(s) },
+	)
 	f.designCombo.BlockSignals(false)
 
 	f.designForm.setRegionCompletions(regions)
+}
+
+// setAIProviderGetter propagates the AI provider callback to embedded child forms.
+func (f *cuveeForm) setAIProviderGetter(fn func() string) {
+	f.baseForm.setAIProviderGetter(fn)
+	f.domainForm.setAIProviderGetter(fn)
+	f.designForm.setAIProviderGetter(fn)
 }
 
 func (f *cuveeForm) DomainText() string { return strings.TrimSpace(f.domainCombo.CurrentText()) }

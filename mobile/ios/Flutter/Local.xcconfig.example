@@ -1,0 +1,5 @@
+// Copy this file to Local.xcconfig and adjust values for local development.
+// Local.xcconfig is git-ignored and will override project.pbxproj signing settings.
+CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_STYLE = Automatic
+PROVISIONING_PROFILE_SPECIFIER =

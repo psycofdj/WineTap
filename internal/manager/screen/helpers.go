@@ -39,6 +39,7 @@ const sortRole = 257 // Qt::UserRole + 1, used for numeric sort keys
 func nonEditableItem(text string) *qt.QStandardItem {
 	item := qt.NewQStandardItem2(text)
 	item.SetEditable(false)
+	item.SetTextAlignment(qt.AlignCenter)
 	return item
 }
 
@@ -90,6 +91,7 @@ func newStdBtn(class string) *qt.QPushButton {
 		"save-continue": {"✔➜", "Enregistrer et continuer"},
 		"cancel":        {"✕", "Annuler"},
 		"search":        {"⌕", "Rechercher"},
+		"pdf":           {"📄", "Exporter en PDF"},
 		"warning":       {"🍷", "Marquée comme bue"},
 	}
 	d := defs[class]
@@ -173,6 +175,60 @@ func showErr(msg string, err error) {
 	qt.QMessageBox_Warning(nil, "Erreur", msg+" : "+detail)
 }
 
+// ── Image lightbox ───────────────────────────────────────────────────────
+
+// showImageLightbox opens a modal dialog displaying pm as large as possible
+// while fitting in the main window and preserving the original aspect ratio.
+// The dialog has a dark semi-transparent background and an "X" close button.
+// Pressing ESC or clicking the X closes it.
+func showImageLightbox(parent *qt.QWidget, pm *qt.QPixmap) {
+	win := parent.Window()
+	winW := win.Width()
+	winH := win.Height()
+
+	dlg := qt.NewQDialog(win)
+	dlg.SetWindowTitle("Image")
+	dlg.SetModal(true)
+	dlg.QWidget.Resize(winW, winH)
+	dlg.QWidget.Move(win.X(), win.Y())
+	dlg.SetStyleSheet("QDialog { background: rgba(0,0,0,255); }")
+
+	// Scale image to fit with margin, keeping aspect ratio.
+	margin := 40
+	maxW := winW - margin*2
+	maxH := winH - margin*2
+	displayed := pm
+	if pm.Width() > maxW || pm.Height() > maxH {
+		displayed = pm.Scaled3(maxW, maxH, qt.KeepAspectRatio, qt.SmoothTransformation)
+	}
+
+	imgLabel := qt.NewQLabel2()
+	imgLabel.SetAlignment(qt.AlignCenter)
+	imgLabel.SetPixmap(displayed)
+
+	closeBtn := qt.NewQPushButton3("✕")
+	closeBtn.SetFixedSize2(32, 32)
+	closeBtn.SetStyleSheet(
+		"QPushButton { background:rgba(0,0,0,180); color:white; border:none; border-radius:16px; font-size:18px; font-weight:bold; }" +
+			"QPushButton:hover { background:rgba(60,60,60,220); }",
+	)
+	closeBtn.OnClicked(func() { dlg.Reject() })
+
+	layout := qt.NewQVBoxLayout(dlg.QWidget)
+	layout.SetContentsMargins(0, 0, 0, 0)
+
+	// Top bar with close button right-aligned.
+	topBar := qt.NewQHBoxLayout2()
+	topBar.SetContentsMargins(0, 8, 8, 0)
+	topBar.AddStretch()
+	topBar.AddWidget(closeBtn.QAbstractButton.QWidget)
+	layout.AddLayout(topBar.QBoxLayout.QLayout)
+
+	layout.AddWidget3(imgLabel.QFrame.QWidget, 1, qt.AlignCenter)
+
+	dlg.Exec()
+}
+
 // ── Async helper ──────────────────────────────────────────────────────────────
 
 // doAsync runs work in a goroutine.  On error it logs logMsg and shows a
@@ -188,6 +244,83 @@ func doAsync(log *slog.Logger, logMsg, uiMsg string, work func() error, then fun
 			mainthread.Start(then)
 		}
 	}()
+}
+
+// ── Debounced completer ──────────────────────────────────────────────────────
+//
+// On international keyboards, accented characters are typed via dead-key
+// sequences (e.g. ^ then a → â on French AZERTY).  Qt's built-in
+// QLineEdit/QComboBox completer integration installs an event filter that can
+// swallow the second keystroke before the input method composes the final
+// character.
+//
+// debouncedCompleter avoids the problem by NOT using QLineEdit.SetCompleter /
+// QComboBox.SetCompleter.  Instead it positions the popup via
+// QCompleter.SetWidget and triggers completion manually after a short timer,
+// giving the input method time to finish composition.
+
+// debouncedCompleter wraps a QCompleter + QTimer for dead-key-safe autocomplete.
+type debouncedCompleter struct {
+	completer *qt.QCompleter
+	timer     *qt.QTimer
+	widget    *qt.QWidget // the widget the popup is anchored to
+	getText   func() string
+	suppress  bool
+}
+
+// newDebouncedCompleter creates a debounced completer.
+//   - items: completion candidates
+//   - w: the widget to position the popup against
+//   - getText: returns the current field text
+//   - setText: called when the user accepts a completion
+//
+// The caller must invoke trigger() from their text-changed handler.
+func newDebouncedCompleter(items []string, w *qt.QWidget, getText func() string, setText func(string)) *debouncedCompleter {
+	dc := &debouncedCompleter{getText: getText, widget: w}
+	dc.timer = qt.NewQTimer()
+	dc.timer.SetSingleShot(true)
+	dc.timer.SetInterval(150)
+	dc.timer.OnTimeout(func() {
+		// Only show the popup when the user is actively typing in the field.
+		// Programmatic SetText / SetCurrentText calls (e.g. loadForEdit) also
+		// fire text-changed signals; showing a popup then causes phantom inputs
+		// and Wayland grab errors.
+		if dc.widget != nil && !dc.widget.HasFocus() {
+			return
+		}
+		prefix := dc.getText()
+		dc.completer.SetCompletionPrefix(prefix)
+		if prefix != "" && dc.completer.CompletionCount() > 0 {
+			dc.completer.Complete()
+		}
+	})
+	dc.setItems(items, w, setText)
+	return dc
+}
+
+// setItems replaces the completion candidates, reusing the existing timer.
+func (dc *debouncedCompleter) setItems(items []string, w *qt.QWidget, setText func(string)) {
+	dc.timer.Stop()
+	dc.widget = w
+	dc.completer = qt.NewQCompleter3(items)
+	dc.completer.SetCompletionMode(qt.QCompleter__PopupCompletion)
+	dc.completer.SetFilterMode(qt.MatchContains)
+	dc.completer.SetCaseSensitivity(qt.CaseInsensitive)
+	dc.completer.SetWidget(w)
+	dc.completer.OnActivated(func(text string) {
+		dc.suppress = true
+		dc.timer.Stop()
+		setText(text)
+	})
+}
+
+// trigger restarts the debounce timer.  Call this from the text-changed handler.
+func (dc *debouncedCompleter) trigger() {
+	if dc.suppress {
+		dc.suppress = false
+		return
+	}
+	dc.timer.Start2()
 }
 
 // ── Filter popup helpers ──────────────────────────────────────────────────────

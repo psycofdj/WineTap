@@ -15,3 +15,4 @@
 
 # Mobile signing
 mobile/android/key.properties
+mobile/ios/Flutter/Local.xcconfig

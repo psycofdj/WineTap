@@ -15,6 +15,7 @@ type SettingsScreen struct {
 	logFormatCombo   *qt.QComboBox
 	qtStyleCombo     *qt.QComboBox
 	qtStyleKeys      []string // ordered list matching combo indices; index 0 = system default
+	aiProviderCombo  *qt.QComboBox
 }
 
 // BuildSettingsScreen constructs the settings screen.
@@ -85,6 +86,21 @@ func BuildSettingsScreen(ctx *Ctx) *SettingsScreen {
 
 	root.AddLayout(appearForm.QLayout)
 
+	// ── AI assistant settings ─────────────────────────────────────────────
+	aiGroup := qt.NewQLabel3("Assistant IA")
+	setWidgetRole(aiGroup.QFrame.QWidget, "section-header")
+	root.AddWidget(aiGroup.QWidget)
+
+	aiForm := qt.NewQFormLayout2()
+
+	s.aiProviderCombo = qt.NewQComboBox2()
+	for _, p := range []string{"ChatGPT", "Claude"} {
+		s.aiProviderCombo.AddItem(p)
+	}
+	aiForm.AddRow3("Fournisseur :", s.aiProviderCombo.QWidget)
+
+	root.AddLayout(aiForm.QLayout)
+
 	saveBtn := qt.NewQPushButton3("Sauvegarder")
 	setBtnClass(saveBtn, "success")
 	saveBtn.OnClicked(func() { s.onSave() })
@@ -122,14 +138,24 @@ func (s *SettingsScreen) OnActivate() {
 			break
 		}
 	}
+	if cfg.AIProvider == "claude" {
+		s.aiProviderCombo.SetCurrentIndex(1)
+	} else {
+		s.aiProviderCombo.SetCurrentIndex(0)
+	}
 }
 
 func (s *SettingsScreen) onSave() {
+	aiProvider := "chatgpt"
+	if s.aiProviderCombo.CurrentIndex() == 1 {
+		aiProvider = "claude"
+	}
 	d := SettingsData{
 		PhoneAddress: s.phoneAddressEdit.Text(),
 		LogLevel:     s.logLevelCombo.CurrentText(),
 		LogFormat:    s.logFormatCombo.CurrentText(),
 		QtStyle:      s.qtStyleKeys[s.qtStyleCombo.CurrentIndex()],
+		AIProvider:   aiProvider,
 	}
 	if err := s.ctx.SaveSettings(d); err != nil {
 		s.ctx.Log.Error("save config", "error", err)

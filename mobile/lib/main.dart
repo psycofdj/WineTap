@@ -15,6 +15,7 @@ import 'server/consume_tracker.dart';
 import 'server/database.dart';
 import 'server/scan_coordinator.dart';
 import 'server/server.dart';
+import 'server/server_lifecycle.dart';
 import 'services/discovery_service.dart';
 import 'services/nfc_service.dart';
 
@@ -70,6 +71,18 @@ void main() async {
     dev.log('mDNS registration failed (non-fatal): $e', name: 'main');
   }
 
+  // 5. Lifecycle manager — restarts server + mDNS + NFC on foreground resume
+  final lifecycle = ServerLifecycle(
+    db: db,
+    coordinator: coordinator,
+    dbFile: dbFile,
+    restartDb: restartDb,
+    consumeTracker: consumeTracker,
+    nfcService: nfc,
+    discovery: discovery,
+    initialServer: server,
+  );
+
   // 6. UI
   runApp(
     MultiProvider(
@@ -77,6 +90,7 @@ void main() async {
         Provider<AppDatabase>.value(value: db),
         Provider<ScanCoordinator>.value(value: coordinator),
         Provider<NfcService>.value(value: nfc),
+        Provider<ServerLifecycle>.value(value: lifecycle),
         ChangeNotifierProvider(create: (_) => ServerProvider(server.port)),
         ChangeNotifierProvider(
           create: (ctx) => ScanProvider(
@@ -121,13 +135,33 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   static const _screens = [
     ConsumeScreen(),
     IntakeScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      dev.log('App resumed — restarting server, mDNS, and NFC', name: 'main');
+      context.read<ServerLifecycle>().restart();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

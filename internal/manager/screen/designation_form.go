@@ -23,6 +23,7 @@ type designationForm struct {
 	cli        *client.WineTapHTTPClient
 	editingID  int64
 	regionEdit *qt.QLineEdit
+	regionDC   *debouncedCompleter
 	picLabel   *qt.QLabel
 	picBytes   []byte
 	picFull    *qt.QPixmap
@@ -35,6 +36,11 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 	// Region.
 	f.regionEdit = qt.NewQLineEdit2()
 	f.addBody("Région", f.regionEdit.QWidget, true)
+	f.regionDC = newDebouncedCompleter(nil, f.regionEdit.QWidget,
+		func() string { return f.regionEdit.Text() },
+		func(s string) { f.regionEdit.SetText(s) },
+	)
+	f.regionEdit.OnTextChanged(func(_ string) { f.regionDC.trigger() })
 
 	// Picture — placed in footer after description.
 	f.picLabel = qt.NewQLabel2()
@@ -50,6 +56,12 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 		super(event)
 		if f.picFull != nil && event.Size().Width() != event.OldSize().Width() {
 			f.showPicture(f.picFull)
+		}
+	})
+	f.picLabel.OnMouseDoubleClickEvent(func(super func(event *qt.QMouseEvent), event *qt.QMouseEvent) {
+		super(event)
+		if f.picFull != nil {
+			showImageLightbox(f.picLabel.QFrame.QWidget, f.picFull)
 		}
 	})
 	browseBtn := qt.NewQPushButton3("Choisir une image…")
@@ -124,10 +136,17 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 			Tu es un expert en vins français. 
 			Rédige une courte description (3 à 4 phrases) de l'appellation « %s »: caractéristiques
 			gustatives et géographiques. Je veux aussi la région viticole associée. 
-			Tu peux chercher sur des sites web de critique de vin tels que vivino, vinsolite, buveurdevin ou autre.
-			La région doit être dans la liste: Alsace, Beaujolais, Bordeaux, Bourgogne, Champagne, Corse, Jura,
-			Languedoc, Loire, Provence, Rhône, Roussillon, Savoie, Sud-Ouest.
-			Donne moi aussi une image d'un carte pour situer géographiquement cette appellation.`,
+
+			Tu peux chercher sur des sites web de critique de vin tels que vivino,
+			vinsolite, buveurdevin ou autre.
+
+			Dans ta réponse:
+			- n'affiche que du texte
+			- supprime les balises de citation
+			- supprime les titres de paragraphes
+
+			Donne moi aussi une image d'un carte pour situer géographiquement cette appellation.
+			`,
 			f.Name(),
 		)
 	}
@@ -136,7 +155,7 @@ func newDesignationForm(cli *client.WineTapHTTPClient) *designationForm {
 		if f.Name() == "" {
 			return
 		}
-		openChatGPT(designPrompt())
+		openAIChat(f.aiProvider(), designPrompt())
 	})
 
 	f.alignLabels()
@@ -204,13 +223,11 @@ func (f *designationForm) save(ctx context.Context) (client.Designation, error) 
 	return f.cli.UpdateDesignation(ctx, f.editingID, req)
 }
 
-// setRegionCompletions attaches a contains-matching autocomplete dropdown to the region field.
+// setRegionCompletions replaces the region autocomplete candidates.
 func (f *designationForm) setRegionCompletions(regions []string) {
-	completer := qt.NewQCompleter3(regions)
-	completer.SetCompletionMode(qt.QCompleter__PopupCompletion)
-	completer.SetFilterMode(qt.MatchContains)
-	completer.SetCaseSensitivity(qt.CaseInsensitive)
-	f.regionEdit.SetCompleter(completer)
+	f.regionDC.setItems(regions, f.regionEdit.QWidget,
+		func(s string) { f.regionEdit.SetText(s) },
+	)
 }
 
 // populate fills all fields from an existing designation.

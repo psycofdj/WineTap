@@ -37,10 +37,12 @@ func BuildDesignationsScreen(ctx *Ctx) *DesignationsScreen {
 	s.refMsg = "cette appellation est encore utilisée par une ou plusieurs cuvées"
 
 	s.desigForm = newDesignationForm(ctx.Client)
+	s.desigForm.setAIProviderGetter(func() string { return ctx.GetSettings().AIProvider })
 
 	s.ts = newTableScreen(tableScreenCfg{
 		ScreenTitle:       "Appellations",
 		Headers:           []string{"Nom", "Région"},
+		StretchColumns:    true,
 		SearchPlaceholder: "Rechercher par nom…",
 		FilterCols:        []int{1},
 		OnFilterCol:       func(_ int) { s.ts.ShowPopup(1, s.filterPopup) },

@@ -19,13 +19,15 @@ import (
 // Column indices for the inventory table.
 const (
 	invColCouleur     = 0
-	invColRegion      = 1
-	invColCuvee       = 2
+	invColCuvee       = 1
+	invColDomain      = 2
 	invColAppell      = 3
-	invColMillesime   = 4
-	invColDrinkBefore = 5
-	invColQte         = 6
-	invColAddedAt     = 7
+	invColRegion      = 4
+	invColMillesime   = 5
+	invColDrinkBefore = 6
+	invColQte         = 7
+	invColAddedAt     = 8
+	invColConsumedAt  = 9
 )
 
 // colorIdentifiers maps Color int32 constant to the lowercase identifier used by the dashboard.
@@ -58,9 +60,9 @@ type InventoryScreen struct {
 	millesPopup *qt.QWidget
 	desigPopup  *qt.QWidget
 
-	viewTabs  *qt.QTabBar
-	searchBtn *qt.QPushButton
-	warnBtn   *qt.QPushButton
+	viewTabs   *qt.QTabBar
+	searchBtn  *qt.QPushButton
+	consumeBtn *qt.QPushButton
 
 	bottleForm *inventoryBottleForm
 
@@ -150,9 +152,26 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 		s.grouped = idx == 1
 		s.showConsumed = idx == 2
 		s.ts.HideRight()
-		s.ts.TableView.SetColumnHidden(invColDrinkBefore, s.grouped)
+		s.ts.TableView.SetColumnHidden(invColDrinkBefore, false)
 		s.ts.TableView.SetColumnHidden(invColQte, !s.grouped)
 		s.ts.TableView.SetColumnHidden(invColAddedAt, s.grouped)
+		s.ts.TableView.SetColumnHidden(invColConsumedAt, !s.showConsumed)
+		// "Par référence" and "Historique" tabs: hide the entire right
+		// panel so the table takes the full screen width.
+		if s.ts.RightPanel != nil {
+			s.ts.RightPanel.SetVisible(idx == 0)
+		}
+
+		s.ts.AddBtn.SetVisible(idx == 0)
+		s.ts.CopyBtn.SetVisible(idx == 0)
+		s.ts.DelBtn.SetVisible(idx == 0)
+		s.searchBtn.SetVisible(idx == 0)
+		s.consumeBtn.SetVisible(idx == 0)
+		s.ts.AddBtn.SetEnabled(idx == 0)
+		s.searchBtn.SetEnabled(idx == 0)
+		s.ts.DelBtn.SetEnabled(false)
+		s.ts.CopyBtn.SetEnabled(false)
+		s.consumeBtn.SetEnabled(false)
 		s.refresh()
 	})
 
@@ -167,17 +186,17 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	s.searchBtn.OnClicked(func() { s.onSearchByTag() })
 
 	// ── Warn / consume button ─────────────────────────────────────────────────
-	s.warnBtn = newStdBtn("warning")
-	s.warnBtn.SetEnabled(false)
-	s.warnBtn.OnClicked(func() { s.onConsumeBottle() })
+	s.consumeBtn = newStdBtn("warning")
+	s.consumeBtn.SetEnabled(false)
+	s.consumeBtn.OnClicked(func() { s.onConsumeBottle() })
 
 	// ── tableScreen ───────────────────────────────────────────────────────────
 	s.ts = newTableScreen(tableScreenCfg{
 		ScreenTitle:       "Inventaire",
-		Headers:           []string{"Couleur", "Région", "Cuvée", "Appellation", "Millésime", "À boire avant", "Quantité", "Ajoutée le"},
+		Headers:           []string{"Couleur", "Cuvée", "Domaine", "Appellation", "Région", "Millésime", "Apogée", "Quantité", "Ajoutée le", "Bue le"},
 		ExtraToolbar:      groupToolbar,
 		SearchPlaceholder: "Rechercher…",
-		SearchCols:        []int{invColCuvee, invColAppell},
+		SearchCols:        []int{invColCuvee, invColDomain, invColAppell},
 		InitialSortCol:    invColCuvee,
 		FilterCols:        []int{invColCouleur, invColRegion, invColAppell, invColMillesime},
 		OnFilterCol:       func(col int) { s.showFilterPopup(col) },
@@ -207,7 +226,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 		LessThanOverride: func(src *qt.QStandardItemModel, left, right *qt.QModelIndex) bool {
 			col := left.Column()
 			lRow, rRow := left.Row(), right.Row()
-			if col == invColMillesime || col == invColDrinkBefore || col == invColQte || col == invColAddedAt {
+			if col == invColMillesime || col == invColDrinkBefore || col == invColQte || col == invColAddedAt || col == invColConsumedAt {
 				lKey := src.Item2(lRow, col).Data(sortRole).ToString()
 				rKey := src.Item2(rRow, col).Data(sortRole).ToString()
 				if lKey != rKey {
@@ -224,22 +243,20 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				foldAccents(src.Item2(rRow, invColCuvee).Text())
 		},
 		OnSelectionChange: func(srcRow int) {
-			if s.grouped {
-				// Grouped rows represent many bottles: copy is OK (picks first),
-				// but delete and consume are not meaningful.
-				s.ts.DelBtn.SetEnabled(false)
-				s.warnBtn.SetEnabled(false)
-				s.ts.HideRight()
+			if s.viewTabs.CurrentIndex() != 0 {
 				return
 			}
 			selected := srcRow >= 0
 			canConsume := false
 			if selected {
+				s.ts.DelBtn.SetEnabled(selected)
+				s.ts.CopyBtn.SetEnabled(selected)
+				s.consumeBtn.SetEnabled(selected)
 				if b := s.bottleAtSourceRow(srcRow); b != nil {
 					canConsume = b.ConsumedAt == nil
 				}
 			}
-			s.warnBtn.SetEnabled(canConsume)
+			s.consumeBtn.SetEnabled(canConsume)
 			if selected {
 				s.openEditForm(srcRow)
 			} else {
@@ -268,7 +285,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 				s.addBottleFrom(*b)
 			}
 		},
-		ExtraActionBtns: []*qt.QPushButton{s.searchBtn, s.warnBtn},
+		ExtraActionBtns: []*qt.QPushButton{s.searchBtn, s.consumeBtn},
 	})
 	s.Widget = s.ts.Widget
 
@@ -277,6 +294,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	s.ts.TableView.SetColumnHidden(invColDrinkBefore, false)
 	s.ts.TableView.SetColumnHidden(invColQte, true)
 	s.ts.TableView.SetColumnHidden(invColAddedAt, false)
+	s.ts.TableView.SetColumnHidden(invColConsumedAt, true)
 
 	// ── Filter popups (built after ts is set) ─────────────────────────────────
 	s.regionPopup = s.makeFilterPopup(invColRegion, s.regionList)
@@ -313,7 +331,7 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	})
 	// Ctrl+B → mark as consumed
 	addShortcut(s.Widget, "Ctrl+B", func() {
-		if s.warnBtn.IsEnabled() {
+		if s.consumeBtn.IsEnabled() {
 			s.onConsumeBottle()
 		}
 	})
@@ -322,6 +340,28 @@ func BuildInventoryScreen(ctx *Ctx) *InventoryScreen {
 	s.viewTabs.SetTabToolTip(0, "Stock en cave groupé par cuvée et millésime, avec les quantités  (Ctrl+1)")
 	s.viewTabs.SetTabToolTip(1, "Une ligne par bouteille, stock en cave uniquement  (Ctrl+2)")
 	s.viewTabs.SetTabToolTip(2, "Toutes les bouteilles, y compris celles déjà bues  (Ctrl+3)")
+
+	// Double-click on a row: show the designation picture in a lightbox.
+	s.ts.TableView.QAbstractItemView.OnDoubleClicked(func(index *qt.QModelIndex) {
+		srcIdx := s.ts.Proxy.MapToSource(index)
+		b := s.bottleAtSourceRow(srcIdx.Row())
+		if b == nil || b.Cuvee.DesignationID == 0 {
+			return
+		}
+		desigID := b.Cuvee.DesignationID
+		go func() {
+			d, err := s.ctx.Client.GetDesignation(context.Background(), desigID)
+			if err != nil || len(d.Picture) == 0 {
+				return
+			}
+			mainthread.Start(func() {
+				pm := qt.NewQPixmap()
+				if pm.LoadFromDataWithData(d.Picture) {
+					showImageLightbox(s.Widget, pm)
+				}
+			})
+		}()
+	})
 
 	return s
 }
@@ -372,6 +412,7 @@ func (s *InventoryScreen) refreshThen(then func()) {
 		mainthread.Start(func() {
 			s.allBottles = bottles
 			s.populate(bottles)
+			s.ts.FitColumns()
 			// Apply pending dashboard filter by syncing the filter popups.
 			if s.pendingFilterType != "" {
 				s.applyPendingFilter()
@@ -414,12 +455,12 @@ func (s *InventoryScreen) populate(bottles []client.Bottle) {
 
 	s.ts.refreshFilterHeaders()
 	s.ts.HideRight()
-	s.ts.SelectFirstRow()
 }
 
 func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
 	for _, b := range bottles {
 		cuveeName := b.Cuvee.Name
+		domainName := b.Cuvee.DomainName
 		desigName := b.Cuvee.DesignationName
 		region := b.Cuvee.Region
 		color := b.Cuvee.Color
@@ -447,9 +488,9 @@ func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
 		} else if b.DrinkBefore != nil {
 			db := int(*b.DrinkBefore)
 			if db < year {
-				bg = qt.NewQBrush3(qt.NewQColor6("#f5b1b8"))
+				bg = qt.NewQBrush3(qt.NewQColor6("#fae7e9"))
 			} else if db < year+1 {
-				bg = qt.NewQBrush3(qt.NewQColor6("#f4e2a8"))
+				bg = qt.NewQBrush3(qt.NewQColor6("#f6f2e4"))
 			}
 		}
 
@@ -459,8 +500,16 @@ func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
 			drinkBeforeSortKey = fmt.Sprintf("%06d", *b.DrinkBefore)
 		}
 
-		texts := []string{colorNames[color], region, cuveeName, desigName, millesime, drinkBeforeText, "", addedAtText}
-		items := make([]*qt.QStandardItem, 8)
+		var consumedAtText, consumedAtSortKey string
+		if b.ConsumedAt != nil {
+			if t, err := time.Parse(time.RFC3339, *b.ConsumedAt); err == nil {
+				consumedAtText = t.Local().Format("02/01/2006")
+				consumedAtSortKey = t.UTC().Format(time.RFC3339)
+			}
+		}
+
+		texts := []string{colorNames[color], cuveeName, domainName, desigName, region, millesime, drinkBeforeText, "", addedAtText, consumedAtText}
+		items := make([]*qt.QStandardItem, 10)
 		for col, text := range texts {
 			item := nonEditableItem(text)
 			if col == invColCouleur {
@@ -475,6 +524,9 @@ func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
 			if col == invColAddedAt && addedAtSortKey != "" {
 				item.SetData(qt.NewQVariant11(addedAtSortKey), sortRole)
 			}
+			if col == invColConsumedAt && consumedAtSortKey != "" {
+				item.SetData(qt.NewQVariant11(consumedAtSortKey), sortRole)
+			}
 			if bg != nil {
 				item.SetBackground(bg)
 			}
@@ -485,8 +537,9 @@ func (s *InventoryScreen) populateFlat(bottles []client.Bottle, year int) {
 }
 
 type groupKey struct {
-	color, region, cuvee, desig string
-	vintage                     int32
+	color, region, cuvee, domain, desig string
+	vintage                             int32
+	drinkBefore                         int32 // 0 = not set
 }
 
 type groupVal struct {
@@ -500,6 +553,7 @@ func (s *InventoryScreen) populateGrouped(bottles []client.Bottle, year int) {
 
 	for _, b := range bottles {
 		cuveeName := b.Cuvee.Name
+		domainName := b.Cuvee.DomainName
 		desigName := b.Cuvee.DesignationName
 		region := b.Cuvee.Region
 		color := b.Cuvee.Color
@@ -509,7 +563,11 @@ func (s *InventoryScreen) populateGrouped(bottles []client.Bottle, year int) {
 		if desigName == "" {
 			desigName = "Sans appellation"
 		}
-		k := groupKey{colorNames[color], region, cuveeName, desigName, b.Vintage}
+		var drinkBefore int32
+		if b.DrinkBefore != nil {
+			drinkBefore = *b.DrinkBefore
+		}
+		k := groupKey{colorNames[color], region, cuveeName, domainName, desigName, b.Vintage, drinkBefore}
 		v, ok := groups[k]
 		if !ok {
 			v = &groupVal{}
@@ -533,20 +591,29 @@ func (s *InventoryScreen) populateGrouped(bottles []client.Bottle, year int) {
 		millesSortKey := fmt.Sprintf("%06d", k.vintage)
 		qteSortKey := fmt.Sprintf("%09d", v.count)
 
+		var drinkBeforeText, drinkBeforeSortKey string
+		if k.drinkBefore != 0 {
+			drinkBeforeText = fmt.Sprintf("%d", k.drinkBefore)
+			drinkBeforeSortKey = fmt.Sprintf("%06d", k.drinkBefore)
+		}
+
 		var bg *qt.QBrush
 		switch v.urgent {
 		case 2:
-			bg = qt.NewQBrush3(qt.NewQColor6("#f5b1b8"))
+			bg = qt.NewQBrush3(qt.NewQColor6("#fae7e9"))
 		case 1:
-			bg = qt.NewQBrush3(qt.NewQColor6("#f4e2a8"))
+			bg = qt.NewQBrush3(qt.NewQColor6("#f6f2e4"))
 		}
 
-		texts := []string{k.color, k.region, k.cuvee, k.desig, millesime, "", fmt.Sprintf("%d", v.count), ""}
-		items := make([]*qt.QStandardItem, 8)
+		texts := []string{k.color, k.cuvee, k.domain, k.desig, k.region, millesime, drinkBeforeText, fmt.Sprintf("%d", v.count), "", ""}
+		items := make([]*qt.QStandardItem, 10)
 		for col, text := range texts {
 			item := nonEditableItem(text)
 			if col == invColMillesime {
 				item.SetData(qt.NewQVariant11(millesSortKey), sortRole)
+			}
+			if col == invColDrinkBefore && drinkBeforeSortKey != "" {
+				item.SetData(qt.NewQVariant11(drinkBeforeSortKey), sortRole)
 			}
 			if col == invColQte {
 				item.SetData(qt.NewQVariant11(qteSortKey), sortRole)

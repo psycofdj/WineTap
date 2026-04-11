@@ -27,6 +27,17 @@ class NfcServiceAndroid extends NfcServiceBase {
     );
   }
 
+  @override
+  Future<void> restartSession() async {
+    dev.log('restartSession: re-establishing persistent NFC session', name: _tag);
+    _pendingOnTagDiscovered = null;
+    await NfcManager.instance.stopSession().catchError((_) {});
+    NfcManager.instance.startSession(
+      pollingOptions: {NfcPollingOption.iso14443, NfcPollingOption.iso15693},
+      onDiscovered: _handleTag,
+    );
+  }
+
   void _handleTag(NfcTag tag) {
     final callback = _pendingOnTagDiscovered;
     if (callback == null) return;
