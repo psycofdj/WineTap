@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../l10n/strings.dart';
 import 'seed_data.dart';
 
 part 'database.g.dart';
@@ -63,6 +64,24 @@ class CuveeWithNames {
     required this.domainName,
     required this.designationName,
     required this.region,
+  });
+}
+
+/// Aggregated stock metrics for the home-screen panel.
+///
+/// - `totalInStock` is the number of bottles with `consumedAt IS NULL`.
+/// - `byColor` keys are raw cuvée color ints (0 means unknown).
+/// - `byRegion` keys are designation regions; empty/null regions are bucketed
+///   into [S.statsInconnue].
+class StockStats {
+  final int totalInStock;
+  final Map<int, int> byColor;
+  final Map<String, int> byRegion;
+
+  const StockStats({
+    required this.totalInStock,
+    required this.byColor,
+    required this.byRegion,
   });
 }
 
@@ -436,6 +455,39 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteBottle(int id) {
     return (delete(bottles)..where((t) => t.id.equals(id))).go();
+  }
+
+  // -------------------------------------------------------------------------
+  // Stock stats (home screen)
+  // -------------------------------------------------------------------------
+
+  Future<StockStats> getStockStats() async {
+    final query = select(bottles).join([
+      innerJoin(cuvees, cuvees.id.equalsExp(bottles.cuveeId)),
+      leftOuterJoin(designations,
+          designations.id.equalsExp(cuvees.designationId)),
+    ])
+      ..where(bottles.consumedAt.isNull());
+
+    final rows = await query.get();
+    final byColor = <int, int>{};
+    final byRegion = <String, int>{};
+    for (final row in rows) {
+      // Any color int outside the canonical 1..5 range collapses into the
+      // "unknown" bucket (key 0) so the UI shows a single "Inconnue" slice
+      // rather than one slice per stray value.
+      final rawColor = row.readTable(cuvees).color;
+      final colorKey = (rawColor >= 1 && rawColor <= 5) ? rawColor : 0;
+      byColor[colorKey] = (byColor[colorKey] ?? 0) + 1;
+      final region = row.readTableOrNull(designations)?.region ?? '';
+      final regionKey = region.isEmpty ? S.statsInconnue : region;
+      byRegion[regionKey] = (byRegion[regionKey] ?? 0) + 1;
+    }
+    return StockStats(
+      totalInStock: rows.length,
+      byColor: byColor,
+      byRegion: byRegion,
+    );
   }
 
 

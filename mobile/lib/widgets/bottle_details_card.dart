@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import '../server/database.dart';
 
-/// Maps cuvee color int to display label.
-String? _colorLabel(int color) {
+/// Maps cuvee color int to display label. Returns null for unknown (0).
+String? colorLabel(int color) {
   switch (color) {
     case 1:
       return S.colorRouge;
@@ -30,7 +30,7 @@ class BottleDetailsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = _colorLabel(bottle.cuvee.color);
+    final color = colorLabel(bottle.cuvee.color);
     final drinkBefore = bottle.bottle.drinkBefore;
     final description = bottle.bottle.description;
 
