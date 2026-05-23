@@ -78,3 +78,15 @@
 - No progress feedback during slow upload — POST /restore has no progress callbacks; user sees static spinner for large files on slow connections; beyond story scope.
 - Connection reset after restore — server calls exit(0) after restore; HttpClient may see SocketException instead of HTTP 200; already accepted as MVP design in story 8.1 review (decision b).
 - _showSnackBar no internal mounted guard — all callers explicitly check mounted before calling; safe as-is but could be hardened.
+
+## Deferred from: code review of spec-tasting-history-screen (2026-05-23)
+
+- Offset-based pagination in `listConsumedBottles({limit, offset})` is unstable across concurrent DB mutations — if a new bottle is consumed (or one is deleted) between page-N and page-N+1 fetches on the tasting history screen, the offset-keyed boundary will duplicate or skip a row. Real-world risk is low (single-user app, brief screen lifetime) and offset pagination was the chosen contract; a keyset switch (`WHERE consumedAt < lastSeenConsumedAt`) would be the proper fix.
+- TastingDetailScreen has no unsaved-changes guard — system back / AppBar back silently discards an edited but unsaved comment. Add a `PopScope(canPop: !dirty, ...)` with a discard/save dialog.
+- TastingDetailScreen comment TextField has no `maxLength` — pasting an extremely large body persists and later renders inside `BottleDetailsCard` as a single `Text`, which can blow vertical layout. Cap to e.g. 4 KB.
+- `BottleDetailsCard` shows `drinkBefore` (À boire avant …) even for consumed bottles, where it is meaningless. Hide that row when `consumedAt != null`. Also consider adding a "Consommée le" row to the card so the date is visible in detail view (currently only on the list card).
+- Date formatting in `_formatConsumedAt` is locale-agnostic (`dd/MM/yyyy HH:mm` hard-coded). Switch to `MaterialLocalizations.formatMediumDate` or add `intl` (gated by Ask-First) once a broader i18n strategy is decided.
+- Pre-existing baseline test failures unrelated to this story but surfaced during review:
+  - `mobile/test/server/database_test.dart` `Designation toJson has snake_case keys` expectation missing the `picture` key added in schema v2.
+  - Mocks in `test/providers/{intake,scan}_provider_test.dart` and `test/screens/identify_screen_test.dart` missing `NfcService.restartSession` override → all three files fail to load.
+  - `test/server/handlers/scan_test.dart` calls `scanRouter` with one positional arg but the function now requires two.
