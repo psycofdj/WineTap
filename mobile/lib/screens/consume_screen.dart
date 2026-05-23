@@ -8,6 +8,7 @@ import '../widgets/bottle_details_card.dart';
 import '../widgets/connection_indicator.dart';
 import 'identify_screen.dart';
 import 'settings_screen.dart';
+import 'tasting_history_screen.dart';
 
 /// Main consume flow screen: tap "Consommer une bouteille" → scan → consumed → "Terminé".
 class ConsumeScreen extends StatelessWidget {
@@ -113,6 +114,17 @@ class _ConsumeBodyState extends State<_ConsumeBody> {
           ),
           icon: const Icon(Icons.search),
           label: const Text(S.identifyButton),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => const TastingHistoryScreen(),
+            ),
+          ),
+          icon: const Icon(Icons.menu_book),
+          label: const Text(S.tastingHistoryButton),
         ),
       ],
     );

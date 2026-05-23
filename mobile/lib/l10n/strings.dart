@@ -63,6 +63,14 @@ class S {
   static const labelDrinkBefore = 'À boire avant';
   static const labelDescription = 'Description';
 
+  // Tasting history
+  static const tastingHistoryButton = 'Mes dégustations';
+  static const tastingHistoryTitle = 'Dégustations';
+  static const noTastings = 'Aucune bouteille consommée';
+  static const labelConsumedAt = 'Consommée le';
+  static const save = 'Enregistrer';
+  static const commentHint = 'Notes de dégustation';
+
   // Backup / restore
   static const dataManagement = 'Gestion des données';
   static const exportDatabase = 'Exporter la base';

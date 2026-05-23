@@ -399,6 +399,85 @@ void main() {
       expect(b.designationName, 'Madiran');
       expect(b.region, 'Sud-Ouest');
     });
+
+    test('listConsumedBottles returns empty when none consumed', () async {
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2019,
+        addedAt: '2026-01-01T00:00:00Z',
+      ));
+
+      final result = await db.listConsumedBottles();
+      expect(result, isEmpty);
+    });
+
+    test('listConsumedBottles excludes in-stock rows', () async {
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2019,
+        addedAt: '2026-01-01T00:00:00Z',
+      ));
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2020,
+        addedAt: '2026-01-01T00:00:00Z',
+        consumedAt: const Value('2026-03-01T00:00:00Z'),
+      ));
+
+      final result = await db.listConsumedBottles();
+      expect(result, hasLength(1));
+      expect(result[0].bottle.vintage, 2020);
+    });
+
+    test('listConsumedBottles orders by consumedAt desc', () async {
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2018,
+        addedAt: '2026-01-01T00:00:00Z',
+        consumedAt: const Value('2026-01-15T00:00:00Z'),
+      ));
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2019,
+        addedAt: '2026-01-01T00:00:00Z',
+        consumedAt: const Value('2026-03-10T00:00:00Z'),
+      ));
+      await db.insertBottle(BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2020,
+        addedAt: '2026-01-01T00:00:00Z',
+        consumedAt: const Value('2026-02-05T00:00:00Z'),
+      ));
+
+      final result = await db.listConsumedBottles();
+      expect(result.map((b) => b.bottle.vintage).toList(), [2019, 2020, 2018]);
+    });
+
+    test('listConsumedBottles respects limit and offset', () async {
+      for (var i = 0; i < 25; i++) {
+        // consumedAt strictly increases so order is deterministic
+        final ts = DateTime.utc(2026, 1, 1).add(Duration(days: i));
+        await db.insertBottle(BottlesCompanion.insert(
+          cuveeId: cuvId,
+          vintage: 2000 + i,
+          addedAt: '2026-01-01T00:00:00Z',
+          consumedAt: Value(ts.toIso8601String()),
+        ));
+      }
+
+      final page0 = await db.listConsumedBottles(limit: 20, offset: 0);
+      expect(page0, hasLength(20));
+      // Newest first → vintage 2024 (i=24) is most recent
+      expect(page0.first.bottle.vintage, 2024);
+
+      final page1 = await db.listConsumedBottles(limit: 20, offset: 20);
+      expect(page1, hasLength(5));
+      // Oldest of the 25 is vintage 2000 (i=0)
+      expect(page1.last.bottle.vintage, 2000);
+
+      final page2 = await db.listConsumedBottles(limit: 20, offset: 40);
+      expect(page2, isEmpty);
+    });
   });
 
   group('Completions', () {
@@ -474,7 +553,7 @@ void main() {
         designationName: 'Madiran',
         region: 'Sud-Ouest',
       );
-      final json = cuv.toJson();
+      final json = cuv.toApiJson();
       expect(json, {
         'id': 1,
         'name': 'Montus',
@@ -513,7 +592,7 @@ void main() {
         designationName: 'Madiran',
         region: 'Sud-Ouest',
       );
-      final json = bwc.toJson();
+      final json = bwc.toApiJson();
 
       expect(json['id'], 42);
       expect(json['tag_id'], '04A32BFF');
@@ -552,7 +631,7 @@ void main() {
         designationName: 'Des',
         region: 'R',
       );
-      final json = bwc.toJson();
+      final json = bwc.toApiJson();
 
       expect(json.containsKey('tag_id'), isFalse);
       expect(json['purchase_price'], 15.50);
