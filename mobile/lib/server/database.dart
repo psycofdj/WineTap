@@ -379,6 +379,17 @@ class AppDatabase extends _$AppDatabase {
     return query.map(_mapBottleRow).get();
   }
 
+  Future<List<BottleWithCuvee>> listConsumedBottles({
+    int limit = 20,
+    int offset = 0,
+  }) {
+    final query = _bottleWithCuveeQuery();
+    query.where(bottles.consumedAt.isNotNull());
+    query.orderBy([OrderingTerm.desc(bottles.consumedAt)]);
+    query.limit(limit, offset: offset);
+    return query.map(_mapBottleRow).get();
+  }
+
   Future<BottleWithCuvee> getBottleById(int id) {
     final query = _bottleWithCuveeQuery();
     query.where(bottles.id.equals(id));
