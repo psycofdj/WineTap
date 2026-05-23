@@ -13,6 +13,7 @@ import 'screens/consume_screen.dart';
 import 'screens/intake_screen.dart';
 import 'server/consume_tracker.dart';
 import 'server/database.dart';
+import 'server/dev_seed.dart';
 import 'server/scan_coordinator.dart';
 import 'server/server.dart';
 import 'server/server_lifecycle.dart';
@@ -36,6 +37,16 @@ void main() async {
   // 4. Resolve database file path for backup/restore.
   //    Force a trivial query so Drift's lazy connection materializes the file.
   await db.customSelect('SELECT 1').get();
+
+  // Dev-only: auto-populate the bottles table on a dev build when it is empty.
+  // Awaited so the UI sees the seeded data on first paint; failures are logged
+  // and swallowed so a broken seeder can never crash startup.
+  try {
+    await seedDevDataIfNeeded(db);
+  } catch (e) {
+    dev.log('seedDevDataIfNeeded failed (non-fatal): $e', name: 'main');
+  }
+
   final docsDir = await getApplicationDocumentsDirectory();
   final dbFile = File('${docsDir.path}/winetap.sqlite');
   dev.log('dbFile path: ${dbFile.path}, exists: ${await dbFile.exists()}',
