@@ -6,6 +6,7 @@ import '../l10n/strings.dart';
 import '../providers/scan_provider.dart';
 import '../widgets/bottle_details_card.dart';
 import '../widgets/connection_indicator.dart';
+import '../widgets/stock_stats_panel.dart';
 import 'identify_screen.dart';
 import 'settings_screen.dart';
 import 'tasting_history_screen.dart';
@@ -61,6 +62,10 @@ class _ConsumeBody extends StatefulWidget {
 class _ConsumeBodyState extends State<_ConsumeBody> {
   bool _showComment = false;
   final _commentController = TextEditingController();
+  // Bumped each time we transition back into idle so the stats panel
+  // (re)fetches and reflects the just-consumed bottle.
+  int _statsRevision = 0;
+  ScanState? _prevState;
 
   @override
   void dispose() {
@@ -81,6 +86,13 @@ class _ConsumeBodyState extends State<_ConsumeBody> {
     if (scan.state != ScanState.consumed && _showComment) {
       _resetCommentState();
     }
+
+    if (_prevState != null &&
+        _prevState != ScanState.idle &&
+        scan.state == ScanState.idle) {
+      _statsRevision++;
+    }
+    _prevState = scan.state;
 
     final child = switch (scan.state) {
       ScanState.idle => _buildIdle(context),
@@ -125,6 +137,10 @@ class _ConsumeBodyState extends State<_ConsumeBody> {
           ),
           icon: const Icon(Icons.menu_book),
           label: const Text(S.tastingHistoryButton),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 32),
+          child: StockStatsPanel(revision: _statsRevision),
         ),
       ],
     );
