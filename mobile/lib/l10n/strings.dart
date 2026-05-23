@@ -71,6 +71,14 @@ class S {
   static const save = 'Enregistrer';
   static const commentHint = 'Notes de dégustation';
 
+  // Home stock stats
+  static const stockTitle = 'Stock';
+  static const bottlesInStock = 'bouteilles en stock';
+  static const noBottlesInStock = 'Aucune bouteille en stock';
+  static const statsInconnue = 'Inconnue';
+  static const byColor = 'Par couleur';
+  static const byRegion = 'Par région';
+
   // Backup / restore
   static const dataManagement = 'Gestion des données';
   static const exportDatabase = 'Exporter la base';

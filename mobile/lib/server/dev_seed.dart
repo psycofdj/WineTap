@@ -17,7 +17,7 @@ Future<bool> isDevBuild() async {
   try {
     final info = await PackageInfo.fromPlatform();
     final full = '${info.version}+${info.buildNumber}';
-    return full.contains('+dev');
+    return full.contains('0.0.0');
   } catch (e) {
     dev.log('PackageInfo lookup failed: $e', name: 'DevSeed');
     return false;

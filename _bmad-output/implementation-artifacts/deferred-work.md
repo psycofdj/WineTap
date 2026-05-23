@@ -96,3 +96,10 @@
   - `mobile/test/server/database_test.dart` `Designation toJson has snake_case keys` expectation missing the `picture` key added in schema v2.
   - Mocks in `test/providers/{intake,scan}_provider_test.dart` and `test/screens/identify_screen_test.dart` missing `NfcService.restartSession` override → all three files fail to load.
   - `test/server/handlers/scan_test.dart` calls `scanRouter` with one positional arg but the function now requires two.
+
+## Deferred from: code review of spec-home-stock-stats (2026-05-23)
+
+- `StockStatsPanel._load()` has no sequence/cancellation guard — back-to-back revision bumps (rapid consume sessions or device under load) can let an earlier `getStockStats()` future resolve after a later one, painting stale figures. Add a generation counter and discard results whose generation no longer matches before `setState`.
+- `AppDatabase.getStockStats()` hydrates every in-stock row (bottles + cuvée + designation) just to count them. Replace with a SQL `GROUP BY` aggregation (`SELECT cuvees.color, designations.region, COUNT(*) ...`) once stock sizes get large enough for the round-trip to matter.
+- Pie-slice percentage labels use `.round()` independently per slice so the visible numbers may not sum to 100 (e.g. three equal slices render 33/33/33 = 99). Either drop the percentage label on the slice and show it in the legend, or switch to a largest-remainder distribution so the displayed values sum to 100.
+- No suppression for tiny slices: a 1-of-500 slice still renders its (0%) text, which can overlap a neighbouring slice's label. Hide titles below a small percentage threshold or render them outside the slice.
