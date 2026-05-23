@@ -79,6 +79,12 @@
 - Connection reset after restore — server calls exit(0) after restore; HttpClient may see SocketException instead of HTTP 200; already accepted as MVP design in story 8.1 review (decision b).
 - _showSnackBar no internal mounted guard — all callers explicitly check mounted before calling; safe as-is but could be hardened.
 
+## Deferred from: code review of spec-dev-mode-test-data-seeding (2026-05-23)
+
+- The `+dev` substring check has no `kDebugMode` belt-and-braces. Per the spec the trigger is the version-string substring, but if a release build is ever shipped with the local `pubspec.yaml` still set to `version: 0.0.0+dev` (CI misconfiguration), the seeder would run in production. Adding `kDebugMode || version.contains('+dev')` (or replacing with `kDebugMode && version.contains('+dev')`) would close the risk.
+- No assertion that every catalog cuvée actually lands in the DB — domain/designation lookups currently `continue` with a warning if a name is missing, so a future rename in `seed_data.dart` would silently shrink the dev catalog. Add a `assert(cuveeCount == catalog.length, ...)` or surface the gap via a louder signal (e.g. fail-loud in tests but only log in main).
+- `purchasePrice` schema has no documented unit. Dev seed assumes euros; the rest of the app should be audited and the column comment updated.
+
 ## Deferred from: code review of spec-tasting-history-screen (2026-05-23)
 
 - Offset-based pagination in `listConsumedBottles({limit, offset})` is unstable across concurrent DB mutations — if a new bottle is consumed (or one is deleted) between page-N and page-N+1 fetches on the tasting history screen, the offset-keyed boundary will duplicate or skip a row. Real-world risk is low (single-user app, brief screen lifetime) and offset pagination was the chosen contract; a keyset switch (`WHERE consumedAt < lastSeenConsumedAt`) would be the proper fix.
