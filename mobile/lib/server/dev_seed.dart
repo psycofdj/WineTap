@@ -48,8 +48,11 @@ Future<void> seedDevDataIfNeeded(
     return _seed(db);
   });
   if (result.bottleCount == 0) return;
-  dev.log('seeded ${result.bottleCount} bottles across ${result.cuveeCount} '
-      'cuvées (${result.consumedCount} consumed)', name: 'DevSeed');
+  dev.log(
+    'seeded ${result.bottleCount} bottles across ${result.cuveeCount} '
+    'cuvées (${result.consumedCount} consumed)',
+    name: 'DevSeed',
+  );
 }
 
 class _SeedResult {
@@ -64,78 +67,214 @@ Future<_SeedResult> _seed(AppDatabase db) async {
   //   1=Rouge, 2=Blanc, 3=Rosé, 4=Effervescent, 5=Autre.
   const catalog = <_DevCuvee>[
     // Rouge (1) — 6 cuvées
-    _DevCuvee('Grand Vin', 'Château Margaux', 'Margaux', 1,
-        bottles: 4, consumedFraction: 0.5,
-        priceRange: (520, 780), drinkBefore: 2045),
-    _DevCuvee('Pavillon Rouge', 'Château Margaux', 'Margaux', 1,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (140, 200), drinkBefore: 2035),
-    _DevCuvee('Carruades de Lafite', 'Château Lafite Rothschild', 'Pauillac', 1,
-        bottles: 3, consumedFraction: 0.33,
-        priceRange: (260, 340), drinkBefore: 2040),
-    _DevCuvee('Romanée-Saint-Vivant', 'Domaine de la Romanée-Conti',
-        'Vosne-Romanée', 1,
-        bottles: 2, consumedFraction: 0.5,
-        priceRange: (3800, 5200), drinkBefore: 2050),
-    _DevCuvee('Hermitage', 'Domaine Jean-Louis Chave', 'Hermitage', 1,
-        bottles: 4, consumedFraction: 0.5,
-        priceRange: (320, 480), drinkBefore: 2042),
-    _DevCuvee('Châteauneuf-du-Pape Hommage', 'Château de Beaucastel',
-        'Châteauneuf-du-Pape', 1,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (180, 240), drinkBefore: 2038),
+    _DevCuvee(
+      'Grand Vin',
+      'Château Margaux',
+      'Margaux',
+      1,
+      bottles: 4,
+      consumedFraction: 0.5,
+      priceRange: (520, 780),
+      drinkBefore: 2045,
+    ),
+    _DevCuvee(
+      'Pavillon Rouge',
+      'Château Margaux',
+      'Margaux',
+      1,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (140, 200),
+      drinkBefore: 2035,
+    ),
+    _DevCuvee(
+      'Carruades de Lafite',
+      'Château Lafite Rothschild',
+      'Pauillac',
+      1,
+      bottles: 3,
+      consumedFraction: 0.33,
+      priceRange: (260, 340),
+      drinkBefore: 2040,
+    ),
+    _DevCuvee(
+      'Romanée-Saint-Vivant',
+      'Domaine de la Romanée-Conti',
+      'Vosne-Romanée',
+      1,
+      bottles: 2,
+      consumedFraction: 0.5,
+      priceRange: (3800, 5200),
+      drinkBefore: 2050,
+    ),
+    _DevCuvee(
+      'Hermitage',
+      'Domaine Jean-Louis Chave',
+      'Hermitage',
+      1,
+      bottles: 4,
+      consumedFraction: 0.5,
+      priceRange: (320, 480),
+      drinkBefore: 2042,
+    ),
+    _DevCuvee(
+      'Châteauneuf-du-Pape Hommage',
+      'Château de Beaucastel',
+      'Châteauneuf-du-Pape',
+      1,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (180, 240),
+      drinkBefore: 2038,
+    ),
 
     // Blanc (2) — 5 cuvées
-    _DevCuvee('Meursault Perrières', 'Domaine Comtes Lafon', 'Meursault', 2,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (380, 520), drinkBefore: 2032),
-    _DevCuvee('Puligny-Montrachet Les Pucelles', 'Domaine Leflaive',
-        'Chassagne-Montrachet', 2,
-        bottles: 3, consumedFraction: 0.33,
-        priceRange: (340, 460), drinkBefore: 2032),
-    _DevCuvee('Sancerre Les Monts Damnés', 'Domaine Vacheron', 'Sancerre', 2,
-        bottles: 4, consumedFraction: 0.5,
-        priceRange: (32, 48), drinkBefore: 2028),
-    _DevCuvee('Le Mont Sec', 'Domaine Huet', 'Vouvray', 2,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (28, 42), drinkBefore: 2030),
-    _DevCuvee('Riesling Clos Sainte-Hune', 'Domaine Trimbach', 'Alsace', 2,
-        bottles: 2, consumedFraction: 0.5,
-        priceRange: (220, 320), drinkBefore: 2040),
+    _DevCuvee(
+      'Meursault Perrières',
+      'Domaine Comtes Lafon',
+      'Meursault',
+      2,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (380, 520),
+      drinkBefore: 2032,
+    ),
+    _DevCuvee(
+      'Puligny-Montrachet Les Pucelles',
+      'Domaine Leflaive',
+      'Chassagne-Montrachet',
+      2,
+      bottles: 3,
+      consumedFraction: 0.33,
+      priceRange: (340, 460),
+      drinkBefore: 2032,
+    ),
+    _DevCuvee(
+      'Sancerre Les Monts Damnés',
+      'Domaine Vacheron',
+      'Sancerre',
+      2,
+      bottles: 4,
+      consumedFraction: 0.5,
+      priceRange: (32, 48),
+      drinkBefore: 2028,
+    ),
+    _DevCuvee(
+      'Le Mont Sec',
+      'Domaine Huet',
+      'Vouvray',
+      2,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (28, 42),
+      drinkBefore: 2030,
+    ),
+    _DevCuvee(
+      'Riesling Clos Sainte-Hune',
+      'Domaine Trimbach',
+      'Alsace',
+      2,
+      bottles: 2,
+      consumedFraction: 0.5,
+      priceRange: (220, 320),
+      drinkBefore: 2040,
+    ),
 
     // Rosé (3) — 3 cuvées
-    _DevCuvee('Sancerre Rosé', 'Domaine Henri Bourgeois', 'Sancerre', 3,
-        bottles: 4, consumedFraction: 0.75,
-        priceRange: (22, 28), drinkBefore: 2027),
-    _DevCuvee('Tavel Rosé', 'Domaine E. Guigal', 'Côte-Rôtie', 3,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (18, 26), drinkBefore: 2026),
-    _DevCuvee('Marsannay Rosé', 'Domaine Armand Rousseau', 'Gevrey-Chambertin',
-        3,
-        bottles: 2, consumedFraction: 0.5,
-        priceRange: (32, 40), drinkBefore: 2027),
+    _DevCuvee(
+      'Sancerre Rosé',
+      'Domaine Henri Bourgeois',
+      'Sancerre',
+      3,
+      bottles: 4,
+      consumedFraction: 0.75,
+      priceRange: (22, 28),
+      drinkBefore: 2027,
+    ),
+    _DevCuvee(
+      'Tavel Rosé',
+      'Domaine E. Guigal',
+      'Côte-Rôtie',
+      3,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (18, 26),
+      drinkBefore: 2026,
+    ),
+    _DevCuvee(
+      'Marsannay Rosé',
+      'Domaine Armand Rousseau',
+      'Gevrey-Chambertin',
+      3,
+      bottles: 2,
+      consumedFraction: 0.5,
+      priceRange: (32, 40),
+      drinkBefore: 2027,
+    ),
 
     // Effervescent (4) — 4 cuvées
-    _DevCuvee('Grande Cuvée 172e Édition', 'Krug', 'Champagne', 4,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (240, 320), drinkBefore: 2035),
-    _DevCuvee('La Grande Année', 'Bollinger', 'Champagne', 4,
-        bottles: 4, consumedFraction: 0.5,
-        priceRange: (140, 200), drinkBefore: 2034),
-    _DevCuvee('Cristal Brut', 'Louis Roederer', 'Champagne', 4,
-        bottles: 3, consumedFraction: 0.33,
-        priceRange: (240, 320), drinkBefore: 2035),
-    _DevCuvee('Crémant d\'Alsace Brut', 'Domaine Zind-Humbrecht', 'Alsace', 4,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (18, 24), drinkBefore: 2027),
+    _DevCuvee(
+      'Grande Cuvée 172e Édition',
+      'Krug',
+      'Champagne',
+      4,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (240, 320),
+      drinkBefore: 2035,
+    ),
+    _DevCuvee(
+      'La Grande Année',
+      'Bollinger',
+      'Champagne',
+      4,
+      bottles: 4,
+      consumedFraction: 0.5,
+      priceRange: (140, 200),
+      drinkBefore: 2034,
+    ),
+    _DevCuvee(
+      'Cristal Brut',
+      'Louis Roederer',
+      'Champagne',
+      4,
+      bottles: 3,
+      consumedFraction: 0.33,
+      priceRange: (240, 320),
+      drinkBefore: 2035,
+    ),
+    _DevCuvee(
+      'Crémant d\'Alsace Brut',
+      'Domaine Zind-Humbrecht',
+      'Alsace',
+      4,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (18, 24),
+      drinkBefore: 2027,
+    ),
 
     // Autre (5) — 2 cuvées (sweet / late-harvest)
-    _DevCuvee('Sauternes', "Château d'Yquem", 'Sauternes', 5,
-        bottles: 3, consumedFraction: 0.33,
-        priceRange: (380, 560), drinkBefore: 2055),
-    _DevCuvee('Vouvray Moelleux 1er Trie', 'Domaine Huet', 'Vouvray', 5,
-        bottles: 3, consumedFraction: 0.66,
-        priceRange: (45, 70), drinkBefore: 2040),
+    _DevCuvee(
+      'Sauternes',
+      "Château d'Yquem",
+      'Sauternes',
+      5,
+      bottles: 3,
+      consumedFraction: 0.33,
+      priceRange: (380, 560),
+      drinkBefore: 2055,
+    ),
+    _DevCuvee(
+      'Vouvray Moelleux 1er Trie',
+      'Domaine Huet',
+      'Vouvray',
+      5,
+      bottles: 3,
+      consumedFraction: 0.66,
+      priceRange: (45, 70),
+      drinkBefore: 2040,
+    ),
   ];
 
   const tastingNotes = <String>[
@@ -155,30 +294,37 @@ Future<_SeedResult> _seed(AppDatabase db) async {
   var bottleIndex = 0;
 
   for (final c in catalog) {
-    final domainRow = await (db.select(db.domains)
-          ..where((t) => t.name.equals(c.domainName)))
-        .getSingleOrNull();
-    final desRow = await (db.select(db.designations)
-          ..where((t) => t.name.equals(c.designationName)))
-        .getSingleOrNull();
+    final domainRow = await (db.select(
+      db.domains,
+    )..where((t) => t.name.equals(c.domainName))).getSingleOrNull();
+    final desRow = await (db.select(
+      db.designations,
+    )..where((t) => t.name.equals(c.designationName))).getSingleOrNull();
     if (domainRow == null) {
-      dev.log('domain not found, skipping cuvée "${c.name}": ${c.domainName}',
-          name: 'DevSeed');
+      dev.log(
+        'domain not found, skipping cuvée "${c.name}": ${c.domainName}',
+        name: 'DevSeed',
+      );
       continue;
     }
     if (desRow == null) {
       dev.log(
-          'designation not found, skipping cuvée "${c.name}": ${c.designationName}',
-          name: 'DevSeed');
+        'designation not found, skipping cuvée "${c.name}": ${c.designationName}',
+        name: 'DevSeed',
+      );
       continue;
     }
 
-    final cuveeId = await db.into(db.cuvees).insert(CuveesCompanion.insert(
-          name: c.name,
-          domainId: domainRow.id,
-          designationId: Value(desRow.id),
-          color: Value(c.color),
-        ));
+    final cuveeId = await db
+        .into(db.cuvees)
+        .insert(
+          CuveesCompanion.insert(
+            name: c.name,
+            domainId: domainRow.id,
+            designationId: Value(desRow.id),
+            color: Value(c.color),
+          ),
+        );
     cuveeCount++;
 
     for (var i = 0; i < c.bottles; i++) {
@@ -212,7 +358,8 @@ Future<_SeedResult> _seed(AppDatabase db) async {
         consumedCount++;
       }
 
-      final price = c.priceRange.$1 +
+      final price =
+          c.priceRange.$1 +
           ((bottleIndex * 13 + i * 5) %
               (c.priceRange.$2 - c.priceRange.$1 + 1));
       final hasDescription = (bottleIndex + i) % 3 == 0;
@@ -220,16 +367,20 @@ Future<_SeedResult> _seed(AppDatabase db) async {
           ? tastingNotes[(bottleIndex + i) % tastingNotes.length]
           : '';
 
-      await db.into(db.bottles).insert(BottlesCompanion.insert(
-            cuveeId: cuveeId,
-            vintage: vintage,
-            addedAt: addedAt,
-            tagId: const Value(null),
-            description: Value(description),
-            purchasePrice: Value(price.toDouble()),
-            drinkBefore: Value(c.drinkBefore),
-            consumedAt: Value(consumedAt),
-          ));
+      await db
+          .into(db.bottles)
+          .insert(
+            BottlesCompanion.insert(
+              cuveeId: cuveeId,
+              vintage: vintage,
+              addedAt: addedAt,
+              tagId: const Value(null),
+              description: Value(description),
+              purchasePrice: Value(price.toDouble()),
+              drinkBefore: Value(c.drinkBefore),
+              consumedAt: Value(consumedAt),
+            ),
+          );
       bottleCount++;
       bottleIndex++;
     }

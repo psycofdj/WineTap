@@ -4,6 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shelf/shelf.dart';
 import 'package:wine_tap_mobile/server/handlers/scan.dart';
 import 'package:wine_tap_mobile/server/scan_coordinator.dart';
+import 'package:wine_tap_mobile/services/nfc_service.dart';
+
+class _FakeNfcService implements NfcService {
+  @override
+  NfcState get state => NfcState.ready;
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<NfcReadResult> readTag() async => (tag: null, error: 'unused');
+
+  @override
+  Future<void> cancel() async {}
+
+  @override
+  Future<void> restartSession() async {}
+}
 
 void main() {
   late ScanCoordinator coordinator;
@@ -11,17 +29,20 @@ void main() {
 
   setUp(() {
     coordinator = ScanCoordinator(timeout: const Duration(milliseconds: 100));
-    handler = scanRouter(coordinator).call;
+    handler = scanRouter(coordinator, _FakeNfcService()).call;
   });
 
   Future<Response> post(String path, [Map<String, dynamic>? body]) async =>
-      await handler(Request(
-        'POST',
-        Uri.parse('http://localhost$path'),
-        body: body != null ? jsonEncode(body) : null,
-        headers:
-            body != null ? {'Content-Type': 'application/json'} : const {},
-      ));
+      await handler(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          body: body != null ? jsonEncode(body) : null,
+          headers: body != null
+              ? {'Content-Type': 'application/json'}
+              : const {},
+        ),
+      );
 
   Future<Response> get(String path) async =>
       await handler(Request('GET', Uri.parse('http://localhost$path')));

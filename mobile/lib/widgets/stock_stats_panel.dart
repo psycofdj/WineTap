@@ -153,10 +153,22 @@ class _StockStatsPanelState extends State<StockStatsPanel> {
   }
 
   static const _regionPalette = <Color>[
-    Color(0xFFE6194B), Color(0xFF3CB44B), Color(0xFF4363D8), Color(0xFFF58231),
-    Color(0xFF911EB4), Color(0xFF42D4F4), Color(0xFFF032E6), Color(0xFFBFEF45),
-    Color(0xFFFABED4), Color(0xFF469990), Color(0xFFDCBEFF), Color(0xFF9A6324),
-    Color(0xFF800000), Color(0xFFAAFFC3), Color(0xFF808000), Color(0xFF000075),
+    Color(0xFFE6194B),
+    Color(0xFF3CB44B),
+    Color(0xFF4363D8),
+    Color(0xFFF58231),
+    Color(0xFF911EB4),
+    Color(0xFF42D4F4),
+    Color(0xFFF032E6),
+    Color(0xFFBFEF45),
+    Color(0xFFFABED4),
+    Color(0xFF469990),
+    Color(0xFFDCBEFF),
+    Color(0xFF9A6324),
+    Color(0xFF800000),
+    Color(0xFFAAFFC3),
+    Color(0xFF808000),
+    Color(0xFF000075),
     Color(0xFFA9A9A9),
   ];
 }
@@ -203,7 +215,8 @@ class _ChartSection extends StatelessWidget {
                     titleStyle: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: ThemeData.estimateBrightnessForColor(s.color) ==
+                      color:
+                          ThemeData.estimateBrightnessForColor(s.color) ==
                               Brightness.dark
                           ? Colors.white
                           : Colors.black87,

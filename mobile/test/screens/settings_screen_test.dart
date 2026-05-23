@@ -35,13 +35,17 @@ void main() {
       expect(find.text(S.restoreDatabase), findsAtLeastNWidgets(1));
     });
 
-    testWidgets('restore button shows confirmation dialog on tap',
-        (tester) async {
+    testWidgets('restore button shows confirmation dialog on tap', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildSubject());
       await tester.pump();
 
       // Tap the restore button (the OutlinedButton — find by icon ancestor).
-      final restoreButton = find.widgetWithText(OutlinedButton, S.restoreDatabase);
+      final restoreButton = find.widgetWithText(
+        OutlinedButton,
+        S.restoreDatabase,
+      );
       expect(restoreButton, findsOneWidget);
       await tester.tap(restoreButton);
       await tester.pumpAndSettle();
@@ -50,8 +54,9 @@ void main() {
       expect(find.text(S.restoreConfirmBody), findsOneWidget);
     });
 
-    testWidgets('cancelling restore dialog dismisses without proceeding',
-        (tester) async {
+    testWidgets('cancelling restore dialog dismisses without proceeding', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildSubject());
       await tester.pump();
 
@@ -71,8 +76,9 @@ void main() {
       await tester.pumpWidget(_buildSubject());
       await tester.pump();
 
-      final button =
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, S.exportDatabase));
+      final button = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, S.exportDatabase),
+      );
       // Initially enabled.
       expect(button.onPressed, isNotNull);
     });

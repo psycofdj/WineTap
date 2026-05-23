@@ -41,8 +41,9 @@ class NfcServiceIos extends NfcServiceBase {
             .catchError((_) {});
         try {
           final uid = _extractUid(tag);
-          final hex =
-              uid.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+          final hex = uid
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join();
           onTagDiscovered(normalizeTagId(hex));
         } catch (e) {
           dev.log('onDiscovered: extractUid error: $e', name: _tag);

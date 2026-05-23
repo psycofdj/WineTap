@@ -66,7 +66,13 @@ class $DesignationsTable extends Designations
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, region, description, picture];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    region,
+    description,
+    picture,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override

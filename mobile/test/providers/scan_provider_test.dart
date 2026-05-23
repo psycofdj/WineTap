@@ -31,6 +31,9 @@ class MockNfcService implements NfcService {
 
   @override
   Future<void> cancel() async {}
+
+  @override
+  Future<void> restartSession() async {}
 }
 
 void main() {
@@ -102,17 +105,21 @@ void main() {
       final domId = await db.insertDomain(
         DomainsCompanion.insert(name: 'Domaine Brumont'),
       );
-      final cuvId = await db.insertCuvee(CuveesCompanion.insert(
-        name: 'Château Montus',
-        domainId: domId,
-        designationId: Value(desId),
-      ));
-      await db.insertBottle(BottlesCompanion.insert(
-        tagId: const Value('04A32BFF'),
-        cuveeId: cuvId,
-        vintage: 2019,
-        addedAt: DateTime.now().toUtc().toIso8601String(),
-      ));
+      final cuvId = await db.insertCuvee(
+        CuveesCompanion.insert(
+          name: 'Château Montus',
+          domainId: domId,
+          designationId: Value(desId),
+        ),
+      );
+      await db.insertBottle(
+        BottlesCompanion.insert(
+          tagId: const Value('04A32BFF'),
+          cuveeId: cuvId,
+          vintage: 2019,
+          addedAt: DateTime.now().toUtc().toIso8601String(),
+        ),
+      );
     });
 
     test('successful scan auto-consumes and goes to consumed', () async {
@@ -137,7 +144,10 @@ void main() {
 
       // Wait longer than the old 3s auto-reset
       await Future<void>.delayed(const Duration(seconds: 4));
-      expect(provider.state, ScanState.consumed); // still consumed — no auto-reset
+      expect(
+        provider.state,
+        ScanState.consumed,
+      ); // still consumed — no auto-reset
     });
 
     test('reset from consumed returns to idle', () async {
@@ -166,19 +176,22 @@ void main() {
       expect(updated.bottle.description, 'Excellent millésime');
     });
 
-    test('resetWithComment with blank text does not update description', () async {
-      final future = provider.startScan();
-      mockNfc.completeRead('04A32BFF');
-      await future;
-      expect(provider.state, ScanState.consumed);
-      final bottleId = provider.bottle!.bottle.id;
+    test(
+      'resetWithComment with blank text does not update description',
+      () async {
+        final future = provider.startScan();
+        mockNfc.completeRead('04A32BFF');
+        await future;
+        expect(provider.state, ScanState.consumed);
+        final bottleId = provider.bottle!.bottle.id;
 
-      await provider.resetWithComment('   ');
-      expect(provider.state, ScanState.idle);
+        await provider.resetWithComment('   ');
+        expect(provider.state, ScanState.idle);
 
-      final updated = await db.getBottleById(bottleId);
-      expect(updated.bottle.description, ''); // unchanged default
-    });
+        final updated = await db.getBottleById(bottleId);
+        expect(updated.bottle.description, ''); // unchanged default
+      },
+    );
 
     test('duplicate tag suppression within same session (FR5)', () async {
       // Scan a tag — bottle consumed
@@ -198,12 +211,14 @@ void main() {
       // We need a scenario where startScan is called and same tag appears
       // Since the bottle was consumed above, seed a second bottle
       final cuvId = (await db.listCuvees()).first.cuvee.id;
-      await db.insertBottle(BottlesCompanion.insert(
-        tagId: const Value('AABBCCDD'),
-        cuveeId: cuvId,
-        vintage: 2020,
-        addedAt: DateTime.now().toUtc().toIso8601String(),
-      ));
+      await db.insertBottle(
+        BottlesCompanion.insert(
+          tagId: const Value('AABBCCDD'),
+          cuveeId: cuvId,
+          vintage: 2020,
+          addedAt: DateTime.now().toUtc().toIso8601String(),
+        ),
+      );
 
       // First scan
       var future = provider.startScan();
@@ -237,7 +252,6 @@ void main() {
 
     provider.cancel();
     expect(provider.state, ScanState.idle);
-
   });
 
   test('cancel is ignored when not scanning', () {
@@ -257,7 +271,6 @@ void main() {
 
     provider.cancelForIntake();
     expect(provider.state, ScanState.idle);
-
   });
 
   group('cancelForIntake with seeded bottle', () {
@@ -268,32 +281,39 @@ void main() {
       final domId = await db.insertDomain(
         DomainsCompanion.insert(name: 'Domaine Test'),
       );
-      final cuvId = await db.insertCuvee(CuveesCompanion.insert(
-        name: 'Test Cuvee',
-        domainId: domId,
-        designationId: Value(desId),
-      ));
-      await db.insertBottle(BottlesCompanion.insert(
-        tagId: const Value('FFAABB00'),
-        cuveeId: cuvId,
-        vintage: 2020,
-        addedAt: DateTime.now().toUtc().toIso8601String(),
-      ));
+      final cuvId = await db.insertCuvee(
+        CuveesCompanion.insert(
+          name: 'Test Cuvee',
+          domainId: domId,
+          designationId: Value(desId),
+        ),
+      );
+      await db.insertBottle(
+        BottlesCompanion.insert(
+          tagId: const Value('FFAABB00'),
+          cuveeId: cuvId,
+          vintage: 2020,
+          addedAt: DateTime.now().toUtc().toIso8601String(),
+        ),
+      );
     });
 
-    test('cancelForIntake from consumed resets to idle without rollback', () async {
-      final future = provider.startScan();
-      mockNfc.completeRead('FFAABB00');
-      await future;
-      expect(provider.state, ScanState.consumed);
+    test(
+      'cancelForIntake from consumed resets to idle without rollback',
+      () async {
+        final future = provider.startScan();
+        mockNfc.completeRead('FFAABB00');
+        await future;
+        expect(provider.state, ScanState.consumed);
 
-      provider.cancelForIntake();
-      expect(provider.state, ScanState.idle);
+        provider.cancelForIntake();
+        expect(provider.state, ScanState.idle);
 
-      // Bottle is still consumed in DB — no rollback
-      final dbBottle = await db.getBottleByTagId('FFAABB00');
-      expect(dbBottle, isNull); // tag cleared = consumed
-    });
+        // Bottle is still consumed in DB — no rollback
+        final dbBottle = await db.getBottleByTagId('FFAABB00');
+        expect(dbBottle, isNull); // tag cleared = consumed
+      },
+    );
   });
 
   test('cancelForIntake from error returns to idle', () async {

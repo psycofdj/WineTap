@@ -57,9 +57,9 @@ class _TastingHistoryScreenState extends State<TastingHistoryScreen> {
     setState(() {});
     try {
       final page = await context.read<AppDatabase>().listConsumedBottles(
-            limit: _pageSize,
-            offset: _items.length,
-          );
+        limit: _pageSize,
+        offset: _items.length,
+      );
       if (!mounted || gen != _generation) return;
       setState(() {
         _items.addAll(page);
@@ -70,9 +70,9 @@ class _TastingHistoryScreenState extends State<TastingHistoryScreen> {
       dev.log('listConsumedBottles failed: $e', name: 'TastingHistoryScreen');
       if (!mounted || gen != _generation) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(S.databaseError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(S.databaseError)));
     }
   }
 
@@ -119,10 +119,7 @@ class _TastingHistoryScreenState extends State<TastingHistoryScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text(
-            S.noTastings,
-            textAlign: TextAlign.center,
-          ),
+          child: Text(S.noTastings, textAlign: TextAlign.center),
         ),
       );
     }

@@ -49,8 +49,10 @@ void main() async {
 
   final docsDir = await getApplicationDocumentsDirectory();
   final dbFile = File('${docsDir.path}/winetap.sqlite');
-  dev.log('dbFile path: ${dbFile.path}, exists: ${await dbFile.exists()}',
-      name: 'main');
+  dev.log(
+    'dbFile path: ${dbFile.path}, exists: ${await dbFile.exists()}',
+    name: 'main',
+  );
 
   // Restart callback: exit the process after a successful restore.
   // The app restarts fresh on next launch with the restored database.
@@ -62,11 +64,15 @@ void main() async {
   // 4. HTTP server — running before UI renders
   late final HttpServer server;
   try {
-    server = await startServer(db, coordinator, dbFile, restartDb, consumeTracker, nfcService: nfc);
-    dev.log(
-      'Server started on port ${server.port}',
-      name: 'main',
+    server = await startServer(
+      db,
+      coordinator,
+      dbFile,
+      restartDb,
+      consumeTracker,
+      nfcService: nfc,
     );
+    dev.log('Server started on port ${server.port}', name: 'main');
   } catch (e) {
     dev.log('Server failed to start: $e', name: 'main');
     rethrow;
@@ -76,8 +82,10 @@ void main() async {
   final discovery = DiscoveryService();
   try {
     await discovery.register(server.port);
-    dev.log('mDNS registered _winetap._tcp on port ${server.port}',
-        name: 'main');
+    dev.log(
+      'mDNS registered _winetap._tcp on port ${server.port}',
+      name: 'main',
+    );
   } catch (e) {
     dev.log('mDNS registration failed (non-fatal): $e', name: 'main');
   }
@@ -147,12 +155,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  int _currentIndex = 0;
+  final int _currentIndex = 0;
 
-  static const _screens = [
-    ConsumeScreen(),
-    IntakeScreen(),
-  ];
+  static const _screens = [ConsumeScreen(), IntakeScreen()];
 
   @override
   void initState() {
@@ -183,10 +188,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final effectiveIndex = intakeActive ? 1 : _currentIndex;
 
     return Scaffold(
-      body: IndexedStack(
-        index: effectiveIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: effectiveIndex, children: _screens),
       /*
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: effectiveIndex,

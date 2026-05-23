@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
@@ -120,44 +119,44 @@ extension DesignationToApiJson on Designation {
   /// Lightweight representation for list endpoints — excludes description and
   /// picture to keep payloads small.
   Map<String, dynamic> toSummaryJson() => {
-        'id': id,
-        'name': name,
-        'region': region,
-      };
+    'id': id,
+    'name': name,
+    'region': region,
+  };
 }
 
 extension DomainToApiJson on Domain {
   Map<String, dynamic> toApiJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+  };
 }
 
 extension CuveeWithNamesToApiJson on CuveeWithNames {
   Map<String, dynamic> toApiJson() => {
-        'id': cuvee.id,
-        'name': cuvee.name,
-        'domain_id': cuvee.domainId,
-        'designation_id': cuvee.designationId,
-        'color': cuvee.color,
-        'description': cuvee.description,
-        'domain_name': domainName,
-        'designation_name': designationName,
-        'region': region,
-      };
+    'id': cuvee.id,
+    'name': cuvee.name,
+    'domain_id': cuvee.domainId,
+    'designation_id': cuvee.designationId,
+    'color': cuvee.color,
+    'description': cuvee.description,
+    'domain_name': domainName,
+    'designation_name': designationName,
+    'region': region,
+  };
 
   /// Lightweight representation for list endpoints — excludes description.
   Map<String, dynamic> toSummaryJson() => {
-        'id': cuvee.id,
-        'name': cuvee.name,
-        'domain_id': cuvee.domainId,
-        'designation_id': cuvee.designationId,
-        'color': cuvee.color,
-        'domain_name': domainName,
-        'designation_name': designationName,
-        'region': region,
-      };
+    'id': cuvee.id,
+    'name': cuvee.name,
+    'domain_id': cuvee.domainId,
+    'designation_id': cuvee.designationId,
+    'color': cuvee.color,
+    'domain_name': domainName,
+    'designation_name': designationName,
+    'region': region,
+  };
 }
 
 extension BottleWithCuveeToApiJson on BottleWithCuvee {
@@ -235,28 +234,28 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          // Seed sentinel designation (id=0) for "unassigned" cuvees.
-          await into(designations).insert(DesignationsCompanion.insert(
-            name: '(unassigned)',
-          ));
-          // Overwrite the autoincrement id to 0.
-          await customStatement(
-            "UPDATE designations SET id = 0 WHERE name = '(unassigned)'",
-          );
-          // Seed reference data (designations & domains).
-          if (_seedOnCreate) await seedDatabase(this);
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.addColumn(designations, designations.picture);
-          }
-        },
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
+    onCreate: (m) async {
+      await m.createAll();
+      // Seed sentinel designation (id=0) for "unassigned" cuvees.
+      await into(
+        designations,
+      ).insert(DesignationsCompanion.insert(name: '(unassigned)'));
+      // Overwrite the autoincrement id to 0.
+      await customStatement(
+        "UPDATE designations SET id = 0 WHERE name = '(unassigned)'",
       );
+      // Seed reference data (designations & domains).
+      if (_seedOnCreate) await seedDatabase(this);
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(designations, designations.picture);
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'winetap');
@@ -267,9 +266,9 @@ class AppDatabase extends _$AppDatabase {
   // -------------------------------------------------------------------------
 
   Future<List<Designation>> listDesignations() {
-    return (select(designations)
-          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-        .get();
+    return (select(
+      designations,
+    )..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
   }
 
   Future<Designation> getDesignationById(int id) {
@@ -329,8 +328,10 @@ class AppDatabase extends _$AppDatabase {
   Future<List<CuveeWithNames>> listCuvees() {
     final query = select(cuvees).join([
       innerJoin(domains, domains.id.equalsExp(cuvees.domainId)),
-      leftOuterJoin(designations,
-          designations.id.equalsExp(cuvees.designationId)),
+      leftOuterJoin(
+        designations,
+        designations.id.equalsExp(cuvees.designationId),
+      ),
     ]);
     query.orderBy([
       OrderingTerm.asc(domains.name),
@@ -342,8 +343,10 @@ class AppDatabase extends _$AppDatabase {
   Future<CuveeWithNames> getCuveeById(int id) {
     final query = select(cuvees).join([
       innerJoin(domains, domains.id.equalsExp(cuvees.domainId)),
-      leftOuterJoin(designations,
-          designations.id.equalsExp(cuvees.designationId)),
+      leftOuterJoin(
+        designations,
+        designations.id.equalsExp(cuvees.designationId),
+      ),
     ]);
     query.where(cuvees.id.equals(id));
     return query.map(_mapCuveeRow).getSingle();
@@ -369,8 +372,10 @@ class AppDatabase extends _$AppDatabase {
     return select(bottles).join([
       innerJoin(cuvees, cuvees.id.equalsExp(bottles.cuveeId)),
       innerJoin(domains, domains.id.equalsExp(cuvees.domainId)),
-      leftOuterJoin(designations,
-          designations.id.equalsExp(cuvees.designationId)),
+      leftOuterJoin(
+        designations,
+        designations.id.equalsExp(cuvees.designationId),
+      ),
     ]);
   }
 
@@ -428,18 +433,16 @@ class AppDatabase extends _$AppDatabase {
   Future<BottleWithCuvee> consumeBottle(String tagId) {
     return transaction(() async {
       // Find the bottle first to get its ID.
-      final row = await (select(bottles)
-            ..where((t) => t.tagId.equals(tagId) & t.consumedAt.isNull()))
-          .getSingleOrNull();
+      final row =
+          await (select(bottles)
+                ..where((t) => t.tagId.equals(tagId) & t.consumedAt.isNull()))
+              .getSingleOrNull();
       if (row == null) {
         throw StateError('No in-stock bottle with tag_id=$tagId');
       }
       final now = DateTime.now().toUtc().toIso8601String();
       await (update(bottles)..where((t) => t.id.equals(row.id))).write(
-        BottlesCompanion(
-          consumedAt: Value(now),
-          tagId: const Value(null),
-        ),
+        BottlesCompanion(consumedAt: Value(now), tagId: const Value(null)),
       );
       return getBottleById(row.id);
     });
@@ -464,10 +467,11 @@ class AppDatabase extends _$AppDatabase {
   Future<StockStats> getStockStats() async {
     final query = select(bottles).join([
       innerJoin(cuvees, cuvees.id.equalsExp(bottles.cuveeId)),
-      leftOuterJoin(designations,
-          designations.id.equalsExp(cuvees.designationId)),
-    ])
-      ..where(bottles.consumedAt.isNull());
+      leftOuterJoin(
+        designations,
+        designations.id.equalsExp(cuvees.designationId),
+      ),
+    ])..where(bottles.consumedAt.isNull());
 
     final rows = await query.get();
     final byColor = <int, int>{};
@@ -490,7 +494,6 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-
   // -------------------------------------------------------------------------
   // Completions
   // -------------------------------------------------------------------------
@@ -504,7 +507,9 @@ class AppDatabase extends _$AppDatabase {
 
   /// LIKE with ESCAPE clause — drift doesn't expose ESCAPE natively.
   Expression<bool> _likePrefixEscaped(
-      GeneratedColumn<String> column, String prefix) {
+    GeneratedColumn<String> column,
+    String prefix,
+  ) {
     final pattern = '${_escapeLike(prefix)}%';
     return FunctionCallExpression('LIKE', [
       Variable.withString(pattern),

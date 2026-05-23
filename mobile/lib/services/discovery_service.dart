@@ -23,8 +23,10 @@ class DiscoveryService {
     _broadcast = BonsoirBroadcast(service: service);
     await _broadcast!.ready;
     await _broadcast!.start();
-    dev.log('mDNS broadcast started: $_serviceType on port $port',
-        name: 'DiscoveryService');
+    dev.log(
+      'mDNS broadcast started: $_serviceType on port $port',
+      name: 'DiscoveryService',
+    );
   }
 
   /// Stop broadcasting.

@@ -26,11 +26,13 @@ class ScanProvider extends ChangeNotifier {
   bool _disposed = false;
   String? _lastScannedTagId;
 
-  ScanProvider(AppDatabase db, ConsumeTracker consumeTracker,
-      {required NfcService nfcService})
-      : _db = db,
-        _consumeTracker = consumeTracker,
-        _nfcService = nfcService;
+  ScanProvider(
+    AppDatabase db,
+    ConsumeTracker consumeTracker, {
+    required NfcService nfcService,
+  }) : _db = db,
+       _consumeTracker = consumeTracker,
+       _nfcService = nfcService;
 
   ScanState get state => _state;
   String? get tagId => _tagId;

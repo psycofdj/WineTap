@@ -21,27 +21,33 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<Response> get(String path) =>
-      bottlesRouter(db, consumeTracker)(Request('GET', Uri.parse('http://localhost$path')));
+  Future<Response> get(String path) => bottlesRouter(db, consumeTracker)(
+    Request('GET', Uri.parse('http://localhost$path')),
+  );
 
   Future<Response> post(String path, Map<String, dynamic> body) =>
-      bottlesRouter(db, consumeTracker)(Request(
-        'POST',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      bottlesRouter(db, consumeTracker)(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> put(String path, Map<String, dynamic> body) =>
-      bottlesRouter(db, consumeTracker)(Request(
-        'PUT',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      bottlesRouter(db, consumeTracker)(
+        Request(
+          'PUT',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
-  Future<Response> delete(String path) =>
-      bottlesRouter(db, consumeTracker)(Request('DELETE', Uri.parse('http://localhost$path')));
+  Future<Response> delete(String path) => bottlesRouter(db, consumeTracker)(
+    Request('DELETE', Uri.parse('http://localhost$path')),
+  );
 
   Future<Map<String, dynamic>> jsonBody(Response r) async =>
       jsonDecode(await r.readAsString()) as Map<String, dynamic>;
@@ -51,29 +57,47 @@ void main() {
 
   // Helpers to seed prerequisite data
   Future<Map<String, dynamic>> createDomain(String name) async =>
-      jsonDecode(await (await domainsRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost/'),
-        body: jsonEncode({'name': name}),
-        headers: {'Content-Type': 'application/json'},
-      ))).readAsString()) as Map<String, dynamic>;
+      jsonDecode(
+            await (await domainsRouter(db)(
+              Request(
+                'POST',
+                Uri.parse('http://localhost/'),
+                body: jsonEncode({'name': name}),
+                headers: {'Content-Type': 'application/json'},
+              ),
+            )).readAsString(),
+          )
+          as Map<String, dynamic>;
 
-  Future<Map<String, dynamic>> createCuvee(
-      int domainId, String name) async =>
-      jsonDecode(await (await cuveesRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost/'),
-        body: jsonEncode({'name': name, 'domain_id': domainId, 'color': 1}),
-        headers: {'Content-Type': 'application/json'},
-      ))).readAsString()) as Map<String, dynamic>;
+  Future<Map<String, dynamic>> createCuvee(int domainId, String name) async =>
+      jsonDecode(
+            await (await cuveesRouter(db)(
+              Request(
+                'POST',
+                Uri.parse('http://localhost/'),
+                body: jsonEncode({
+                  'name': name,
+                  'domain_id': domainId,
+                  'color': 1,
+                }),
+                headers: {'Content-Type': 'application/json'},
+              ),
+            )).readAsString(),
+          )
+          as Map<String, dynamic>;
 
   Future<Map<String, dynamic>> createDesignation(String name) async =>
-      jsonDecode(await (await designationsRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost/'),
-        body: jsonEncode({'name': name}),
-        headers: {'Content-Type': 'application/json'},
-      ))).readAsString()) as Map<String, dynamic>;
+      jsonDecode(
+            await (await designationsRouter(db)(
+              Request(
+                'POST',
+                Uri.parse('http://localhost/'),
+                body: jsonEncode({'name': name}),
+                headers: {'Content-Type': 'application/json'},
+              ),
+            )).readAsString(),
+          )
+          as Map<String, dynamic>;
 
   group('GET /bottles', () {
     test('returns 200 with empty array when no bottles', () async {
@@ -85,7 +109,11 @@ void main() {
     test('excludes consumed bottles by default', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'AA'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': 'AA',
+      });
       // consume it
       await post('/consume', {'tag_id': 'AA'});
 
@@ -96,7 +124,11 @@ void main() {
     test('includes consumed bottles when include_consumed=true', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'BB'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': 'BB',
+      });
       await post('/consume', {'tag_id': 'BB'});
 
       final list = await jsonList(await get('/?include_consumed=true'));
@@ -106,17 +138,23 @@ void main() {
     test('response includes embedded cuvee with denormalized fields', () async {
       final domain = await createDomain('Château Margaux');
       final designation = await createDesignation('Margaux AOC');
-      final cuvee = await jsonDecode(await (await cuveesRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost/'),
-        body: jsonEncode({
-          'name': 'Grande Réserve',
-          'domain_id': domain['id'],
-          'designation_id': designation['id'],
-          'color': 1,
-        }),
-        headers: {'Content-Type': 'application/json'},
-      ))).readAsString()) as Map<String, dynamic>;
+      final cuvee =
+          await jsonDecode(
+                await (await cuveesRouter(db)(
+                  Request(
+                    'POST',
+                    Uri.parse('http://localhost/'),
+                    body: jsonEncode({
+                      'name': 'Grande Réserve',
+                      'domain_id': domain['id'],
+                      'designation_id': designation['id'],
+                      'color': 1,
+                    }),
+                    headers: {'Content-Type': 'application/json'},
+                  ),
+                )).readAsString(),
+              )
+              as Map<String, dynamic>;
 
       await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2020});
 
@@ -131,17 +169,23 @@ void main() {
 
     test('list returns summary without descriptions', () async {
       final domain = await createDomain('Pomerol');
-      final cuvee = await jsonDecode(await (await cuveesRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost/'),
-        body: jsonEncode({
-          'name': 'Le Pin',
-          'domain_id': domain['id'],
-          'color': 1,
-          'description': 'Cuvée description',
-        }),
-        headers: {'Content-Type': 'application/json'},
-      ))).readAsString()) as Map<String, dynamic>;
+      final cuvee =
+          await jsonDecode(
+                await (await cuveesRouter(db)(
+                  Request(
+                    'POST',
+                    Uri.parse('http://localhost/'),
+                    body: jsonEncode({
+                      'name': 'Le Pin',
+                      'domain_id': domain['id'],
+                      'color': 1,
+                      'description': 'Cuvée description',
+                    }),
+                    headers: {'Content-Type': 'application/json'},
+                  ),
+                )).readAsString(),
+              )
+              as Map<String, dynamic>;
 
       await post('/', {
         'cuvee_id': cuvee['id'],
@@ -160,7 +204,11 @@ void main() {
     test('returns 200 with bottle when found', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': '04A32BFF'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': '04A32BFF',
+      });
 
       final response = await get('/by-tag/04A32BFF');
       expect(response.statusCode, 200);
@@ -172,7 +220,11 @@ void main() {
     test('normalizes tag_id in path', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': '04A32BFF'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': '04A32BFF',
+      });
 
       final response = await get('/by-tag/04:a3:2b:ff');
       expect(response.statusCode, 200);
@@ -188,7 +240,11 @@ void main() {
     test('returns 404 for consumed bottles', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'CC'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': 'CC',
+      });
       await post('/consume', {'tag_id': 'CC'});
 
       final response = await get('/by-tag/CC');
@@ -201,7 +257,8 @@ void main() {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
+        await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}),
+      );
 
       final response = await get('/${created['id']}');
       expect(response.statusCode, 200);
@@ -266,7 +323,10 @@ void main() {
     test('tag_id is optional', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final response = await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019});
+      final response = await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+      });
       expect(response.statusCode, 201);
       final body = await jsonBody(response);
       expect(body.containsKey('tag_id'), isFalse); // omitted when null
@@ -298,9 +358,16 @@ void main() {
     test('returns 400 on duplicate tag_id', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'DD'});
-      final response =
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2020, 'tag_id': 'DD'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': 'DD',
+      });
+      final response = await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2020,
+        'tag_id': 'DD',
+      });
       expect(response.statusCode, 400);
       final body = await jsonBody(response);
       expect(body['error'], 'already_exists');
@@ -308,23 +375,33 @@ void main() {
   });
 
   group('POST /bottles/consume', () {
-    test('consumes bottle and returns 200 with consumed_at set and tag_id cleared',
-        () async {
-      final domain = await createDomain('Pomerol');
-      final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'EE'});
+    test(
+      'consumes bottle and returns 200 with consumed_at set and tag_id cleared',
+      () async {
+        final domain = await createDomain('Pomerol');
+        final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
+        await post('/', {
+          'cuvee_id': cuvee['id'],
+          'vintage': 2019,
+          'tag_id': 'EE',
+        });
 
-      final response = await post('/consume', {'tag_id': 'EE'});
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      expect(body['consumed_at'], isA<String>());
-      expect(body.containsKey('tag_id'), isFalse); // cleared after consume
-    });
+        final response = await post('/consume', {'tag_id': 'EE'});
+        expect(response.statusCode, 200);
+        final body = await jsonBody(response);
+        expect(body['consumed_at'], isA<String>());
+        expect(body.containsKey('tag_id'), isFalse); // cleared after consume
+      },
+    );
 
     test('normalizes tag_id on consume', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019, 'tag_id': 'FF00AA'});
+      await post('/', {
+        'cuvee_id': cuvee['id'],
+        'vintage': 2019,
+        'tag_id': 'FF00AA',
+      });
 
       final response = await post('/consume', {'tag_id': 'ff:00:aa'});
       expect(response.statusCode, 200);
@@ -348,9 +425,13 @@ void main() {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
+        await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}),
+      );
 
-      final response = await put('/${created['id']}', {'vintage': 2021, 'description': 'Updated'});
+      final response = await put('/${created['id']}', {
+        'vintage': 2021,
+        'description': 'Updated',
+      });
       expect(response.statusCode, 200);
       final body = await jsonBody(response);
       expect(body['vintage'], 2021);
@@ -365,11 +446,13 @@ void main() {
     test('absent fields are not changed', () async {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
-      final created = await jsonBody(await post('/', {
-        'cuvee_id': cuvee['id'],
-        'vintage': 2019,
-        'description': 'Original',
-      }));
+      final created = await jsonBody(
+        await post('/', {
+          'cuvee_id': cuvee['id'],
+          'vintage': 2019,
+          'description': 'Original',
+        }),
+      );
 
       // Only update vintage — description should stay
       final response = await put('/${created['id']}', {'vintage': 2022});
@@ -395,7 +478,8 @@ void main() {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
+        await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}),
+      );
 
       final response = await put('/${created['id']}', {'cuvee_id': 9999});
       expect(response.statusCode, 412);
@@ -407,7 +491,8 @@ void main() {
       final domain = await createDomain('Pomerol');
       final cuvee = await createCuvee(domain['id'] as int, 'Le Pin');
       final created = await jsonBody(
-          await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}));
+        await post('/', {'cuvee_id': cuvee['id'], 'vintage': 2019}),
+      );
       final id = created['id'] as int;
 
       final response = await delete('/$id');

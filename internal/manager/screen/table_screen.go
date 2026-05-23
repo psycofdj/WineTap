@@ -281,24 +281,25 @@ func (ts *tableScreen) exportPDF(title string) {
 		h2 { font-family: sans-serif; color: #2c3e50; }
 		.footer { font-size: 8pt; color: #888; margin-top: 12px; }
 	</style></head><body>`)
-	b.WriteString(fmt.Sprintf("<h2>%s</h2>", title))
+	fmt.Fprintf(&b, "<h2>%s</h2>", title)
 	b.WriteString("<table><thead><tr>")
 	for _, c := range visCols {
-		b.WriteString(fmt.Sprintf("<th>%s</th>", c.header))
+		fmt.Fprintf(&b, "<th>%s</th>", c.header)
 	}
 	b.WriteString("</tr></thead><tbody>")
 	for _, row := range rows {
 		b.WriteString("<tr>")
 		for _, cell := range row {
-			b.WriteString(fmt.Sprintf("<td>%s</td>", cell))
+			fmt.Fprintf(&b, "<td>%s</td>", cell)
 		}
 		b.WriteString("</tr>")
 	}
 	b.WriteString("</tbody></table>")
-	b.WriteString(fmt.Sprintf(
+	fmt.Fprintf(
+		&b,
 		`<p class="footer">%d lignes — exporté le %s</p>`,
 		len(rows), time.Now().Format("02/01/2006 15:04"),
-	))
+	)
 	b.WriteString("</body></html>")
 
 	// Render to PDF.

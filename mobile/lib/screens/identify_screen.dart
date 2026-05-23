@@ -22,8 +22,7 @@ class IdentifyScreen extends StatefulWidget {
 enum _IdentifyState { scanning, found, error }
 
 class _IdentifyScreenState extends State<IdentifyScreen> {
-  late final NfcService _nfc =
-      widget.nfcService ?? context.read<NfcService>();
+  late final NfcService _nfc = widget.nfcService ?? context.read<NfcService>();
   _IdentifyState _state = _IdentifyState.scanning;
   BottleWithCuvee? _bottle;
   String? _errorMessage;

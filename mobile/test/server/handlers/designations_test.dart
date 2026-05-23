@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -18,27 +17,33 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<Response> get(String path) =>
-      designationsRouter(db)(Request('GET', Uri.parse('http://localhost$path')));
+  Future<Response> get(String path) => designationsRouter(db)(
+    Request('GET', Uri.parse('http://localhost$path')),
+  );
 
   Future<Response> post(String path, Map<String, dynamic> body) =>
-      designationsRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      designationsRouter(db)(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> put(String path, Map<String, dynamic> body) =>
-      designationsRouter(db)(Request(
-        'PUT',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      designationsRouter(db)(
+        Request(
+          'PUT',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> delete(String path) => designationsRouter(db)(
-      Request('DELETE', Uri.parse('http://localhost$path')));
+    Request('DELETE', Uri.parse('http://localhost$path')),
+  );
 
   Future<Map<String, dynamic>> jsonBody(Response r) async =>
       jsonDecode(await r.readAsString()) as Map<String, dynamic>;
@@ -89,22 +94,31 @@ void main() {
   });
 
   group('GET /designations/:id', () {
-    test('returns 200 with full object including description and picture', () async {
-      final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
-      final b64 = base64Encode(picData);
-      final created = await jsonBody(
-          await post('/', {'name': 'Pauillac', 'region': 'Bordeaux', 'description': 'Fine wines', 'picture': b64}));
-      final id = created['id'] as int;
+    test(
+      'returns 200 with full object including description and picture',
+      () async {
+        final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+        final b64 = base64Encode(picData);
+        final created = await jsonBody(
+          await post('/', {
+            'name': 'Pauillac',
+            'region': 'Bordeaux',
+            'description': 'Fine wines',
+            'picture': b64,
+          }),
+        );
+        final id = created['id'] as int;
 
-      final response = await get('/$id');
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      expect(body['id'], id);
-      expect(body['name'], 'Pauillac');
-      expect(body['region'], 'Bordeaux');
-      expect(body['description'], 'Fine wines');
-      expect(body['picture'], b64);
-    });
+        final response = await get('/$id');
+        expect(response.statusCode, 200);
+        final body = await jsonBody(response);
+        expect(body['id'], id);
+        expect(body['name'], 'Pauillac');
+        expect(body['region'], 'Bordeaux');
+        expect(body['description'], 'Fine wines');
+        expect(body['picture'], b64);
+      },
+    );
 
     test('returns 404 for non-existent id', () async {
       final response = await get('/9999');
@@ -121,8 +135,10 @@ void main() {
 
   group('POST /designations', () {
     test('creates designation and returns 201 with JSON', () async {
-      final response =
-          await post('/', {'name': 'Madiran', 'region': 'Sud-Ouest'});
+      final response = await post('/', {
+        'name': 'Madiran',
+        'region': 'Sud-Ouest',
+      });
       expect(response.statusCode, 201);
       final body = await jsonBody(response);
       expect(body['name'], 'Madiran');
@@ -161,19 +177,21 @@ void main() {
     test('creates designation with picture and returns base64', () async {
       final picData = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
       final b64 = base64Encode(picData);
-      final response =
-          await post('/', {'name': 'Pauillac', 'picture': b64});
+      final response = await post('/', {'name': 'Pauillac', 'picture': b64});
       expect(response.statusCode, 201);
       final body = await jsonBody(response);
       expect(body['picture'], b64);
     });
 
-    test('creates designation without picture field returns no picture key', () async {
-      final response = await post('/', {'name': 'Listrac'});
-      expect(response.statusCode, 201);
-      final body = await jsonBody(response);
-      expect(body.containsKey('picture'), isFalse);
-    });
+    test(
+      'creates designation without picture field returns no picture key',
+      () async {
+        final response = await post('/', {'name': 'Listrac'});
+        expect(response.statusCode, 201);
+        final body = await jsonBody(response);
+        expect(body.containsKey('picture'), isFalse);
+      },
+    );
   });
 
   group('PUT /designations/:id', () {
@@ -181,8 +199,11 @@ void main() {
       final created = await jsonBody(await post('/', {'name': 'Madiran'}));
       final id = created['id'] as int;
 
-      final response = await put('/$id',
-          {'name': 'Madiran AOC', 'region': 'Sud-Ouest', 'description': 'Tannat'});
+      final response = await put('/$id', {
+        'name': 'Madiran AOC',
+        'region': 'Sud-Ouest',
+        'description': 'Tannat',
+      });
       expect(response.statusCode, 200);
       final body = await jsonBody(response);
       expect(body['name'], 'Madiran AOC');
@@ -230,11 +251,11 @@ void main() {
     test('clears picture when picture is null in PUT', () async {
       final picData = Uint8List.fromList([0x01, 0x02]);
       final created = await jsonBody(
-          await post('/', {'name': 'Pessac', 'picture': base64Encode(picData)}));
+        await post('/', {'name': 'Pessac', 'picture': base64Encode(picData)}),
+      );
       final id = created['id'] as int;
 
-      final response =
-          await put('/$id', {'name': 'Pessac', 'picture': null});
+      final response = await put('/$id', {'name': 'Pessac', 'picture': null});
       expect(response.statusCode, 200);
       final body = await jsonBody(response);
       expect(body.containsKey('picture'), isFalse);
@@ -244,11 +265,14 @@ void main() {
       final picData = Uint8List.fromList([0x01, 0x02]);
       final b64 = base64Encode(picData);
       final created = await jsonBody(
-          await post('/', {'name': 'Graves', 'picture': b64}));
+        await post('/', {'name': 'Graves', 'picture': b64}),
+      );
       final id = created['id'] as int;
 
-      final response =
-          await put('/$id', {'name': 'Graves', 'region': 'Bordeaux'});
+      final response = await put('/$id', {
+        'name': 'Graves',
+        'region': 'Bordeaux',
+      });
       expect(response.statusCode, 200);
       final body = await jsonBody(response);
       expect(body['picture'], b64);
@@ -282,19 +306,25 @@ void main() {
 
     test('returns 412 when designation is referenced by a cuvee', () async {
       final domain = await jsonBody(
-          await domainsRouter(db)(Request('POST',
-              Uri.parse('http://localhost/'),
-              body: jsonEncode({'name': 'Test Domain'}),
-              headers: {'Content-Type': 'application/json'})));
-      final designation =
-          await jsonBody(await post('/', {'name': 'Madiran'}));
+        await domainsRouter(db)(
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            body: jsonEncode({'name': 'Test Domain'}),
+            headers: {'Content-Type': 'application/json'},
+          ),
+        ),
+      );
+      final designation = await jsonBody(await post('/', {'name': 'Madiran'}));
 
-      await db.insertCuvee(CuveesCompanion.insert(
-        name: 'Test Cuvee',
-        domainId: domain['id'] as int,
-        designationId: Value(designation['id'] as int),
-        color: const Value(1),
-      ));
+      await db.insertCuvee(
+        CuveesCompanion.insert(
+          name: 'Test Cuvee',
+          domainId: domain['id'] as int,
+          designationId: Value(designation['id'] as int),
+          color: const Value(1),
+        ),
+      );
 
       final response = await delete('/${designation['id']}');
       expect(response.statusCode, 412);

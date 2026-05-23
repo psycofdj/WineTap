@@ -53,10 +53,11 @@ Future<HttpServer> startServer(
   router.mount('/scan', scanRouter(coordinator, nfcService).call);
 
   // Data resilience (Story 8.1)
-  router.get('/backup',
-      (Request req) => handleBackup(req, db, dbFile));
-  router.post('/restore',
-      (Request req) => handleRestore(req, db, dbFile, restartDb));
+  router.get('/backup', (Request req) => handleBackup(req, db, dbFile));
+  router.post(
+    '/restore',
+    (Request req) => handleRestore(req, db, dbFile, restartDb),
+  );
 
   var pipeline = const Pipeline();
   if (enableWakelock) {

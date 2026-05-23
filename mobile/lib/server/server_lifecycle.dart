@@ -85,8 +85,10 @@ class ServerLifecycle {
     // 5. Re-register mDNS.
     try {
       await discovery.register(_server.port);
-      dev.log('restart: mDNS re-registered on port ${_server.port}',
-          name: _tag);
+      dev.log(
+        'restart: mDNS re-registered on port ${_server.port}',
+        name: _tag,
+      );
     } catch (e) {
       dev.log('restart: mDNS register failed (non-fatal): $e', name: _tag);
     }

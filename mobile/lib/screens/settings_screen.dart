@@ -119,8 +119,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ..connectionTimeout = _httpTimeout
       ..idleTimeout = _httpTimeout;
     try {
-      final request =
-          await client.getUrl(Uri.parse('http://localhost:$port/backup'));
+      final request = await client.getUrl(
+        Uri.parse('http://localhost:$port/backup'),
+      );
       final response = await request.close().timeout(_httpTimeout);
       if (response.statusCode != 200) {
         await response.drain<void>();
@@ -146,10 +147,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ..connectionTimeout = _httpTimeout
       ..idleTimeout = _httpTimeout;
     try {
-      final request =
-          await client.postUrl(Uri.parse('http://localhost:$port/restore'));
-      request.headers.contentType =
-          ContentType('application', 'octet-stream');
+      final request = await client.postUrl(
+        Uri.parse('http://localhost:$port/restore'),
+      );
+      request.headers.contentType = ContentType('application', 'octet-stream');
       request.contentLength = bytes.length;
       request.add(bytes);
       final response = await request.close().timeout(_httpTimeout);
@@ -169,8 +170,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // -------------------------------------------------------------------------
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // -------------------------------------------------------------------------
@@ -216,8 +218,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   S.serverRunning,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
 
                 const SizedBox(height: 32),

@@ -53,7 +53,7 @@ Future<Response> guardDb(
 }
 
 Response _error(int status, String code, String message) => Response(
-      status,
-      body: jsonEncode({'error': code, 'message': message}),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode({'error': code, 'message': message}),
+  headers: {'Content-Type': 'application/json'},
+);

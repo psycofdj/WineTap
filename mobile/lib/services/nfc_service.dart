@@ -113,10 +113,12 @@ abstract class NfcServiceBase implements NfcService {
       case NfcState.scanning:
         throw NfcNotReadyException('already scanning');
       case NfcState.postScanning:
-        final elapsed = DateTime.now().difference(_lastScanAt ?? DateTime.now());
+        final elapsed = DateTime.now().difference(
+          _lastScanAt ?? DateTime.now(),
+        );
         final remaining = _postScanCooldown - elapsed;
         if (remaining > Duration.zero) {
-          await Future.delayed(remaining);
+          await Future<void>.delayed(remaining);
         }
         _state = NfcState.ready;
     }

@@ -26,7 +26,10 @@ Router completionsRouter(AppDatabase db) {
       values = await db.searchCuveeNames(prefix);
     } else {
       return _error(
-          400, 'invalid_argument', 'field must be designation, domain, or cuvee');
+        400,
+        'invalid_argument',
+        'field must be designation, domain, or cuvee',
+      );
     }
 
     return _json(200, {'values': values});
@@ -36,10 +39,10 @@ Router completionsRouter(AppDatabase db) {
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});

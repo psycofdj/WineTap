@@ -27,8 +27,7 @@ class _TastingDetailScreenState extends State<TastingDetailScreen> {
   void initState() {
     super.initState();
     _initialTrimmed = widget.bottle.bottle.description.trim();
-    _controller =
-        TextEditingController(text: widget.bottle.bottle.description);
+    _controller = TextEditingController(text: widget.bottle.bottle.description);
   }
 
   @override
@@ -45,18 +44,18 @@ class _TastingDetailScreenState extends State<TastingDetailScreen> {
     setState(() => _saving = true);
     try {
       await context.read<AppDatabase>().updateBottleFields(
-            widget.bottle.bottle.id,
-            BottlesCompanion(description: Value(trimmed)),
-          );
+        widget.bottle.bottle.id,
+        BottlesCompanion(description: Value(trimmed)),
+      );
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       dev.log('updateBottleFields failed: $e', name: 'TastingDetailScreen');
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(S.databaseError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(S.databaseError)));
     }
   }
 

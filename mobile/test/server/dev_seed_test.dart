@@ -33,16 +33,19 @@ void main() {
       addTearDown(db.close);
 
       // Insert one bottle manually so the table is non-empty.
-      final domId =
-          (await (db.select(db.domains)..limit(1)).getSingle()).id;
-      final cuvId = await db.into(db.cuvees).insert(
-            CuveesCompanion.insert(name: 'Sentinel', domainId: domId),
+      final domId = (await (db.select(db.domains)..limit(1)).getSingle()).id;
+      final cuvId = await db
+          .into(db.cuvees)
+          .insert(CuveesCompanion.insert(name: 'Sentinel', domainId: domId));
+      await db
+          .into(db.bottles)
+          .insert(
+            BottlesCompanion.insert(
+              cuveeId: cuvId,
+              vintage: 2020,
+              addedAt: '2026-01-01T00:00:00Z',
+            ),
           );
-      await db.into(db.bottles).insert(BottlesCompanion.insert(
-            cuveeId: cuvId,
-            vintage: 2020,
-            addedAt: '2026-01-01T00:00:00Z',
-          ));
 
       await seedDevDataIfNeeded(db, isDev: _devTrue);
       final bottles = await db.select(db.bottles).get();
@@ -63,14 +66,16 @@ void main() {
       final bottles = await db.select(db.bottles).get();
       expect(bottles.length, greaterThanOrEqualTo(60));
 
-      final consumed =
-          bottles.where((b) => b.consumedAt != null).toList();
+      final consumed = bottles.where((b) => b.consumedAt != null).toList();
       expect(consumed.length, greaterThanOrEqualTo(20));
 
       // Consumed invariant: tagId must be null.
       for (final b in consumed) {
-        expect(b.tagId, isNull,
-            reason: 'consumed bottle ${b.id} unexpectedly has tagId');
+        expect(
+          b.tagId,
+          isNull,
+          reason: 'consumed bottle ${b.id} unexpectedly has tagId',
+        );
       }
     });
 
@@ -108,7 +113,9 @@ void main() {
       expect(page0, hasLength(20));
       for (var i = 1; i < page0.length; i++) {
         expect(
-          page0[i - 1].bottle.consumedAt!.compareTo(page0[i].bottle.consumedAt!),
+          page0[i - 1].bottle.consumedAt!.compareTo(
+            page0[i].bottle.consumedAt!,
+          ),
           greaterThanOrEqualTo(0),
           reason: 'rows must be ordered consumedAt DESC',
         );

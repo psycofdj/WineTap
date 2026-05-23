@@ -56,8 +56,9 @@ Router cuveesRouter(AppDatabase db) {
     if (colorRaw == null) {
       return _error(400, 'invalid_argument', 'color is required');
     }
-    final color =
-        colorRaw is int ? colorRaw : int.tryParse(colorRaw.toString());
+    final color = colorRaw is int
+        ? colorRaw
+        : int.tryParse(colorRaw.toString());
     if (color == null) {
       return _error(400, 'invalid_argument', 'color must be an integer');
     }
@@ -66,21 +67,22 @@ Router cuveesRouter(AppDatabase db) {
     final designationId = designationIdRaw == null
         ? 0
         : (designationIdRaw is int
-            ? designationIdRaw
-            : int.tryParse(designationIdRaw.toString()) ?? 0);
+              ? designationIdRaw
+              : int.tryParse(designationIdRaw.toString()) ?? 0);
 
     return guardDb(() async {
-        final id = await db.insertCuvee(CuveesCompanion.insert(
+      final id = await db.insertCuvee(
+        CuveesCompanion.insert(
           name: name.trim(),
           domainId: domainId,
           designationId: Value(designationId),
           color: Value(color),
-          description:
-              Value((body['description'] as String?)?.trim() ?? ''),
-        ));
-        final c = await db.getCuveeById(id);
-        return _json(201, c.toApiJson());
-      }, logTag: 'cuvees');
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ),
+      );
+      final c = await db.getCuveeById(id);
+      return _json(201, c.toApiJson());
+    }, logTag: 'cuvees');
   });
 
   // PUT /cuvees/<id> — update
@@ -115,8 +117,9 @@ Router cuveesRouter(AppDatabase db) {
     if (colorRaw == null) {
       return _error(400, 'invalid_argument', 'color is required');
     }
-    final color =
-        colorRaw is int ? colorRaw : int.tryParse(colorRaw.toString());
+    final color = colorRaw is int
+        ? colorRaw
+        : int.tryParse(colorRaw.toString());
     if (color == null) {
       return _error(400, 'invalid_argument', 'color must be an integer');
     }
@@ -125,8 +128,8 @@ Router cuveesRouter(AppDatabase db) {
     final designationId = designationIdRaw == null
         ? 0
         : (designationIdRaw is int
-            ? designationIdRaw
-            : int.tryParse(designationIdRaw.toString()) ?? 0);
+              ? designationIdRaw
+              : int.tryParse(designationIdRaw.toString()) ?? 0);
 
     // 404 check
     try {
@@ -136,18 +139,19 @@ Router cuveesRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        await db.updateCuvee(CuveesCompanion(
+      await db.updateCuvee(
+        CuveesCompanion(
           id: Value(intId),
           name: Value(name.trim()),
           domainId: Value(domainId),
           designationId: Value(designationId),
           color: Value(color),
-          description:
-              Value((body['description'] as String?)?.trim() ?? ''),
-        ));
-        final c = await db.getCuveeById(intId);
-        return _json(200, c.toApiJson());
-      }, logTag: 'cuvees');
+          description: Value((body['description'] as String?)?.trim() ?? ''),
+        ),
+      );
+      final c = await db.getCuveeById(intId);
+      return _json(200, c.toApiJson());
+    }, logTag: 'cuvees');
   });
 
   // DELETE /cuvees/<id>
@@ -158,22 +162,22 @@ Router cuveesRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        final count = await db.deleteCuvee(intId);
-        if (count == 0) {
-          return _error(404, 'not_found', 'cuvée $intId not found');
-        }
-        return Response(204);
-      }, logTag: 'cuvees');
+      final count = await db.deleteCuvee(intId);
+      if (count == 0) {
+        return _error(404, 'not_found', 'cuvée $intId not found');
+      }
+      return Response(204);
+    }, logTag: 'cuvees');
   });
 
   return router;
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});
