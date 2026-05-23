@@ -90,7 +90,7 @@ jobs:
           go build -v -ldflags='-s -w' -o manager-darwin-arm64 ./cmd/manager
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: manager-darwin-arm64
           path: manager-darwin-arm64
@@ -120,7 +120,7 @@ jobs:
           miqt-docker win64-cross-go1.26-qt6.5-static -windows-build --tags=windowsqtstatic  -o manager-windows-amd64.exe ./cmd/manager/main.go
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: manager-windows-amd64.exe
           path: manager-windows-amd64.exe
@@ -156,7 +156,7 @@ jobs:
           go build -v -ldflags='-s -w' -o manager-linux-amd64 ./cmd/manager
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: manager-linux-amd64
           path: manager-linux-amd64
@@ -218,7 +218,7 @@ jobs:
           track: internal
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release.aab
           path: mobile/build/app/outputs/bundle/release/app-release.aab
@@ -294,7 +294,7 @@ jobs:
             --private-key "$APP_STORE_CONNECT_API_KEY_P8"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: WineTap.ipa
           path: mobile/build/ios/ipa/*.ipa
