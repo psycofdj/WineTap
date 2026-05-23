@@ -36,9 +36,7 @@ class ConsumeScreen extends StatelessWidget {
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
-                builder: (_) => const SettingsScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
             ),
           ),
         ],
@@ -120,9 +118,7 @@ class _ConsumeBodyState extends State<_ConsumeBody> {
         OutlinedButton.icon(
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
-              builder: (_) => const IdentifyScreen(),
-            ),
+            MaterialPageRoute<void>(builder: (_) => const IdentifyScreen()),
           ),
           icon: const Icon(Icons.search),
           label: const Text(S.identifyButton),
@@ -202,9 +198,9 @@ class _ConsumeBodyState extends State<_ConsumeBody> {
         FilledButton(
           onPressed: () {
             if (_showComment && _commentController.text.trim().isNotEmpty) {
-              context
-                  .read<ScanProvider>()
-                  .resetWithComment(_commentController.text);
+              context.read<ScanProvider>().resetWithComment(
+                _commentController.text,
+              );
             } else {
               context.read<ScanProvider>().reset();
             }

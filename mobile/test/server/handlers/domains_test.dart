@@ -20,20 +20,24 @@ void main() {
       domainsRouter(db)(Request('GET', Uri.parse('http://localhost$path')));
 
   Future<Response> post(String path, Map<String, dynamic> body) =>
-      domainsRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      domainsRouter(db)(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> put(String path, Map<String, dynamic> body) =>
-      domainsRouter(db)(Request(
-        'PUT',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      domainsRouter(db)(
+        Request(
+          'PUT',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> delete(String path) =>
       domainsRouter(db)(Request('DELETE', Uri.parse('http://localhost$path')));
@@ -66,7 +70,11 @@ void main() {
   group('GET /domains/:id', () {
     test('returns 200 with full object', () async {
       final created = await jsonBody(
-          await post('/', {'name': 'Château Margaux', 'description': 'Grand cru'}));
+        await post('/', {
+          'name': 'Château Margaux',
+          'description': 'Grand cru',
+        }),
+      );
       final id = created['id'] as int;
 
       final response = await get('/$id');
@@ -92,7 +100,10 @@ void main() {
 
   group('POST /domains', () {
     test('creates domain and returns 201 with JSON', () async {
-      final response = await post('/', {'name': 'Château Margaux', 'description': 'Grand cru'});
+      final response = await post('/', {
+        'name': 'Château Margaux',
+        'description': 'Grand cru',
+      });
       expect(response.statusCode, 201);
       final body = await jsonBody(response);
       expect(body['name'], 'Château Margaux');
@@ -133,7 +144,10 @@ void main() {
       final created = await jsonBody(await post('/', {'name': 'Pomerol'}));
       final id = created['id'] as int;
 
-      final response = await put('/$id', {'name': 'Pomerol AOC', 'description': 'Merlot'});
+      final response = await put('/$id', {
+        'name': 'Pomerol AOC',
+        'description': 'Merlot',
+      });
       expect(response.statusCode, 200);
       final body = await jsonBody(response);
       expect(body['name'], 'Pomerol AOC');
@@ -192,11 +206,13 @@ void main() {
 
     test('returns 412 when domain is referenced by a cuvee', () async {
       final domain = await jsonBody(await post('/', {'name': 'Pomerol'}));
-      await db.insertCuvee(CuveesCompanion.insert(
-        name: 'Test Cuvee',
-        domainId: domain['id'] as int,
-        color: const Value(1),
-      ));
+      await db.insertCuvee(
+        CuveesCompanion.insert(
+          name: 'Test Cuvee',
+          domainId: domain['id'] as int,
+          color: const Value(1),
+        ),
+      );
 
       final response = await delete('/${domain['id']}');
       expect(response.statusCode, 412);

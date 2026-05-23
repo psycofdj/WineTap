@@ -34,7 +34,8 @@ class S {
 
   // Intake
   static const intake = 'Prise en charge';
-  static const intakeInProgress = 'Ajout en cours — Scannez le tag pour le manager';
+  static const intakeInProgress =
+      'Ajout en cours — Scannez le tag pour le manager';
   static const waitingForRequest = 'En attente…';
   static const scanRequestReceived = 'En attente du scan…';
   static const tagSentSuccess = 'Tag lu ✓';

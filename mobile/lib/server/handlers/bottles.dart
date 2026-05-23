@@ -26,7 +26,11 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     final normalized = _normalizeTagId(tagId);
     final bottle = await db.getBottleByTagId(normalized);
     if (bottle == null) {
-      return _error(404, 'not_found', 'no in-stock bottle with tag_id=$normalized');
+      return _error(
+        404,
+        'not_found',
+        'no in-stock bottle with tag_id=$normalized',
+      );
     }
     return _json(200, bottle.toApiJson());
   });
@@ -106,7 +110,11 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     if (tagIdRawVal != null) {
       tagId = _normalizeTagId(tagIdRawVal as String);
       if (tagId.isEmpty) {
-        return _error(400, 'invalid_argument', 'tag_id must not be empty after normalization');
+        return _error(
+          400,
+          'invalid_argument',
+          'tag_id must not be empty after normalization',
+        );
       }
     }
 
@@ -125,12 +133,17 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     if (body.containsKey('drink_before') &&
         drinkBeforeRaw != null &&
         drinkBeforeRaw is! int) {
-      return _error(400, 'invalid_argument', 'drink_before must be an integer or null');
+      return _error(
+        400,
+        'invalid_argument',
+        'drink_before must be an integer or null',
+      );
     }
     final drinkBefore = drinkBeforeRaw as int?;
 
     return guardDb(() async {
-        final id = await db.insertBottle(BottlesCompanion.insert(
+      final id = await db.insertBottle(
+        BottlesCompanion.insert(
           cuveeId: cuveeId,
           vintage: vintage,
           addedAt: DateTime.now().toUtc().toIso8601String(),
@@ -138,10 +151,11 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
           description: Value(description),
           purchasePrice: Value(_toDouble(body['purchase_price'])),
           drinkBefore: Value(drinkBefore),
-        ));
-        final bottle = await db.getBottleById(id);
-        return _json(201, bottle.toApiJson());
-      }, logTag: 'bottles');
+        ),
+      );
+      final bottle = await db.getBottleById(id);
+      return _json(201, bottle.toApiJson());
+    }, logTag: 'bottles');
   });
 
   // PUT /bottles/:id — partial update
@@ -166,13 +180,13 @@ Router bottlesRouter(AppDatabase db, ConsumeTracker consumeTracker) {
     }
 
     return guardDb(() async {
-        final count = await db.updateBottleFields(intId, companion);
-        if (count == 0) {
-          return _error(404, 'not_found', 'bottle $intId not found');
-        }
-        final bottle = await db.getBottleById(intId);
-        return _json(200, bottle.toApiJson());
-      }, logTag: 'bottles');
+      final count = await db.updateBottleFields(intId, companion);
+      if (count == 0) {
+        return _error(404, 'not_found', 'bottle $intId not found');
+      }
+      final bottle = await db.getBottleById(intId);
+      return _json(200, bottle.toApiJson());
+    }, logTag: 'bottles');
   });
 
   // DELETE /bottles/:id
@@ -206,8 +220,12 @@ BottlesCompanion _buildPartialCompanion(Map<String, dynamic> body) {
     description: body.containsKey('description')
         ? () {
             final v = body['description'];
-            if (v == null) throw const FormatException('description cannot be null');
-            if (v is! String) throw const FormatException('description must be a string');
+            if (v == null) {
+              throw const FormatException('description cannot be null');
+            }
+            if (v is! String) {
+              throw const FormatException('description must be a string');
+            }
             return Value(v.trim());
           }()
         : const Value.absent(),
@@ -221,10 +239,14 @@ BottlesCompanion _buildPartialCompanion(Map<String, dynamic> body) {
         ? () {
             final v = body['tag_id'];
             if (v == null) return const Value<String?>(null);
-            if (v is! String) throw const FormatException('tag_id must be a string or null');
+            if (v is! String) {
+              throw const FormatException('tag_id must be a string or null');
+            }
             final normalized = _normalizeTagId(v);
             if (normalized.isEmpty) {
-              throw const FormatException('tag_id must not be empty after normalization');
+              throw const FormatException(
+                'tag_id must not be empty after normalization',
+              );
             }
             return Value<String?>(normalized);
           }()
@@ -253,10 +275,10 @@ double? _toDouble(dynamic v) {
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});

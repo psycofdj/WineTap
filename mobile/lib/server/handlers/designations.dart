@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:shelf/shelf.dart';
@@ -51,15 +50,17 @@ Router designationsRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        final id = await db.insertDesignation(DesignationsCompanion.insert(
+      final id = await db.insertDesignation(
+        DesignationsCompanion.insert(
           name: name.trim(),
           region: Value((body['region'] as String?)?.trim() ?? ''),
           description: Value((body['description'] as String?)?.trim() ?? ''),
           picture: Value(picBytes),
-        ));
-        final d = await db.getDesignationById(id);
-        return _json(201, d.toApiJson());
-      }, logTag: 'designations');
+        ),
+      );
+      final d = await db.getDesignationById(id);
+      return _json(201, d.toApiJson());
+    }, logTag: 'designations');
   });
 
   // PUT /designations/<id> — update
@@ -96,16 +97,18 @@ Router designationsRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        await db.updateDesignation(DesignationsCompanion(
+      await db.updateDesignation(
+        DesignationsCompanion(
           id: Value(intId),
           name: Value(name.trim()),
           region: Value((body['region'] as String?)?.trim() ?? ''),
           description: Value((body['description'] as String?)?.trim() ?? ''),
           picture: picValue,
-        ));
-        final d = await db.getDesignationById(intId);
-        return _json(200, d.toApiJson());
-      }, logTag: 'designations');
+        ),
+      );
+      final d = await db.getDesignationById(intId);
+      return _json(200, d.toApiJson());
+    }, logTag: 'designations');
   });
 
   // DELETE /designations/<id>
@@ -116,27 +119,30 @@ Router designationsRouter(AppDatabase db) {
     }
     // Guard sentinel designation
     if (intId == 0) {
-      return _error(412, 'failed_precondition',
-          'sentinel designation cannot be deleted');
+      return _error(
+        412,
+        'failed_precondition',
+        'sentinel designation cannot be deleted',
+      );
     }
 
     return guardDb(() async {
-        final count = await db.deleteDesignation(intId);
-        if (count == 0) {
-          return _error(404, 'not_found', 'designation $intId not found');
-        }
-        return Response(204);
-      }, logTag: 'designations');
+      final count = await db.deleteDesignation(intId);
+      if (count == 0) {
+        return _error(404, 'not_found', 'designation $intId not found');
+      }
+      return Response(204);
+    }, logTag: 'designations');
   });
 
   return router;
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});

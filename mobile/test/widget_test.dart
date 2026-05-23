@@ -12,7 +12,9 @@ import 'package:wine_tap_mobile/services/nfc_service.dart';
 import 'package:wine_tap_mobile/main.dart';
 
 void main() {
-  testWidgets('App renders with consume button on home screen', (WidgetTester tester) async {
+  testWidgets('App renders with consume button on home screen', (
+    WidgetTester tester,
+  ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     final coordinator = ScanCoordinator();
     final nfc = NoOpNfcService();
@@ -35,7 +37,7 @@ void main() {
         child: const WineTapApp(),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Consommer une bouteille'), findsOneWidget);
   });

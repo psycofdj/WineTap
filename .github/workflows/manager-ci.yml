@@ -1,7 +1,13 @@
-name: ci
+name: manager
 
 on:
   pull_request:
+    paths:
+      - ".golangci.yml"
+      - "go.mod"
+      - "go.sum"
+      - "internal/**"
+      - "cmd/**"
 
 permissions:
   contents: read
@@ -26,7 +32,7 @@ jobs:
         run: go mod download
 
       - name: Build
-        run: 
+        run:
           echo "Takes few minutes to build dependency github.com/mappu/miqt/qt6"
           go build ./...
 

@@ -5,9 +5,7 @@ void main() {
   late ScanCoordinator coordinator;
 
   setUp(() {
-    coordinator = ScanCoordinator(
-      timeout: const Duration(milliseconds: 100),
-    );
+    coordinator = ScanCoordinator(timeout: const Duration(milliseconds: 100));
   });
 
   group('ScanCoordinator', () {
@@ -22,10 +20,7 @@ void main() {
 
     test('request throws if already pending', () {
       coordinator.request();
-      expect(
-        () => coordinator.request(),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => coordinator.request(), throwsA(isA<StateError>()));
     });
 
     test('submitResult completes waitForResult', () async {
@@ -68,10 +63,7 @@ void main() {
     });
 
     test('waitForResult throws if no pending request', () {
-      expect(
-        () => coordinator.waitForResult(),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => coordinator.waitForResult(), throwsA(isA<StateError>()));
     });
 
     test('can request again after cancel', () {

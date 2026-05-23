@@ -25,30 +25,36 @@ void main() {
       jsonDecode(await r.readAsString()) as Map<String, dynamic>;
 
   Future<void> seedDesignation(String name) async {
-    await designationsRouter(db)(Request(
-      'POST',
-      Uri.parse('http://localhost/'),
-      body: jsonEncode({'name': name}),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    await designationsRouter(db)(
+      Request(
+        'POST',
+        Uri.parse('http://localhost/'),
+        body: jsonEncode({'name': name}),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
   }
 
   Future<void> seedDomain(String name) async {
-    await domainsRouter(db)(Request(
-      'POST',
-      Uri.parse('http://localhost/'),
-      body: jsonEncode({'name': name}),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    await domainsRouter(db)(
+      Request(
+        'POST',
+        Uri.parse('http://localhost/'),
+        body: jsonEncode({'name': name}),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
   }
 
   Future<void> seedCuvee(String name, int domainId) async {
-    await cuveesRouter(db)(Request(
-      'POST',
-      Uri.parse('http://localhost/'),
-      body: jsonEncode({'name': name, 'domain_id': domainId, 'color': 1}),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    await cuveesRouter(db)(
+      Request(
+        'POST',
+        Uri.parse('http://localhost/'),
+        body: jsonEncode({'name': name, 'domain_id': domainId, 'color': 1}),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
   }
 
   group('GET /completions?field=designation', () {
@@ -67,17 +73,20 @@ void main() {
       expect(values, isNot(contains('Bordeaux')));
     });
 
-    test('empty prefix returns all designation names (excluding sentinel)', () async {
-      await seedDesignation('Madiran');
-      await seedDesignation('Bordeaux');
+    test(
+      'empty prefix returns all designation names (excluding sentinel)',
+      () async {
+        await seedDesignation('Madiran');
+        await seedDesignation('Bordeaux');
 
-      final response = await get('/?field=designation&prefix=');
-      expect(response.statusCode, 200);
-      final body = await jsonBody(response);
-      final values = (body['values'] as List).cast<String>();
-      // sentinel '(unassigned)' (id=0) may also be returned — check seeds are present
-      expect(values, containsAll(['Madiran', 'Bordeaux']));
-    });
+        final response = await get('/?field=designation&prefix=');
+        expect(response.statusCode, 200);
+        final body = await jsonBody(response);
+        final values = (body['values'] as List).cast<String>();
+        // sentinel '(unassigned)' (id=0) may also be returned — check seeds are present
+        expect(values, containsAll(['Madiran', 'Bordeaux']));
+      },
+    );
 
     test('no prefix param returns all names', () async {
       await seedDesignation('Madiran');
@@ -108,9 +117,13 @@ void main() {
   group('GET /completions?field=cuvee', () {
     test('returns matching cuvee names', () async {
       await seedDomain('Pomerol');
-      final domainList = await jsonDecode(await (await domainsRouter(db)(
-        Request('GET', Uri.parse('http://localhost/')),
-      )).readAsString()) as List;
+      final domainList =
+          await jsonDecode(
+                await (await domainsRouter(db)(
+                  Request('GET', Uri.parse('http://localhost/')),
+                )).readAsString(),
+              )
+              as List;
       final domainId = (domainList[0] as Map)['id'] as int;
 
       await seedCuvee('Le Pin', domainId);

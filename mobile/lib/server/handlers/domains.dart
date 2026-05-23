@@ -43,13 +43,15 @@ Router domainsRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        final id = await db.insertDomain(DomainsCompanion.insert(
+      final id = await db.insertDomain(
+        DomainsCompanion.insert(
           name: name.trim(),
           description: Value((body['description'] as String?)?.trim() ?? ''),
-        ));
-        final d = await db.getDomainById(id);
-        return _json(201, d.toApiJson());
-      }, logTag: 'domains');
+        ),
+      );
+      final d = await db.getDomainById(id);
+      return _json(201, d.toApiJson());
+    }, logTag: 'domains');
   });
 
   // PUT /domains/<id> — update
@@ -78,14 +80,16 @@ Router domainsRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        await db.updateDomain(DomainsCompanion(
+      await db.updateDomain(
+        DomainsCompanion(
           id: Value(intId),
           name: Value(name.trim()),
           description: Value((body['description'] as String?)?.trim() ?? ''),
-        ));
-        final d = await db.getDomainById(intId);
-        return _json(200, d.toApiJson());
-      }, logTag: 'domains');
+        ),
+      );
+      final d = await db.getDomainById(intId);
+      return _json(200, d.toApiJson());
+    }, logTag: 'domains');
   });
 
   // DELETE /domains/<id>
@@ -96,22 +100,22 @@ Router domainsRouter(AppDatabase db) {
     }
 
     return guardDb(() async {
-        final count = await db.deleteDomain(intId);
-        if (count == 0) {
-          return _error(404, 'not_found', 'domain $intId not found');
-        }
-        return Response(204);
-      }, logTag: 'domains');
+      final count = await db.deleteDomain(intId);
+      if (count == 0) {
+        return _error(404, 'not_found', 'domain $intId not found');
+      }
+      return Response(204);
+    }, logTag: 'domains');
   });
 
   return router;
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});

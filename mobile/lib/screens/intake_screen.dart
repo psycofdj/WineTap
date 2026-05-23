@@ -43,9 +43,7 @@ class _IntakeScreenState extends State<IntakeScreen> {
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute<void>(
-                builder: (_) => const SettingsScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
             ),
           ),
         ],
@@ -86,10 +84,7 @@ class _IntakeBody extends StatelessWidget {
           color: Theme.of(context).colorScheme.outline,
         ),
         const SizedBox(height: 16),
-        const Text(
-          S.intakeUnavailable,
-          textAlign: TextAlign.center,
-        ),
+        const Text(S.intakeUnavailable, textAlign: TextAlign.center),
       ],
     );
   }
@@ -100,8 +95,10 @@ class _IntakeBody extends StatelessWidget {
       children: [
         Icon(Icons.hearing, size: 48, color: Colors.grey),
         SizedBox(height: 16),
-        Text(S.waitingForRequest,
-            style: TextStyle(fontSize: 18, color: Colors.grey)),
+        Text(
+          S.waitingForRequest,
+          style: TextStyle(fontSize: 18, color: Colors.grey),
+        ),
       ],
     );
   }
@@ -127,8 +124,10 @@ class _IntakeBody extends StatelessWidget {
       children: [
         const Icon(Icons.check_circle, size: 64, color: Colors.green),
         const SizedBox(height: 16),
-        const Text(S.tagSentSuccess,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const Text(
+          S.tagSentSuccess,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         if (intake.lastTagId != null) ...[
           const SizedBox(height: 8),
           SelectableText(
@@ -144,8 +143,11 @@ class _IntakeBody extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.error_outline, size: 48,
-            color: Theme.of(context).colorScheme.error),
+        Icon(
+          Icons.error_outline,
+          size: 48,
+          color: Theme.of(context).colorScheme.error,
+        ),
         const SizedBox(height: 16),
         Text(
           intake.errorMessage ?? S.noTagDetected,

@@ -21,20 +21,24 @@ void main() {
       cuveesRouter(db)(Request('GET', Uri.parse('http://localhost$path')));
 
   Future<Response> post(String path, Map<String, dynamic> body) =>
-      cuveesRouter(db)(Request(
-        'POST',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      cuveesRouter(db)(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> put(String path, Map<String, dynamic> body) =>
-      cuveesRouter(db)(Request(
-        'PUT',
-        Uri.parse('http://localhost$path'),
-        body: jsonEncode(body),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      cuveesRouter(db)(
+        Request(
+          'PUT',
+          Uri.parse('http://localhost$path'),
+          body: jsonEncode(body),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
   Future<Response> delete(String path) =>
       cuveesRouter(db)(Request('DELETE', Uri.parse('http://localhost$path')));
@@ -45,21 +49,27 @@ void main() {
   Future<List<dynamic>> jsonList(Response r) async =>
       jsonDecode(await r.readAsString()) as List<dynamic>;
 
-  Future<Map<String, dynamic>> createDomain(String name) async =>
-      jsonBody(await domainsRouter(db)(Request(
+  Future<Map<String, dynamic>> createDomain(String name) async => jsonBody(
+    await domainsRouter(db)(
+      Request(
         'POST',
         Uri.parse('http://localhost/'),
         body: jsonEncode({'name': name}),
         headers: {'Content-Type': 'application/json'},
-      )));
+      ),
+    ),
+  );
 
-  Future<Map<String, dynamic>> createDesignation(String name) async =>
-      jsonBody(await designationsRouter(db)(Request(
+  Future<Map<String, dynamic>> createDesignation(String name) async => jsonBody(
+    await designationsRouter(db)(
+      Request(
         'POST',
         Uri.parse('http://localhost/'),
         body: jsonEncode({'name': name}),
         headers: {'Content-Type': 'application/json'},
-      )));
+      ),
+    ),
+  );
 
   group('GET /cuvees', () {
     test('returns 200 with empty array when no cuvees', () async {
@@ -87,12 +97,14 @@ void main() {
   group('GET /cuvees/:id', () {
     test('returns 200 with full object including description', () async {
       final domain = await createDomain('Château Margaux');
-      final created = await jsonBody(await post('/', {
-        'name': 'Grande Réserve',
-        'domain_id': domain['id'],
-        'color': 1,
-        'description': 'Flagship wine',
-      }));
+      final created = await jsonBody(
+        await post('/', {
+          'name': 'Grande Réserve',
+          'domain_id': domain['id'],
+          'color': 1,
+          'description': 'Flagship wine',
+        }),
+      );
       final id = created['id'] as int;
 
       final response = await get('/$id');
@@ -181,7 +193,10 @@ void main() {
 
     test('returns 400 when color is missing', () async {
       final domain = await createDomain('Pomerol');
-      final response = await post('/', {'name': 'Test', 'domain_id': domain['id']});
+      final response = await post('/', {
+        'name': 'Test',
+        'domain_id': domain['id'],
+      });
       expect(response.statusCode, 400);
       final body = await jsonBody(response);
       expect(body['error'], 'invalid_argument');
@@ -198,28 +213,33 @@ void main() {
       expect(body['error'], 'referenced');
     });
 
-    test('returns 412 when designation_id does not exist (FK violation)', () async {
-      final domain = await createDomain('Pomerol');
-      final response = await post('/', {
-        'name': 'Test',
-        'domain_id': domain['id'],
-        'color': 1,
-        'designation_id': 9999,
-      });
-      expect(response.statusCode, 412);
-      final body = await jsonBody(response);
-      expect(body['error'], 'referenced');
-    });
+    test(
+      'returns 412 when designation_id does not exist (FK violation)',
+      () async {
+        final domain = await createDomain('Pomerol');
+        final response = await post('/', {
+          'name': 'Test',
+          'domain_id': domain['id'],
+          'color': 1,
+          'designation_id': 9999,
+        });
+        expect(response.statusCode, 412);
+        final body = await jsonBody(response);
+        expect(body['error'], 'referenced');
+      },
+    );
   });
 
   group('PUT /cuvees/:id', () {
     test('updates and returns 200 with updated JSON', () async {
       final domain = await createDomain('Château Margaux');
-      final created = await jsonBody(await post('/', {
-        'name': 'Cuvée A',
-        'domain_id': domain['id'],
-        'color': 1,
-      }));
+      final created = await jsonBody(
+        await post('/', {
+          'name': 'Cuvée A',
+          'domain_id': domain['id'],
+          'color': 1,
+        }),
+      );
 
       final response = await put('/${created['id']}', {
         'name': 'Cuvée B',
@@ -247,17 +267,23 @@ void main() {
     });
 
     test('returns 400 for non-integer id', () async {
-      final response = await put('/abc', {'name': 'X', 'domain_id': 1, 'color': 1});
+      final response = await put('/abc', {
+        'name': 'X',
+        'domain_id': 1,
+        'color': 1,
+      });
       expect(response.statusCode, 400);
     });
 
     test('returns 412 when domain_id does not exist (FK violation)', () async {
       final domain = await createDomain('Pomerol');
-      final created = await jsonBody(await post('/', {
-        'name': 'Test',
-        'domain_id': domain['id'],
-        'color': 1,
-      }));
+      final created = await jsonBody(
+        await post('/', {
+          'name': 'Test',
+          'domain_id': domain['id'],
+          'color': 1,
+        }),
+      );
       final response = await put('/${created['id']}', {
         'name': 'Test',
         'domain_id': 9999,
@@ -270,11 +296,13 @@ void main() {
   group('DELETE /cuvees/:id', () {
     test('deletes and returns 204', () async {
       final domain = await createDomain('Pomerol');
-      final created = await jsonBody(await post('/', {
-        'name': 'Test',
-        'domain_id': domain['id'],
-        'color': 1,
-      }));
+      final created = await jsonBody(
+        await post('/', {
+          'name': 'Test',
+          'domain_id': domain['id'],
+          'color': 1,
+        }),
+      );
       final id = created['id'] as int;
 
       final response = await delete('/$id');

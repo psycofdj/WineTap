@@ -49,10 +49,7 @@ class BottleDetailsCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Table(
-          columnWidths: const {
-            0: IntrinsicColumnWidth(),
-            1: FlexColumnWidth(),
-          },
+          columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
           defaultVerticalAlignment: TableCellVerticalAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [

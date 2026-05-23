@@ -10,13 +10,7 @@ import 'scan_provider.dart';
 
 /// States for the simplified intake listener flow.
 /// idle → waitingForRequest → scanning (auto) → tagSent → waitingForRequest
-enum IntakeState {
-  idle,
-  waitingForRequest,
-  scanning,
-  tagSent,
-  error,
-}
+enum IntakeState { idle, waitingForRequest, scanning, tagSent, error }
 
 /// Manages the intake listener: polls ScanCoordinator for scan requests,
 /// auto-starts NFC scanning (no user interaction), and tracks scan state.
@@ -26,11 +20,13 @@ class IntakeProvider extends ChangeNotifier {
   final NfcService _nfcService;
   final ScanProvider? _scanProvider;
 
-  IntakeProvider(ScanCoordinator coordinator,
-      {required NfcService nfcService, ScanProvider? scanProvider})
-      : _coordinator = coordinator,
-        _nfcService = nfcService,
-        _scanProvider = scanProvider;
+  IntakeProvider(
+    ScanCoordinator coordinator, {
+    required NfcService nfcService,
+    ScanProvider? scanProvider,
+  }) : _coordinator = coordinator,
+       _nfcService = nfcService,
+       _scanProvider = scanProvider;
 
   IntakeState _state = IntakeState.idle;
   String? _errorMessage;
@@ -112,8 +108,10 @@ class IntakeProvider extends ChangeNotifier {
     _lastTagId = tagId;
     dev.log('Intake tag scanned: $tagId', name: 'IntakeProvider');
     if (!_coordinator.hasPendingRequest) {
-      dev.log('Intake: coordinator no longer pending, tag dropped',
-          name: 'IntakeProvider');
+      dev.log(
+        'Intake: coordinator no longer pending, tag dropped',
+        name: 'IntakeProvider',
+      );
       _setState(IntakeState.waitingForRequest);
       return;
     }

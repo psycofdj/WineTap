@@ -29,7 +29,10 @@ class NfcServiceAndroid extends NfcServiceBase {
 
   @override
   Future<void> restartSession() async {
-    dev.log('restartSession: re-establishing persistent NFC session', name: _tag);
+    dev.log(
+      'restartSession: re-establishing persistent NFC session',
+      name: _tag,
+    );
     _pendingOnTagDiscovered = null;
     await NfcManager.instance.stopSession().catchError((_) {});
     NfcManager.instance.startSession(

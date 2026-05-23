@@ -32,6 +32,9 @@ class MockNfcService implements NfcService {
 
   @override
   Future<void> cancel() async {}
+
+  @override
+  Future<void> restartSession() async {}
 }
 
 void main() {
@@ -86,23 +89,25 @@ void main() {
   });
 
   // --- Single read flow ---
-  test('tag scanned transitions to tagSent then back to waitingForRequest',
-      () async {
-    provider.startListening();
-    coordinator.request();
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    expect(provider.state, IntakeState.scanning);
+  test(
+    'tag scanned transitions to tagSent then back to waitingForRequest',
+    () async {
+      provider.startListening();
+      coordinator.request();
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(provider.state, IntakeState.scanning);
 
-    mockNfc.completeRead('04AABBCC');
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    expect(provider.state, IntakeState.tagSent);
-    expect(provider.lastTagId, '04AABBCC');
+      mockNfc.completeRead('04AABBCC');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(provider.state, IntakeState.tagSent);
+      expect(provider.lastTagId, '04AABBCC');
 
-    // Wait for reset timer (1s)
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
-    expect(provider.state, IntakeState.waitingForRequest);
-    expect(provider.shouldShowIntakeScreen, false);
-  });
+      // Wait for reset timer (3s)
+      await Future<void>.delayed(const Duration(milliseconds: 3100));
+      expect(provider.state, IntakeState.waitingForRequest);
+      expect(provider.shouldShowIntakeScreen, false);
+    },
+  );
 
   // --- Manager cancel ---
   test('manager cancel transitions to waitingForRequest', () async {
@@ -117,25 +122,26 @@ void main() {
   });
 
   // --- NFC errors auto-retry ---
-  test('NFC session cancelled shows brief error then returns to scanning',
-      () async {
-    provider.startListening();
-    coordinator.request();
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    expect(provider.state, IntakeState.scanning);
+  test(
+    'NFC session cancelled shows brief error then returns to scanning',
+    () async {
+      provider.startListening();
+      coordinator.request();
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(provider.state, IntakeState.scanning);
 
-    mockNfc.failRead('cancelled');
-    await Future<void>.delayed(const Duration(milliseconds: 50));
-    expect(provider.state, IntakeState.error);
-    expect(provider.errorMessage, isNotNull);
+      mockNfc.failRead('cancelled');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(provider.state, IntakeState.error);
+      expect(provider.errorMessage, isNotNull);
 
-    // Wait for brief error timeout (2s) — should auto-retry scanning
-    await Future<void>.delayed(const Duration(milliseconds: 2100));
-    expect(provider.state, IntakeState.scanning);
-  });
+      // Wait for brief error timeout (2s) — should auto-retry scanning
+      await Future<void>.delayed(const Duration(milliseconds: 2100));
+      expect(provider.state, IntakeState.scanning);
+    },
+  );
 
-  test('NFC read timeout shows brief error then returns to scanning',
-      () async {
+  test('NFC read timeout shows brief error then returns to scanning', () async {
     provider.startListening();
     coordinator.request();
     await Future<void>.delayed(const Duration(milliseconds: 600));
@@ -167,9 +173,16 @@ void main() {
     setUp(() {
       provider.dispose();
       final db = AppDatabase.forTesting(NativeDatabase.memory());
-      scanProvider = ScanProvider(db, ConsumeTracker(), nfcService: MockNfcService());
-      provider = IntakeProvider(coordinator,
-          nfcService: mockNfc, scanProvider: scanProvider);
+      scanProvider = ScanProvider(
+        db,
+        ConsumeTracker(),
+        nfcService: MockNfcService(),
+      );
+      provider = IntakeProvider(
+        coordinator,
+        nfcService: mockNfc,
+        scanProvider: scanProvider,
+      );
     });
 
     test('intake request calls cancelForIntake on scan provider', () async {

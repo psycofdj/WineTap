@@ -31,6 +31,9 @@ class MockNfcService implements NfcService {
 
   @override
   Future<void> cancel() async {}
+
+  @override
+  Future<void> restartSession() async {}
 }
 
 void main() {
@@ -47,17 +50,21 @@ void main() {
     final domId = await db.insertDomain(
       DomainsCompanion.insert(name: 'Domaine Brumont'),
     );
-    final cuvId = await db.insertCuvee(CuveesCompanion.insert(
-      name: 'Château Montus',
-      domainId: domId,
-      designationId: Value(desId),
-    ));
-    await db.insertBottle(BottlesCompanion.insert(
-      tagId: const Value('04A32BFF'),
-      cuveeId: cuvId,
-      vintage: 2019,
-      addedAt: DateTime.now().toUtc().toIso8601String(),
-    ));
+    final cuvId = await db.insertCuvee(
+      CuveesCompanion.insert(
+        name: 'Château Montus',
+        domainId: domId,
+        designationId: Value(desId),
+      ),
+    );
+    await db.insertBottle(
+      BottlesCompanion.insert(
+        tagId: const Value('04A32BFF'),
+        cuveeId: cuvId,
+        vintage: 2019,
+        addedAt: DateTime.now().toUtc().toIso8601String(),
+      ),
+    );
   });
 
   tearDown(() async {
@@ -112,7 +119,8 @@ void main() {
 
     // Bottle info displayed — proves the tag was found (not consumed/cleared)
     expect(find.text('Domaine Brumont'), findsOneWidget);
-    expect(find.text('Château Montus 2019'), findsOneWidget);
+    expect(find.text('Château Montus'), findsOneWidget);
+    expect(find.text('2019'), findsOneWidget);
     expect(find.text('Madiran'), findsOneWidget);
     expect(find.text('Terminé'), findsOneWidget);
   });
@@ -125,18 +133,22 @@ void main() {
     final domId2 = await db.insertDomain(
       DomainsCompanion.insert(name: 'Château Margaux'),
     );
-    final cuvId2 = await db.insertCuvee(CuveesCompanion.insert(
-      name: 'Grand Vin',
-      domainId: domId2,
-      designationId: Value(desId2),
-      color: const Value(1), // rouge
-    ));
-    await db.insertBottle(BottlesCompanion.insert(
-      tagId: const Value('AABB1122'),
-      cuveeId: cuvId2,
-      vintage: 2020,
-      addedAt: DateTime.now().toUtc().toIso8601String(),
-    ));
+    final cuvId2 = await db.insertCuvee(
+      CuveesCompanion.insert(
+        name: 'Grand Vin',
+        domainId: domId2,
+        designationId: Value(desId2),
+        color: const Value(1), // rouge
+      ),
+    );
+    await db.insertBottle(
+      BottlesCompanion.insert(
+        tagId: const Value('AABB1122'),
+        cuveeId: cuvId2,
+        vintage: 2020,
+        addedAt: DateTime.now().toUtc().toIso8601String(),
+      ),
+    );
 
     await pushIdentifyScreen(tester);
     mockNfc.completeRead('AABB1122');
@@ -144,13 +156,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Château Margaux'), findsOneWidget);
-    expect(find.text('Grand Vin 2020'), findsOneWidget);
+    expect(find.text('Grand Vin'), findsOneWidget);
+    expect(find.text('2020'), findsOneWidget);
     expect(find.text('Bordeaux'), findsOneWidget);
     expect(find.text('Rouge'), findsOneWidget);
   });
 
-  testWidgets('hides color label when cuvee color is unspecified',
-      (tester) async {
+  testWidgets('hides color label when cuvee color is unspecified', (
+    tester,
+  ) async {
     await pushIdentifyScreen(tester);
     mockNfc.completeRead('04A32BFF');
     await tester.pump();

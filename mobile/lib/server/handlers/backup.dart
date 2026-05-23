@@ -14,7 +14,10 @@ const _maxRestoreBytes = 100 * 1024 * 1024;
 /// Flushes the WAL before reading to ensure backup is self-contained.
 /// Returns 503 if the database file does not yet exist (fresh install).
 Future<Response> handleBackup(
-    Request request, AppDatabase db, File dbFile) async {
+  Request request,
+  AppDatabase db,
+  File dbFile,
+) async {
   if (!await dbFile.exists()) {
     return _error(503, 'unavailable', 'database not yet initialized');
   }
@@ -47,15 +50,12 @@ Future<Response> handleRestore(
   // Read with 100 MB cap to prevent OOM from oversized uploads.
   final List<int> bytes;
   try {
-    bytes = await request.read().fold<List<int>>(
-      <int>[],
-      (buf, chunk) {
-        if (buf.length + chunk.length > _maxRestoreBytes) {
-          throw const _BodyTooLargeException();
-        }
-        return buf..addAll(chunk);
-      },
-    );
+    bytes = await request.read().fold<List<int>>(<int>[], (buf, chunk) {
+      if (buf.length + chunk.length > _maxRestoreBytes) {
+        throw const _BodyTooLargeException();
+      }
+      return buf..addAll(chunk);
+    });
   } on _BodyTooLargeException {
     return _error(413, 'payload_too_large', 'upload exceeds 100 MB limit');
   }
@@ -112,10 +112,10 @@ Future<Response> handleRestore(
 }
 
 Response _json(int status, Object body) => Response(
-      status,
-      body: jsonEncode(body),
-      headers: {'Content-Type': 'application/json'},
-    );
+  status,
+  body: jsonEncode(body),
+  headers: {'Content-Type': 'application/json'},
+);
 
 Response _error(int status, String code, String message) =>
     _json(status, {'error': code, 'message': message});

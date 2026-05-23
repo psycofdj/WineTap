@@ -13,22 +13,26 @@ Future<int> _seedCuvee(AppDatabase db) async {
   final domId = await db.insertDomain(
     DomainsCompanion.insert(name: 'Domaine Brumont'),
   );
-  return db.insertCuvee(CuveesCompanion.insert(
-    name: 'Château Montus',
-    domainId: domId,
-    designationId: Value(desId),
-  ));
+  return db.insertCuvee(
+    CuveesCompanion.insert(
+      name: 'Château Montus',
+      domainId: domId,
+      designationId: Value(desId),
+    ),
+  );
 }
 
 Future<void> _seedConsumed(AppDatabase db, int cuvId, int count) async {
   for (var i = 0; i < count; i++) {
     final ts = DateTime.utc(2026, 1, 1).add(Duration(days: i));
-    await db.insertBottle(BottlesCompanion.insert(
-      cuveeId: cuvId,
-      vintage: 2000 + i,
-      addedAt: '2026-01-01T00:00:00Z',
-      consumedAt: Value(ts.toIso8601String()),
-    ));
+    await db.insertBottle(
+      BottlesCompanion.insert(
+        cuveeId: cuvId,
+        vintage: 2000 + i,
+        addedAt: '2026-01-01T00:00:00Z',
+        consumedAt: Value(ts.toIso8601String()),
+      ),
+    );
   }
 }
 

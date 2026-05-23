@@ -29,13 +29,15 @@ void main() {
   });
 
   Future<Response> getBackup() => handleBackup(
-        Request('GET', Uri.parse('http://localhost/backup')),
-        db,
-        dbFile,
-      );
+    Request('GET', Uri.parse('http://localhost/backup')),
+    db,
+    dbFile,
+  );
 
-  Future<Response> postRestore(List<int> bytes,
-      {Future<void> Function()? restartDb}) {
+  Future<Response> postRestore(
+    List<int> bytes, {
+    Future<void> Function()? restartDb,
+  }) {
     return handleRestore(
       Request('POST', Uri.parse('http://localhost/restore'), body: bytes),
       db,
@@ -53,25 +55,27 @@ void main() {
 
     test('returns correct content-disposition header', () async {
       final response = await getBackup();
-      expect(response.headers['content-disposition'],
-          'attachment; filename="winetap.db"');
+      expect(
+        response.headers['content-disposition'],
+        'attachment; filename="winetap.db"',
+      );
     });
 
     test('returns content-length header matching body size', () async {
       final response = await getBackup();
       final bytes = await response.read().fold<List<int>>(
-            <int>[],
-            (prev, chunk) => prev..addAll(chunk),
-          );
+        <int>[],
+        (prev, chunk) => prev..addAll(chunk),
+      );
       expect(response.headers['content-length'], '${bytes.length}');
     });
 
     test('returned bytes are non-empty', () async {
       final response = await getBackup();
       final bytes = await response.read().fold<List<int>>(
-            <int>[],
-            (prev, chunk) => prev..addAll(chunk),
-          );
+        <int>[],
+        (prev, chunk) => prev..addAll(chunk),
+      );
       expect(bytes, isNotEmpty);
     });
 
@@ -79,9 +83,9 @@ void main() {
       await db.customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
       final response = await getBackup();
       final bytes = await response.read().fold<List<int>>(
-            <int>[],
-            (prev, chunk) => prev..addAll(chunk),
-          );
+        <int>[],
+        (prev, chunk) => prev..addAll(chunk),
+      );
       expect(bytes.length, greaterThanOrEqualTo(16));
       expect(String.fromCharCodes(bytes.sublist(0, 15)), 'SQLite format 3');
     });
@@ -102,16 +106,16 @@ void main() {
     test('performance: 500-row database backup completes in < 10s', () async {
       // Insert 500 designations to approximate a populated database.
       for (var i = 0; i < 500; i++) {
-        await db.into(db.designations).insert(
-              DesignationsCompanion.insert(name: 'Designation $i'),
-            );
+        await db
+            .into(db.designations)
+            .insert(DesignationsCompanion.insert(name: 'Designation $i'));
       }
       final start = DateTime.now();
       final response = await getBackup();
       final bytes = await response.read().fold<List<int>>(
-            <int>[],
-            (prev, chunk) => prev..addAll(chunk),
-          );
+        <int>[],
+        (prev, chunk) => prev..addAll(chunk),
+      );
       final elapsed = DateTime.now().difference(start);
       expect(response.statusCode, 200);
       expect(bytes, isNotEmpty);
@@ -120,26 +124,28 @@ void main() {
   });
 
   group('POST /restore', () {
-    test('returns 200 with {status: restored} when given a valid SQLite file',
-        () async {
-      // Back up current db to use as a valid restore file.
-      await db.customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
-      final validBytes = await dbFile.readAsBytes();
+    test(
+      'returns 200 with {status: restored} when given a valid SQLite file',
+      () async {
+        // Back up current db to use as a valid restore file.
+        await db.customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
+        final validBytes = await dbFile.readAsBytes();
 
-      var restartCalled = false;
-      final response = await postRestore(
-        validBytes,
-        restartDb: () async {
-          restartCalled = true;
-        },
-      );
+        var restartCalled = false;
+        final response = await postRestore(
+          validBytes,
+          restartDb: () async {
+            restartCalled = true;
+          },
+        );
 
-      expect(response.statusCode, 200);
-      final body =
-          jsonDecode(await response.readAsString()) as Map<String, dynamic>;
-      expect(body['status'], 'restored');
-      expect(restartCalled, isTrue);
-    });
+        expect(response.statusCode, 200);
+        final body =
+            jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+        expect(body['status'], 'restored');
+        expect(restartCalled, isTrue);
+      },
+    );
 
     test('calls restartDb callback after successful restore', () async {
       await db.customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -166,21 +172,24 @@ void main() {
 
     test('returns 400 for non-SQLite bytes', () async {
       final response = await postRestore(
-          List<int>.filled(100, 0x42)); // 'B' repeated — not SQLite
+        List<int>.filled(100, 0x42),
+      ); // 'B' repeated — not SQLite
       expect(response.statusCode, 400);
       final body =
           jsonDecode(await response.readAsString()) as Map<String, dynamic>;
       expect(body['error'], 'invalid_argument');
     });
 
-    test('returns 400 for bytes shorter than 16 (too short for magic header)',
-        () async {
-      final response = await postRestore([0x53, 0x51, 0x4c, 0x69]); // "SQLi"
-      expect(response.statusCode, 400);
-      final body =
-          jsonDecode(await response.readAsString()) as Map<String, dynamic>;
-      expect(body['error'], 'invalid_argument');
-    });
+    test(
+      'returns 400 for bytes shorter than 16 (too short for magic header)',
+      () async {
+        final response = await postRestore([0x53, 0x51, 0x4c, 0x69]); // "SQLi"
+        expect(response.statusCode, 400);
+        final body =
+            jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+        expect(body['error'], 'invalid_argument');
+      },
+    );
 
     test('error message does not expose internal exception details', () async {
       final response = await postRestore(List<int>.filled(100, 0xFF));
@@ -197,9 +206,9 @@ void main() {
 
     test('existing database is not corrupted on invalid upload', () async {
       // Insert a designation before the bad restore attempt.
-      await db.into(db.designations).insert(
-            DesignationsCompanion.insert(name: 'Madiran'),
-          );
+      await db
+          .into(db.designations)
+          .insert(DesignationsCompanion.insert(name: 'Madiran'));
 
       // Attempt restore with garbage bytes.
       final response = await postRestore(List<int>.filled(100, 0xFF));
@@ -210,12 +219,11 @@ void main() {
       expect(designations.any((d) => d.name == 'Madiran'), isTrue);
     });
 
-    test('recovers original database (.bak) if restore fails mid-way',
-        () async {
+    test('recovers original database (.bak) if restore fails mid-way', () async {
       // Insert a designation to confirm the original db is preserved.
-      await db.into(db.designations).insert(
-            DesignationsCompanion.insert(name: 'Cahors'),
-          );
+      await db
+          .into(db.designations)
+          .insert(DesignationsCompanion.insert(name: 'Cahors'));
       await db.customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
       final originalBytes = await dbFile.readAsBytes();
 
