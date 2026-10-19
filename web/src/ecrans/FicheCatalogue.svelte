@@ -349,6 +349,7 @@
   .o-detail {
     flex: 1;
     min-width: 0;
+    container-type: inline-size;
     overflow: auto;
     padding: 20px 28px;
     display: flex;
@@ -408,6 +409,13 @@
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     max-width: 720px;
+  }
+  /* Panneau étroit (tablette, petite fenêtre) : champs puis carte ou tuile, sur une colonne. */
+  @container (max-width: 640px) {
+    .o-grille.app,
+    .o-grille.dom {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   .span2 {
     grid-column: span 2;
