@@ -1,8 +1,13 @@
 version: 2
 
 updates:
-  - package-ecosystem: gomod
-    directory: /
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pub
+    directory: /mobile
     schedule:
       interval: weekly
 

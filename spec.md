@@ -1,3 +1,7 @@
+> **Historical document.** This is the pre-v3 specification, kept for history; it no longer describes the current system (parts of it, such as the gRPC server on a Raspberry Pi, even predate v2, where the phone became the server).
+> In v3 the desktop manager (Go / Qt6, mDNS discovery, RFID reader) was removed: the phone app now serves a web site, used in the app and from any desktop browser on the same WiFi.
+> See [specs/v3-web.md](specs/v3-web.md) for the v3 specification and [dat/](dat/) for the current technical architecture.
+
 # WineTap — Project Specification
 
 ## Overview

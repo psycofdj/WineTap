@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="winetap-data.js"></script>
+<script src="image-slot.js"></script>
+<style>body{margin:0;background:#E9E2D4}a{color:#7B1E2E}a:hover{color:#5A1420}button,input,textarea{font-family:inherit}button:focus-visible{outline:2px solid var(--wt-accent);outline-offset:2px}</style>
+</helmet>
+<div style="--wt-paper:#F6F1E7;--wt-card:#FFFDF8;--wt-card2:#EFE7D8;--wt-line:#E4D9C6;--wt-line2:#CDBFA6;--wt-ink:#2A1D15;--wt-ink2:#5C4A3C;--wt-ink3:#76624F;--wt-accent:#7B1E2E;--wt-on-accent:#FFFDF8;--wt-accent-tint:#F3E3E1;--wt-accent-ink:#7B1E2E;--wt-danger:#A8321F;--wt-danger-tint:#F8E2DB;--wt-warn:#7F5300;--wt-warn-tint:#F6E9C8;--wt-ok:#2F6B3A;--wt-ok-tint:#E2EDD9;--wt-shadow:0 10px 30px rgba(42,29,21,0.08);display:contents">
+<div style="{{ darkVars }}">
+<div style="{{ wrapStyle }}">
+<sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ false }}"><dc-import name="WineTap-Ordinateur" start="{{ desktopStart }}" theme="{{ theme }}" hint-size="1280px,800px"></dc-import></sc-if>
+<sc-if value="{{ isPhone }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="{{ screenLabel }}" style="width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--wt-paper);color:var(--wt-ink);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:16px;line-height:1.45;box-shadow:0 0 0 1px var(--wt-line2),0 24px 60px rgba(42,29,21,0.18)">
+  <div style="height:47px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 34px;font-size:15px;font-weight:600;color:var(--wt-ink)">
+    <span>9:41</span>
+    <span style="display:flex;gap:6px;align-items:center"><svg viewBox="0 0 24 24" width="17" height="17" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.wifi }}"></path></svg><span style="width:24px;height:11px;border:1.5px solid currentColor;border-radius:3px;padding:1px;box-sizing:border-box;display:flex"><span style="flex:1;background:currentColor;border-radius:1px"></span></span></span>
+  </div>
+  <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:none">
+<sc-if value="{{ is.home }}" hint-placeholder-val="{{ true }}">
+<div style="padding:8px 20px 28px;display:flex;flex-direction:column;gap:18px">
+  <button onClick="{{ go.dashboard }}" style="text-align:left;border:1px solid var(--wt-line);background:var(--wt-card);border-radius:18px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px;cursor:pointer;color:var(--wt-ink)">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;width:100%">
+      <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'Newsreader',serif;font-size:56px;line-height:0.9;font-weight:500">182</span><span style="font-size:15px;color:var(--wt-ink2)">bouteilles en stock</span></div>
+      <svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:var(--wt-ink3);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevR }}"></path></svg>
+    </div>
+    <div style="display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px;width:100%;background:var(--wt-card)">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="6"><span style="width:{{ c.width }};background:{{ c.w.fill }};box-shadow:inset 0 0 0 1px rgba(42,29,21,0.15)"></span></sc-for>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--wt-ink2)">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="6"><span style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 20 20" width="16" height="16" style="flex:none;color:var(--wt-ink)"><path d="{{ c.w.liquid }}" style="fill:{{ c.w.fill }}"></path><path d="{{ c.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>{{ c.w.label }} <b style="font-weight:600;color:var(--wt-ink)">{{ c.n }}</b></span></sc-for>
+    </div>
+  </button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <button onClick="{{ filterGarde }}" style="border:0;border-radius:14px;padding:12px 14px;background:var(--wt-warn-tint);color:var(--wt-warn);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:64px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.clock }}"></path></svg>À boire en 2026</span><span style="font-size:15px;color:var(--wt-ink)">4 bouteilles</span></button>
+    <button onClick="{{ filterGarde }}" style="border:0;border-radius:14px;padding:12px 14px;background:var(--wt-danger-tint);color:var(--wt-danger);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:64px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.alert }}"></path></svg>Garde dépassée</span><span style="font-size:15px;color:var(--wt-ink)">3 bouteilles</span></button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button onClick="{{ nfcConsume }}" style="border:0;border-radius:18px;background:var(--wt-accent);color:var(--wt-on-accent);min-height:72px;padding:0 20px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left" style-active="transform:scale(0.98)">
+      <svg viewBox="0 0 24 24" width="30" height="30" style="fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="{{ ic.wine }}"></path></svg>
+      <span style="display:flex;flex-direction:column;flex:1"><span style="font-size:18px;font-weight:600">Consommer une bouteille</span><span style="font-size:13px;opacity:0.85">Présentez le tag au téléphone</span></span>
+      <svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevR }}"></path></svg>
+    </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button onClick="{{ nfcIdentify }}" style="border:1px solid var(--wt-line);border-radius:16px;background:var(--wt-card);color:var(--wt-ink);min-height:84px;padding:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;cursor:pointer;font-size:15px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:var(--wt-accent-ink);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.scan }}"></path></svg>Identifier</button>
+      <button onClick="{{ newBottle }}" style="border:1px solid var(--wt-line);border-radius:16px;background:var(--wt-card);color:var(--wt-ink);min-height:84px;padding:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;cursor:pointer;font-size:15px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:var(--wt-accent-ink);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.plusC }}"></path></svg>Entrer en stock</button>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">Dernières dégustations</span><button onClick="{{ go.history }}" style="border:0;background:transparent;color:var(--wt-accent-ink);font-size:14px;font-weight:600;cursor:pointer;padding:8px 0">Tout voir</button></div>
+    <sc-for list="{{ tastingsShort }}" as="t" hint-placeholder-count="2">
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:14px;padding:12px 14px;display:flex;gap:10px">
+      <svg viewBox="0 0 20 20" width="20" height="20" style="flex:none;margin-top:2px;color:var(--wt-ink)"><path d="{{ t.w.liquid }}" style="fill:{{ t.w.fill }}"></path><path d="{{ t.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;font-weight:500">{{ t.title }}</span><span style="font-family:'Newsreader',serif;font-style:italic;font-size:16px;color:var(--wt-ink2)">« {{ t.comment }} »</span><span style="font-size:12px;color:var(--wt-ink3)">{{ t.date }}</span></div>
+    </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.nfc }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;display:flex;flex-direction:column;padding:8px 24px 28px;box-sizing:border-box">
+  <div style="display:flex;justify-content:center">
+    <sc-if value="{{ nfcFromComputer }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:8px;background:var(--wt-accent-tint);color:var(--wt-accent-ink);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.monitor }}"></path></svg>Demandé par un ordinateur · Firefox sur macOS</span></sc-if>
+    <sc-if value="{{ nfcFromPhone }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:8px;background:var(--wt-card2);color:var(--wt-ink2);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.phone }}"></path></svg>Depuis ce téléphone</span></sc-if>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px">
+    <div style="font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--wt-accent-ink)">{{ nfcPurpose }}</div>
+    <sc-if value="{{ nfcWait }}" hint-placeholder-val="{{ true }}">
+      <div style="width:220px;height:220px;border-radius:999px;border:1px solid var(--wt-line);display:flex;align-items:center;justify-content:center;margin:18px 0">
+        <div style="width:164px;height:164px;border-radius:999px;border:1px solid var(--wt-line2);display:flex;align-items:center;justify-content:center">
+          <div style="width:108px;height:108px;border-radius:999px;background:var(--wt-accent);color:var(--wt-on-accent);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="48" height="48" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.nfc }}"></path></svg></div>
+        </div>
+      </div>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:500;line-height:1.1">Présentez le tag</div>
+      <div style="font-size:16px;color:var(--wt-ink2);max-width:280px;text-wrap:pretty">Approchez le haut du téléphone du tag collé sur la bouteille</div>
+    </sc-if>
+    <sc-if value="{{ nfcRead }}" hint-placeholder-val="{{ false }}">
+      <div style="width:164px;height:164px;border-radius:999px;background:var(--wt-ok-tint);color:var(--wt-ok);display:flex;align-items:center;justify-content:center;margin:46px 0"><svg viewBox="0 0 24 24" width="64" height="64" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg></div>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:500;line-height:1.1">Tag lu</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--wt-ink2);letter-spacing:0.06em">04A32BFF</div>
+    </sc-if>
+    <sc-if value="{{ nfcErr }}" hint-placeholder-val="{{ false }}">
+      <div style="width:164px;height:164px;border-radius:999px;background:var(--wt-danger-tint);color:var(--wt-danger);display:flex;align-items:center;justify-content:center;margin:46px 0"><svg viewBox="0 0 24 24" width="60" height="60" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.alert }}"></path></svg></div>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:500;line-height:1.1">Lecture impossible</div>
+      <div style="font-size:16px;color:var(--wt-ink2);max-width:280px">Le tag n'a pas pu être lu. Gardez le téléphone immobile et réessayez.</div>
+      <button onClick="{{ retry }}" style="margin-top:6px;border:0;border-radius:14px;background:var(--wt-accent);color:var(--wt-on-accent);height:52px;padding:0 28px;font-size:16px;font-weight:600;cursor:pointer">Réessayer</button>
+    </sc-if>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div style="border:1px dashed var(--wt-line2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--wt-ink3)">Prototype · simuler la lecture</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button onClick="{{ simOk }}" style="border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer">Tag lu</button>
+        <button onClick="{{ simUnknown }}" style="border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer">Tag inconnu</button>
+        <button onClick="{{ simAlready }}" style="border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer">Déjà consommée</button>
+        <button onClick="{{ simFail }}" style="border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer">Échec de lecture</button>
+      </div>
+    </div>
+    <button onClick="{{ simCancel }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:17px;font-weight:600;cursor:pointer">Annuler</button>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.consumed }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;display:flex;flex-direction:column;padding:4px 20px 28px;box-sizing:border-box;gap:18px">
+  <div style="display:flex;justify-content:flex-end"><button onClick="{{ doneConsumed }}" aria-label="Fermer" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.x }}"></path></svg></button></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+    <span style="display:flex;align-items:center;gap:6px;background:var(--wt-ok-tint);color:var(--wt-ok);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg>Bouteille consommée</span>
+    <div style="font-family:'Newsreader',serif;font-size:38px;font-weight:500;line-height:1.05">{{ bConsumed.cuvee }}</div>
+    <div style="font-size:16px;color:var(--wt-ink2)">{{ bConsumed.domaine }} · {{ bConsumed.appellation }}</div>
+    <div style="display:flex;gap:16px;font-size:15px;align-items:center"><span style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ bConsumed.w.liquid }}" style="fill:{{ bConsumed.w.fill }}"></path><path d="{{ bConsumed.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>{{ bConsumed.w.label }}</span><span>{{ bConsumed.vintage }}</span></div>
+  </div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--wt-line);font-size:15px"><span style="color:var(--wt-ink2)">Reste en cave</span><span style="font-weight:600">3 bouteilles</span></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 16px;font-size:15px"><span style="color:var(--wt-ink2)">Tag libéré</span><span style="font-family:'IBM Plex Mono',monospace">{{ bConsumed.tag }}</span></div>
+  </div>
+  <sc-if value="{{ commentOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label style="font-size:14px;font-weight:600">Commentaire de dégustation</label>
+      <textarea value="{{ comment }}" onChange="{{ onComment }}" placeholder="Vos impressions…" rows="4" style="border:1px solid var(--wt-line2);border-radius:14px;background:var(--wt-card);color:var(--wt-ink);padding:14px;font-family:'Newsreader',serif;font-size:18px;resize:none;outline:none" style-focus="border-color:var(--wt-accent);box-shadow:0 0 0 3px var(--wt-accent-tint)"></textarea>
+    </div>
+  </sc-if>
+  <div style="flex:1"></div>
+  <sc-if value="{{ commentOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onClick="{{ saveComment }}" style="height:56px;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Enregistrer le commentaire</button>
+      <button onClick="{{ doneConsumed }}" style="height:52px;border:0;background:transparent;color:var(--wt-ink2);font-size:16px;font-weight:500;cursor:pointer">Plus tard</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ commentClosed }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onClick="{{ openComment }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:17px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.msg }}"></path></svg>Ajouter un commentaire</button>
+      <button onClick="{{ doneConsumed }}" style="height:56px;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Terminé</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ is.consumeError }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;display:flex;flex-direction:column;padding:4px 20px 28px;box-sizing:border-box;gap:18px">
+  <div style="display:flex;justify-content:flex-end"><button onClick="{{ doneConsumed }}" aria-label="Fermer" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.x }}"></path></svg></button></div>
+  <sc-if value="{{ errUnknown }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px">
+      <span style="width:64px;height:64px;border-radius:999px;background:var(--wt-warn-tint);color:var(--wt-warn);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="30" height="30" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.tag }}"></path></svg></span>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:500;line-height:1.1">Tag inconnu</div>
+      <div style="font-size:16px;color:var(--wt-ink2);text-wrap:pretty">Ce tag n'est associé à aucune bouteille en stock.</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;background:var(--wt-card2);border-radius:8px;padding:6px 10px;letter-spacing:0.05em">04A32BFF</div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onClick="{{ nfcConsume }}" style="height:56px;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Lire un autre tag</button>
+      <button onClick="{{ newBottle }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:17px;font-weight:600;cursor:pointer">Entrer une bouteille avec ce tag</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ errAlready }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px">
+      <span style="width:64px;height:64px;border-radius:999px;background:var(--wt-danger-tint);color:var(--wt-danger);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="30" height="30" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.alert }}"></path></svg></span>
+      <div style="font-family:'Newsreader',serif;font-size:36px;font-weight:500;line-height:1.1">Déjà consommée</div>
+      <div style="font-size:16px;color:var(--wt-ink2);text-wrap:pretty">Cette bouteille est sortie du stock. Rien n'a été modifié.</div>
+    </div>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+      <svg viewBox="0 0 20 20" width="22" height="22" style="flex:none;margin-top:2px"><path d="{{ W.rose.liquid }}" style="fill:{{ W.rose.fill }}"></path><path d="{{ W.rose.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>
+      <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:500">Domaine Tempier · Bandol rosé</span><span style="font-size:14px;color:var(--wt-ink2)">Rosé · 2022</span><span style="font-size:14px;color:var(--wt-ink3)">Consommée le 9 oct. 2026</span></div>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onClick="{{ nfcConsume }}" style="height:56px;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Lire un autre tag</button>
+      <button onClick="{{ go.history }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:17px;font-weight:600;cursor:pointer">Voir les dégustations</button>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ is.bottle }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:0 20px 28px;gap:18px">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:52px;margin:0 -12px">
+    <button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button>
+    <button onClick="{{ go.form }}" style="height:44px;border:0;background:transparent;color:var(--wt-accent-ink);font-size:16px;font-weight:600;cursor:pointer;padding:0 12px">Modifier</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wt-ink2)"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none;color:var(--wt-ink)"><path d="{{ b.w.liquid }}" style="fill:{{ b.w.fill }}"></path><path d="{{ b.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>{{ b.w.label }} · {{ b.vintageLong }}</span>
+    <div style="font-family:'Newsreader',serif;font-size:38px;font-weight:500;line-height:1.05">{{ b.cuvee }}</div>
+    <div style="font-size:16px;color:var(--wt-ink2)">{{ b.domaine }}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+      <span style="display:flex;align-items:center;gap:6px;background:var(--wt-ok-tint);color:var(--wt-ok);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg>En stock · {{ b.qtyLabel }}</span>
+      <sc-if value="{{ b.garde.show }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;background:{{ b.garde.bg }};color:{{ b.garde.fg }};border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600"><svg viewBox="0 0 24 24" width="14" height="14" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.clock }}"></path></svg>À boire avant {{ b.before }} · {{ b.garde.label }}</span></sc-if>
+    </div>
+  </div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;display:flex;flex-direction:column;font-size:15px">
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--wt-line)"><span style="color:var(--wt-ink2)">Appellation</span><span style="text-align:right">{{ b.appellation }}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--wt-line)"><span style="color:var(--wt-ink2)">Région</span><span>{{ b.region }}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--wt-line)"><span style="color:var(--wt-ink2)">À boire avant</span><span>{{ b.before }}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--wt-line)"><span style="color:var(--wt-ink2)">Prix d'achat</span><span>{{ b.price }}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px;border-bottom:1px solid var(--wt-line)"><span style="color:var(--wt-ink2)">Entrée en cave</span><span>{{ b.added }}</span></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:13px 16px"><span style="color:var(--wt-ink2)">Tag</span><span style="font-family:'IBM Plex Mono',monospace">{{ b.tag }}</span></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <button onClick="{{ consumeNoTag }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:16px;font-weight:600;cursor:pointer">Consommer sans tag</button>
+    <button onClick="{{ fromModel }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.copy }}"></path></svg>Ajouter sur ce modèle</button>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.inventory }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:8px 0 24px;gap:12px">
+  <div style="display:flex;gap:8px;padding:0 20px">
+    <div style="flex:1;height:48px;border-radius:14px;background:var(--wt-card);border:1px solid var(--wt-line);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--wt-ink3);font-size:16px"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.search }}"></path></svg>Rechercher un vin</div>
+    <button onClick="{{ nfcSearch }}" aria-label="Rechercher par tag" style="width:48px;height:48px;border-radius:14px;background:var(--wt-card);border:1px solid var(--wt-line);color:var(--wt-accent-ink);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.nfc }}"></path></svg></button>
+    <button onClick="{{ newBottle }}" aria-label="Entrer une bouteille" style="width:48px;height:48px;border-radius:14px;background:var(--wt-accent);border:0;color:var(--wt-on-accent);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.plus }}"></path></svg></button>
+  </div>
+  <div style="display:flex;gap:8px;overflow-x:auto;padding:0 20px;scrollbar-width:none">
+    <sc-for list="{{ filters }}" as="fl" hint-placeholder-count="6"><button onClick="{{ fl.pick }}" style="flex:none;height:36px;border-radius:999px;border:1px solid var(--wt-line2);background:{{ fl.bg }};color:{{ fl.fg }};padding:0 14px;font-size:14px;font-weight:500;cursor:pointer">{{ fl.label }}</button></sc-for>
+  </div>
+  <div style="padding:0 20px;font-size:13px;color:var(--wt-ink3)">{{ invCount }} bouteilles · groupées par cuvée</div>
+  <sc-if value="{{ invEmpty }}" hint-placeholder-val="{{ false }}">
+  <div style="margin:24px 20px 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:32px 12px">
+    <svg viewBox="0 0 20 20" width="64" height="64" style="color:var(--wt-ink3)"><path d="{{ W.inconnue.glass }}" style="fill:none;stroke:currentColor;stroke-width:0.9;stroke-linecap:round;stroke-linejoin:round"></path></svg>
+    <span style="font-family:'Newsreader',serif;font-size:28px;font-weight:500">La cave est vide</span>
+    <span style="font-size:15px;color:var(--wt-ink2)">Entrez une première bouteille avec son tag, ou restaurez une sauvegarde.</span>
+    <button onClick="{{ newBottle }}" style="margin-top:8px;height:56px;width:100%;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Entrer une bouteille</button>
+    <button onClick="{{ go.settings }}" style="height:52px;width:100%;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:16px;font-weight:600;cursor:pointer">Restaurer une sauvegarde</button>
+  </div>
+  </sc-if>
+  <div style="margin:0 20px;background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ inv }}" as="it" hint-placeholder-count="8">
+    <button onClick="{{ it.open }}" style="width:100%;border:0;border-bottom:1px solid var(--wt-line);background:transparent;color:var(--wt-ink);display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px;text-align:left;cursor:pointer">
+      <svg viewBox="0 0 20 20" width="22" height="22" style="flex:none"><path d="{{ it.w.liquid }}" style="fill:{{ it.w.fill }}"></path><path d="{{ it.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+        <span style="font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.cuvee }} <span style="color:var(--wt-ink3);font-weight:400">{{ it.vintage }}</span></span>
+        <span style="font-size:13px;color:var(--wt-ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.domaine }} · {{ it.appellation }}</span>
+        <sc-if value="{{ it.garde.show }}" hint-placeholder-val="{{ false }}"><span style="align-self:flex-start;margin-top:3px;background:{{ it.garde.bg }};color:{{ it.garde.fg }};border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600">Avant {{ it.before }} · {{ it.garde.label }}</span></sc-if>
+      </span>
+      <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500;min-width:28px;text-align:right">{{ it.qty }}</span>
+    </button>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.form }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:0 20px 24px;gap:14px">
+  <div style="display:flex;align-items:center;height:52px;margin:0 -12px;gap:2px">
+    <button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button>
+    <span style="display:flex;flex-direction:column"><span style="font-size:17px;font-weight:600">Entrer en stock</span><span style="font-size:12px;color:var(--wt-ink3)">{{ caseLabel }}</span></span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <label style="font-size:14px;font-weight:600">Tag</label>
+    <sc-if value="{{ noTag }}" hint-placeholder-val="{{ true }}"><button onClick="{{ nfcIntake }}" style="height:64px;border-radius:16px;border:1.5px dashed var(--wt-accent);background:var(--wt-accent-tint);color:var(--wt-accent-ink);display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:600;cursor:pointer"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.nfc }}"></path></svg>Lire le tag de la bouteille</button></sc-if>
+    <sc-if value="{{ hasTag }}" hint-placeholder-val="{{ false }}"><div style="height:64px;border-radius:16px;background:var(--wt-ok-tint);color:var(--wt-ok);display:flex;align-items:center;gap:10px;padding:0 16px"><svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg><span style="font-weight:600">Tag lu</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--wt-ink);margin-left:auto;font-size:16px">{{ tag }}</span></div></sc-if>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <sc-if value="{{ formOk }}" hint-placeholder-val="{{ true }}"><label style="font-size:14px;font-weight:600">Cuvée</label>
+    <div style="height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">Les Pucelles</div>
+    <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--wt-ink2)"><svg viewBox="0 0 20 20" width="16" height="16" style="flex:none;color:var(--wt-ink)"><path d="{{ W.blanc.liquid }}" style="fill:{{ W.blanc.fill }}"></path><path d="{{ W.blanc.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>Blanc · Domaine Leflaive · Puligny-Montrachet</span></sc-if>
+    <sc-if value="{{ formErr }}" hint-placeholder-val="{{ false }}"><label style="font-size:14px;font-weight:600;color:var(--wt-danger)">Cuvée</label>
+    <div style="height:52px;border-radius:14px;border:1.5px solid var(--wt-danger);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px;color:var(--wt-ink3)">Nom de la cuvée</div>
+    <span style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wt-danger)"><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.alert }}"></path></svg>Choisissez ou créez une cuvée</span></sc-if>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Millésime</label><div style="height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">2019</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">À boire avant</label><div style="height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">2031</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Prix d'achat <span style="font-weight:400;color:var(--wt-ink3)">· facultatif</span></label><div style="height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:17px">310<span style="color:var(--wt-ink3)">€</span></div></div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+    <button onClick="{{ saveContinue }}" style="height:56px;border:0;border-radius:16px;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2">Enregistrer et continuer<span style="font-size:12px;font-weight:400;opacity:0.85">même cuvée, tag suivant</span></button>
+    <button onClick="{{ saveForm }}" style="height:52px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:16px;font-weight:600;cursor:pointer">Enregistrer et terminer</button>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.catalogue }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:8px 20px 24px;gap:12px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);background:var(--wt-card2);border-radius:12px;padding:3px;gap:3px">
+    <sc-for list="{{ catTabs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.pick }}" style="height:40px;border:0;border-radius:10px;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.sh }};font-size:14px;font-weight:600;cursor:pointer">{{ t.label }}</button></sc-for>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div style="flex:1;height:48px;border-radius:14px;background:var(--wt-card);border:1px solid var(--wt-line);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--wt-ink3);font-size:16px"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.search }}"></path></svg>Rechercher</div>
+    <button onClick="{{ go.catForm }}" aria-label="{{ catAdd }}" style="width:48px;height:48px;border-radius:14px;background:var(--wt-accent);border:0;color:var(--wt-on-accent);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.plus }}"></path></svg></button>
+  </div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ catItems }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.open }}" style="width:100%;border:0;border-bottom:1px solid var(--wt-line);background:transparent;color:var(--wt-ink);display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:60px;text-align:left;cursor:pointer"><sc-if value="{{ c.hasW }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ c.w.liquid }}" style="fill:{{ c.w.fill }}"></path><path d="{{ c.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg></sc-if><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:500">{{ c.name }}</span><span style="font-size:13px;color:var(--wt-ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.sub }}</span></span><svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:var(--wt-ink3);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="{{ ic.chevR }}"></path></svg></button></sc-for>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.catForm }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:0 20px 24px;gap:14px">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:52px;margin:0 -12px">
+    <button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button>
+    <button onClick="{{ saveCat }}" style="height:44px;border:0;background:transparent;color:var(--wt-accent-ink);font-size:16px;font-weight:600;cursor:pointer;padding:0 12px">Enregistrer</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3)">{{ catKind }}</span><span style="font-family:'Newsreader',serif;font-size:32px;font-weight:500;line-height:1.1">{{ catSel.name }}</span><span style="font-size:14px;color:var(--wt-ink2)">{{ catSel.sub }}</span></div>
+  <sc-if value="{{ catIsApp }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="font-size:14px;font-weight:600">Carte de l'appellation</label>
+      <div style="width:100%;height:260px;border-radius:16px;overflow:hidden;background:var(--wt-paper);border:1px solid var(--wt-line)"><image-slot id="{{ catSel.slot }}" fit="contain" shape="rect" placeholder="Touchez pour choisir une carte" style="width:100%;height:260px"></image-slot></div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px"><button style="height:48px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.image }}"></path></svg>Choisir une image</button><button style="height:48px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink2);font-size:15px;padding:0 16px;cursor:pointer">Retirer</button></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Nom</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ catSel.name }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Région</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ catSel.region }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Description</label><div style="min-height:110px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);padding:12px 14px;font-size:16px;line-height:1.5">{{ catSel.desc }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Newsreader',serif;font-size:21px;font-weight:500">Cuvées de cette appellation</span>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden"><sc-for list="{{ catRel }}" as="r" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--wt-line);min-height:56px;box-sizing:border-box"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ r.w.liquid }}" style="fill:{{ r.w.fill }}"></path><path d="{{ r.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:500">{{ r.cuvee }} <span style="color:var(--wt-ink3);font-weight:400">{{ r.vintage }}</span></span><span style="font-size:13px;color:var(--wt-ink2)">{{ r.sub }}</span></span><span style="font-family:'Newsreader',serif;font-size:20px">{{ r.qty }}</span></div></sc-for></div></div>
+  </sc-if>
+  <sc-if value="{{ catIsDom }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;gap:10px"><div style="flex:1;background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column"><span style="font-family:'Newsreader',serif;font-size:34px;line-height:1">{{ catStock }}</span><span style="font-size:13px;color:var(--wt-ink2)">bouteilles en cave</span></div><div style="flex:1;background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column"><span style="font-family:'Newsreader',serif;font-size:34px;line-height:1">{{ catRelN }}</span><span style="font-size:13px;color:var(--wt-ink2)">{{ catRelLabel }}</span></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Nom</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ catSel.name }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Description</label><div style="min-height:110px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);padding:12px 14px;font-size:16px;line-height:1.5">{{ catSel.desc }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><span style="font-family:'Newsreader',serif;font-size:21px;font-weight:500">Cuvées du domaine</span>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden"><sc-for list="{{ catRel }}" as="r" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--wt-line);min-height:56px;box-sizing:border-box"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ r.w.liquid }}" style="fill:{{ r.w.fill }}"></path><path d="{{ r.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:500">{{ r.cuvee }} <span style="color:var(--wt-ink3);font-weight:400">{{ r.vintage }}</span></span><span style="font-size:13px;color:var(--wt-ink2)">{{ r.sub }}</span></span><span style="font-family:'Newsreader',serif;font-size:20px">{{ r.qty }}</span></div></sc-for></div></div>
+  </sc-if>
+  <sc-if value="{{ catIsCuv }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Nom</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ catSel.name }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Domaine</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ cuvB.domaine }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Appellation</label><div style="min-height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);display:flex;align-items:center;padding:0 14px;font-size:17px">{{ cuvB.appellation }}</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Couleur</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><sc-for list="{{ cuvColors }}" as="w" hint-placeholder-count="6"><span style="height:48px;border-radius:12px;border:1.5px solid {{ w.bd }};background:{{ w.bg }};display:flex;align-items:center;gap:8px;padding:0 12px;font-size:15px;font-weight:{{ w.fw }}"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ w.w.liquid }}" style="fill:{{ w.w.fill }}"></path><path d="{{ w.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>{{ w.w.label }}</span></sc-for></div></div>
+    <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:14px;font-weight:600">Description</label><div style="min-height:110px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);padding:12px 14px;font-size:16px;line-height:1.5">{{ cuvB.cuvDesc }}</div></div>
+  </sc-if>
+  <button onClick="{{ askAi }}" style="height:48px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:600;cursor:pointer"><svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:var(--wt-accent-ink);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.sparkles }}"></path></svg>Demander à Claude</button>
+  <button onClick="{{ tryDelete }}" style="height:48px;border:0;background:transparent;color:var(--wt-danger);font-size:15px;font-weight:600;cursor:pointer">Supprimer</button>
+  <sc-if value="{{ delRefused }}" hint-placeholder-val="{{ false }}"><div style="background:var(--wt-warn-tint);border-radius:14px;padding:12px 14px;font-size:14px">Suppression impossible : des cuvées ou des bouteilles utilisent encore cette fiche.</div></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ is.dashboard }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:0 20px 24px;gap:16px">
+  <div style="display:flex;align-items:center;height:52px;margin:0 -12px;gap:2px"><button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button><span style="font-size:17px;font-weight:600">Tableau de bord</span></div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:18px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div style="width:200px;height:200px;border-radius:999px;background:conic-gradient(#6E1A2B 0 53.8%, var(--wt-card) 0 54.2%, #E3C04F 0 79.1%, var(--wt-card) 0 79.5%, #EFE0A0 0 89%, var(--wt-card) 0 89.4%, #EC9AA8 0 95.6%, var(--wt-card) 0 96%, #B5762A 0 98.3%, #CDBFA6 0 100%);display:flex;align-items:center;justify-content:center"><span style="width:118px;height:118px;border-radius:999px;background:var(--wt-card);display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-family:'Newsreader',serif;font-size:40px;line-height:1">182</span><span style="font-size:12px;color:var(--wt-ink3)">en stock</span></span></div>
+    <div style="width:100%;display:flex;flex-direction:column">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="6"><button onClick="{{ filterColor }}" style="border:0;border-top:1px solid var(--wt-line);background:transparent;display:flex;align-items:center;gap:10px;min-height:46px;cursor:pointer;color:var(--wt-ink);font-size:15px;padding:0 2px"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none"><path d="{{ c.w.liquid }}" style="fill:{{ c.w.fill }}"></path><path d="{{ c.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg><span style="flex:1;text-align:left">{{ c.w.label }}</span><b style="font-weight:600">{{ c.n }}</b><svg viewBox="0 0 24 24" width="16" height="16" style="fill:none;stroke:var(--wt-ink3);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevR }}"></path></svg></button></sc-for>
+    </div>
+  </div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px">
+    <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">Par région</span>
+    <sc-for list="{{ regions }}" as="r" hint-placeholder-count="8"><button onClick="{{ filterColor }}" style="border:0;background:transparent;display:grid;grid-template-columns:92px 1fr 30px;align-items:center;gap:10px;min-height:32px;cursor:pointer;color:var(--wt-ink);font-size:15px;padding:0"><span style="text-align:left">{{ r.name }}</span><span style="height:12px;background:var(--wt-card2);border-radius:3px;overflow:hidden;display:flex"><span style="width:{{ r.width }};background:var(--wt-accent);border-radius:3px"></span></span><b style="font-weight:600;text-align:right">{{ r.n }}</b></button></sc-for>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.history }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:0 20px 24px;gap:12px">
+  <div style="display:flex;align-items:center;height:52px;margin:0 -12px;gap:2px"><button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button><span style="font-size:17px;font-weight:600">Dégustations</span></div>
+  <sc-for list="{{ tastings }}" as="t" hint-placeholder-count="5">
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 20 20" width="18" height="18" style="flex:none"><path d="{{ t.w.liquid }}" style="fill:{{ t.w.fill }}"></path><path d="{{ t.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg><span style="font-size:12.5px;color:var(--wt-ink3);flex:1">{{ t.date }}</span><button aria-label="Modifier le commentaire" style="width:36px;height:36px;margin:-8px -8px -8px 0;border:0;background:transparent;color:var(--wt-ink3);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg viewBox="0 0 24 24" width="17" height="17" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.pencil }}"></path></svg></button></div>
+    <span style="font-size:16px;font-weight:500">{{ t.title }}</span>
+    <span style="font-size:13px;color:var(--wt-ink2)">{{ t.meta }}</span>
+    <sc-if value="{{ t.has }}" hint-placeholder-val="{{ true }}"><span style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:var(--wt-ink2)">« {{ t.comment }} »</span></sc-if>
+  </div>
+  </sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ is.settings }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;padding:12px 20px 24px;gap:18px">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3);padding:0 4px">Assistant IA</span>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+      <button onClick="{{ pickClaude }}" style="width:100%;min-height:52px;border:0;border-bottom:1px solid var(--wt-line);background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;cursor:pointer">Claude<sc-if value="{{ aiClaude }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:var(--wt-accent-ink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg></sc-if></button>
+      <button onClick="{{ pickGpt }}" style="width:100%;min-height:52px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;cursor:pointer">ChatGPT<sc-if value="{{ aiGpt }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:var(--wt-accent-ink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.check }}"></path></svg></sc-if></button>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3);padding:0 4px">Sauvegarde</span>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+      <button onClick="{{ backup }}" style="width:100%;min-height:56px;border:0;border-bottom:1px solid var(--wt-line);background:transparent;color:var(--wt-ink);display:flex;align-items:center;gap:12px;padding:0 16px;font-size:16px;cursor:pointer;text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.download }}"></path></svg>Enregistrer une sauvegarde</button>
+      <button onClick="{{ askRestore }}" style="width:100%;min-height:56px;border:0;background:transparent;color:var(--wt-danger);display:flex;align-items:center;gap:12px;padding:0 16px;font-size:16px;cursor:pointer;text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.upload }}"></path></svg>Restaurer une sauvegarde</button>
+    </div>
+    <sc-if value="{{ restoreErr }}" hint-placeholder-val="{{ false }}"><div style="background:var(--wt-danger-tint);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:4px"><span style="font-size:16px;font-weight:600;color:var(--wt-danger)">Fichier non reconnu</span><span style="font-size:14px">Ce fichier n'est pas une sauvegarde WineTap. La cave n'a pas été modifiée.</span></div></sc-if>
+    <sc-if value="{{ restoreAsk }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--wt-danger-tint);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <span style="font-size:16px;font-weight:600;color:var(--wt-danger)">Remplacer toute la cave ?</span>
+        <span style="font-size:14px">winetap-2026-09-01.db · 176 bouteilles. Les 182 bouteilles actuelles et leur historique seront remplacés.</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onClick="{{ cancelRestore }}" style="height:48px;border-radius:12px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:15px;font-weight:600;cursor:pointer">Annuler</button><button onClick="{{ confirmRestore }}" style="height:48px;border-radius:12px;border:0;background:var(--wt-danger);color:var(--wt-card);font-size:15px;font-weight:600;cursor:pointer">Remplacer</button></div>
+      </div>
+    </sc-if>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <span style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3);padding:0 4px">Accès depuis un ordinateur</span>
+    <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+      <button onClick="{{ go.address }}" style="width:100%;min-height:56px;border:0;border-bottom:1px solid var(--wt-line);background:transparent;color:var(--wt-ink);display:flex;align-items:center;gap:12px;padding:0 16px;font-size:16px;cursor:pointer;text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.monitor }}"></path></svg><span style="flex:1">Adresse de connexion</span><svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:var(--wt-ink3);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevR }}"></path></svg></button>
+      <button onClick="{{ go.connections }}" style="width:100%;min-height:56px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;gap:12px;padding:0 16px;font-size:16px;cursor:pointer;text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.shield }}"></path></svg><span style="flex:1">Connexions autorisées</span><span style="color:var(--wt-ink3);font-size:15px">3</span><svg viewBox="0 0 24 24" width="18" height="18" style="fill:none;stroke:var(--wt-ink3);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevR }}"></path></svg></button>
+    </div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ is.address }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;display:flex;flex-direction:column;padding:0 24px 28px;box-sizing:border-box;gap:18px">
+  <div style="display:flex;align-items:center;height:52px;margin:0 -16px;gap:2px"><button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button><span style="font-size:17px;font-weight:600">Accès depuis un ordinateur</span></div>
+  <sc-if value="{{ addrOk }}" hint-placeholder-val="{{ true }}">
+  <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;background:var(--wt-ok-tint);color:var(--wt-ok);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600"><span style="width:8px;height:8px;border-radius:99px;background:currentColor"></span>Serveur actif</span>
+  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:16px;color:var(--wt-ink2)">Dans le navigateur de l'ordinateur, saisissez :</span></div>
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:18px;padding:22px 18px;display:flex;flex-direction:column;gap:6px">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--wt-ink3)">http://</span>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:38px;font-weight:500;line-height:1.1;letter-spacing:-0.01em">192.168.1.42</span>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;color:var(--wt-ink2)">:8080</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;font-size:15px;color:var(--wt-ink2)"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.wifi }}"></path></svg>Réseau Wi-Fi « Livebox-7A2C »</div>
+  <div style="font-size:14px;color:var(--wt-ink3);text-wrap:pretty">Gardez WineTap ouvert sur le téléphone pendant l'utilisation depuis l'ordinateur. L'adresse peut changer : elle est toujours à jour ici.</div>
+  </sc-if>
+  <sc-if value="{{ addrNone }}" hint-placeholder-val="{{ false }}">
+  <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;background:var(--wt-danger-tint);color:var(--wt-danger);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600"><span style="width:8px;height:8px;border-radius:99px;background:currentColor"></span>Pas de réseau local</span>
+  <div style="display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding-top:12px">
+    <span style="width:64px;height:64px;border-radius:999px;background:var(--wt-danger-tint);color:var(--wt-danger);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="30" height="30" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.wifiOff }}"></path></svg></span>
+    <div style="font-family:'Newsreader',serif;font-size:32px;font-weight:500;line-height:1.1">Aucune adresse à afficher</div>
+    <div style="font-size:16px;color:var(--wt-ink2);text-wrap:pretty">Le téléphone n'est connecté à aucun réseau Wi-Fi. Connectez-le au même réseau que l'ordinateur ; l'adresse apparaîtra ici.</div>
+    <div style="font-size:14px;color:var(--wt-ink3)">Sur ce téléphone, WineTap fonctionne normalement.</div>
+  </div>
+  </sc-if>
+  <div style="flex:1"></div>
+  <button onClick="{{ showAuth }}" style="border:1px dashed var(--wt-line2);background:transparent;color:var(--wt-ink3);border-radius:12px;padding:8px;font-size:12px;cursor:pointer">Prototype · simuler une demande de connexion</button>
+  <button onClick="{{ go.connections }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:16px;font-weight:600;cursor:pointer">Connexions autorisées</button>
+</div>
+<sc-if value="{{ authOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:rgba(42,29,21,0.45);display:flex;align-items:flex-end">
+  <div style="width:100%;background:var(--wt-card);border-radius:28px 28px 0 0;padding:12px 24px 28px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+    <span style="align-self:center;width:40px;height:5px;border-radius:99px;background:var(--wt-line2)"></span>
+    <span style="width:56px;height:56px;border-radius:16px;background:var(--wt-accent-tint);color:var(--wt-accent-ink);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="28" height="28" style="fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.monitor }}"></path></svg></span>
+    <div style="font-family:'Newsreader',serif;font-size:30px;font-weight:500;line-height:1.1">Autoriser cette connexion ?</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:10px 16px;font-size:15px;background:var(--wt-paper);border-radius:14px;padding:14px 16px">
+      <span style="color:var(--wt-ink3)">Navigateur</span><span style="font-weight:500">Firefox 131</span>
+      <span style="color:var(--wt-ink3)">Système</span><span style="font-weight:500">macOS</span>
+      <span style="color:var(--wt-ink3)">Adresse IP</span><span style="font-family:'IBM Plex Mono',monospace">192.168.1.27</span>
+      <span style="color:var(--wt-ink3)">Heure</span><span>20:14</span>
+    </div>
+    <div style="font-size:14px;color:var(--wt-ink2)">Ce navigateur aura accès à toute la cave, jusqu'à ce que vous révoquiez la connexion.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button onClick="{{ denyAuth }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:17px;font-weight:600;cursor:pointer">Refuser</button>
+      <button onClick="{{ allowAuth }}" style="height:56px;border-radius:16px;border:0;background:var(--wt-accent);color:var(--wt-on-accent);font-size:17px;font-weight:600;cursor:pointer">Autoriser</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+</sc-if>
+<sc-if value="{{ is.connections }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100%;display:flex;flex-direction:column;padding:0 20px 28px;box-sizing:border-box;gap:14px">
+  <div style="display:flex;align-items:center;height:52px;margin:0 -12px;gap:2px"><button onClick="{{ back }}" aria-label="Retour" style="width:44px;height:44px;border:0;background:transparent;color:var(--wt-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.chevL }}"></path></svg></button><span style="font-size:17px;font-weight:600">Connexions autorisées</span></div>
+  <sc-if value="{{ hasConns }}" hint-placeholder-val="{{ true }}">
+  <div style="background:var(--wt-card);border:1px solid var(--wt-line);border-radius:16px;overflow:hidden">
+    <sc-for list="{{ conns }}" as="c" hint-placeholder-count="3">
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--wt-line)">
+      <svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:var(--wt-ink2);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="{{ ic.monitor }}"></path></svg>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:16px;font-weight:500;display:flex;align-items:center;gap:6px">{{ c.name }}<sc-if value="{{ c.live }}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:99px;background:var(--wt-ok)"></span></sc-if></span><span style="font-size:13px;color:var(--wt-ink2)">{{ c.meta }}</span></span>
+      <button onClick="{{ c.revoke }}" style="height:40px;border-radius:10px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-danger);padding:0 12px;font-size:14px;font-weight:600;cursor:pointer">Révoquer</button>
+    </div>
+    </sc-for>
+  </div>
+  <div style="flex:1"></div>
+  <button onClick="{{ revokeAll }}" style="height:56px;border-radius:16px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-danger);font-size:16px;font-weight:600;cursor:pointer">Tout révoquer</button>
+  </sc-if>
+  <sc-if value="{{ noConns }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 12px;text-align:center;color:var(--wt-ink2);font-size:15px">Aucun ordinateur autorisé. Le prochain navigateur qui ouvrira l'adresse demandera une autorisation.</div></sc-if>
+</div>
+</sc-if>
+  </div>
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:none;height:86px;padding-bottom:22px;box-sizing:border-box;background:var(--wt-card);border-top:1px solid var(--wt-line);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;position:relative">
+    <button onClick="{{ go.home }}" style="height:56px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:{{ tab.home }};font-size:11px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.home }}"></path></svg>Accueil</button>
+    <button onClick="{{ go.inventory }}" style="height:56px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:{{ tab.inventory }};font-size:11px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.list }}"></path></svg>Inventaire</button>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:-26px">
+      <button onClick="{{ nfcConsume }}" aria-label="Consommer une bouteille" style="width:64px;height:64px;border-radius:999px;border:4px solid var(--wt-card);background:var(--wt-accent);color:var(--wt-on-accent);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--wt-shadow)" style-active="transform:scale(0.96)"><svg viewBox="0 0 24 24" width="28" height="28" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.wine }}"></path></svg></button>
+      <span style="font-size:11px;font-weight:600;color:var(--wt-accent-ink)">Consommer</span>
+    </div>
+    <button onClick="{{ go.catalogue }}" style="height:56px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:{{ tab.catalogue }};font-size:11px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.book }}"></path></svg>Catalogue</button>
+    <button onClick="{{ go.settings }}" style="height:56px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:{{ tab.settings }};font-size:11px;font-weight:500"><svg viewBox="0 0 24 24" width="24" height="24" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.sliders }}"></path></svg>Réglages</button>
+  </div>
+  </sc-if>
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(42,29,21,0.45);display:flex;align-items:flex-end;z-index:5">
+    <div onClick="{{ stop }}" role="dialog" aria-label="Détail de la bouteille" style="width:100%;max-height:760px;background:var(--wt-card);border-radius:28px 28px 0 0;display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;justify-content:center;padding:10px 0 2px"><span style="width:40px;height:5px;border-radius:99px;background:var(--wt-line2)"></span></div>
+      <div style="flex:1;overflow-y:auto;padding:8px 22px 16px;display:flex;flex-direction:column;gap:16px;scrollbar-width:none">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--wt-ink2)"><svg viewBox="0 0 20 20" width="20" height="20" style="flex:none;color:var(--wt-ink)"><path d="{{ b.w.liquid }}" style="fill:{{ b.w.fill }}"></path><path d="{{ b.w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round"></path></svg>{{ b.w.label }} · {{ b.vintageLong }}</span><button onClick="{{ closeModal }}" aria-label="Fermer" style="width:44px;height:44px;margin:-10px -12px -10px 0;border:0;background:transparent;color:var(--wt-ink2);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round"><path d="{{ ic.x }}"></path></svg></button></div>
+          <span style="font-family:'Newsreader',serif;font-size:32px;font-weight:500;line-height:1.05">{{ b.cuvee }}</span>
+          <span style="font-size:15px;color:var(--wt-ink2)">{{ b.domaine }}</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px"><span style="background:var(--wt-ok-tint);color:var(--wt-ok);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600">En stock · {{ b.qtyLabel }}</span><sc-if value="{{ b.garde.show }}" hint-placeholder-val="{{ false }}"><span style="background:{{ b.garde.bg }};color:{{ b.garde.fg }};border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600">Avant {{ b.before }} · {{ b.garde.label }}</span></sc-if></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:15px;background:var(--wt-paper);border-radius:14px;padding:12px 14px">
+          <div style="display:flex;flex-direction:column"><span style="font-size:12px;color:var(--wt-ink3)">À boire avant</span><span>{{ b.before }}</span></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:12px;color:var(--wt-ink3)">Prix</span><span>{{ b.price }}</span></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:12px;color:var(--wt-ink3)">Entrée</span><span>{{ b.added }}</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3)">Cuvée</span><span style="font-family:'Newsreader',serif;font-size:20px;font-weight:500">{{ b.cuvee }}</span><span style="font-size:15px;line-height:1.5;color:var(--wt-ink2)">{{ b.cuvDesc }}</span></div>
+        <div style="display:flex;flex-direction:column;gap:4px;padding-top:14px;border-top:1px solid var(--wt-line)"><span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3)">Domaine</span><span style="font-family:'Newsreader',serif;font-size:20px;font-weight:500">{{ b.domaine }}</span><span style="font-size:15px;line-height:1.5;color:var(--wt-ink2)">{{ b.domDesc }}</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid var(--wt-line)">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--wt-ink3)">Appellation</span>
+          <div style="height:110px;border-radius:12px;background:repeating-linear-gradient(135deg,var(--wt-card2) 0 8px,var(--wt-paper) 8px 16px);border:1px solid var(--wt-line);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--wt-ink3)">image de l'appellation</div>
+          <span style="font-family:'Newsreader',serif;font-size:20px;font-weight:500">{{ b.appellation }} <span style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--wt-ink3);font-weight:400">· {{ b.region }}</span></span>
+          <span style="font-size:15px;line-height:1.5;color:var(--wt-ink2)">{{ b.appDesc }}</span>
+        </div>
+      </div>
+      <div style="padding:12px 22px 30px;border-top:1px solid var(--wt-line);display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button onClick="{{ modalModel }}" style="height:52px;border-radius:14px;border:1px solid var(--wt-line2);background:var(--wt-card);color:var(--wt-ink);font-size:15px;font-weight:600;cursor:pointer">Sur ce modèle</button>
+        <button onClick="{{ modalEdit }}" style="height:52px;border-radius:14px;border:0;background:var(--wt-accent);color:var(--wt-on-accent);font-size:15px;font-weight:600;cursor:pointer">Modifier</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:16px;right:16px;bottom:104px;background:var(--wt-ink);color:var(--wt-paper);border-radius:14px;padding:14px 16px;font-size:15px;display:flex;align-items:center;gap:10px;box-shadow:var(--wt-shadow)"><svg viewBox="0 0 24 24" width="20" height="20" style="fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none"><path d="{{ ic.info }}"></path></svg>{{ toast }}</div>
+  </sc-if>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;vue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;téléphone&quot;,&quot;ordinateur&quot;],&quot;default&quot;:&quot;téléphone&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;nfc&quot;,&quot;nfcComputer&quot;,&quot;nfcRead&quot;,&quot;consumed&quot;,&quot;commentOpen&quot;,&quot;consumeError&quot;,&quot;alreadyConsumed&quot;,&quot;bottle&quot;,&quot;inventory&quot;,&quot;inventoryEmpty&quot;,&quot;bottleModal&quot;,&quot;form&quot;,&quot;formTag&quot;,&quot;formError&quot;,&quot;catalogue&quot;,&quot;catalogueApp&quot;,&quot;catalogueDom&quot;,&quot;catForm&quot;,&quot;catFormDom&quot;,&quot;dashboard&quot;,&quot;history&quot;,&quot;settings&quot;,&quot;restoreError&quot;,&quot;address&quot;,&quot;addressNone&quot;,&quot;authReq&quot;,&quot;connections&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;ecranOrdinateur&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dashboard&quot;,&quot;inventory&quot;,&quot;inventoryEmpty&quot;,&quot;bottleModal&quot;,&quot;inventoryPanel&quot;,&quot;formError&quot;,&quot;scanWait&quot;,&quot;scanUsed&quot;,&quot;catalogue&quot;,&quot;catalogueApp&quot;,&quot;catalogueDom&quot;,&quot;history&quot;,&quot;settings&quot;,&quot;restoreError&quot;,&quot;waitingAuth&quot;,&quot;unreachable&quot;],&quot;default&quot;:&quot;inventory&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;sombre&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { screen: null, nfc: { purpose: 'consume', origin: 'phone', st: 'wait' }, toast: '', caseN: 1, tag: '', comment: '', commentOpen: false, catTab: 'cuvees', invFilter: 'all', bottle: 1, errKind: 'unknown', prev: [], commentEdit: -1, aiChoice: 'claude', restoreAsk: false, authOpen: false, revoked: [] };
+  componentDidMount() { this.applyStart(); }
+  componentDidUpdate(pp) { if (pp.start !== this.props.start) this.applyStart(); }
+  applyStart() {
+    const s = this.props.start || 'home';
+    const m = {
+      nfc: { screen: 'nfc', nfc: { purpose: 'consume', origin: 'phone', st: 'wait' } },
+      nfcComputer: { screen: 'nfc', nfc: { purpose: 'intake', origin: 'computer', st: 'wait' } },
+      nfcRead: { screen: 'nfc', nfc: { purpose: 'identify', origin: 'phone', st: 'read' } },
+      consumeError: { screen: 'consumeError', errKind: 'unknown' },
+      alreadyConsumed: { screen: 'consumeError', errKind: 'already' },
+      bottle: { screen: 'bottle', bottle: 5 },
+      formTag: { screen: 'form', tag: '04A32BFF', caseN: 3 },
+      authReq: { screen: 'address', authOpen: true },
+      commentOpen: { screen: 'consumed', commentOpen: true },
+      bottleModal: { screen: 'inventory', modal: true, bottle: 1 },
+      catalogueApp: { screen: 'catalogue', catTab: 'appellations' },
+      addressNone: { screen: 'address', addrNone: true }, inventoryEmpty: { screen: 'inventory', empty: true }, formError: { screen: 'form', formErr: true }, restoreError: { screen: 'settings', restoreErr: true }, catalogueDom: { screen: 'catalogue', catTab: 'domaines' },
+      catForm: { screen: 'catForm', catTab: 'appellations', catSel: 0 }, catFormDom: { screen: 'catForm', catTab: 'domaines', catSel: 0 },
+    };
+    this.setState({ screen: s, prev: [], toast: '', modal: false, addrNone: false, empty: false, formErr: false, restoreErr: false, ...(m[s] || {}) });
+  }
+  nav(screen, extra = {}) { this.setState(st => ({ prev: [...st.prev, st.screen], screen, toast: '', ...extra })); }
+  back = () => this.setState(st => ({ screen: st.prev.length ? st.prev[st.prev.length - 1] : 'home', prev: st.prev.slice(0, -1), toast: '' }));
+  flash(t) { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  startNfc(purpose, origin = 'phone') { this.nav('nfc', { nfc: { purpose, origin, st: 'wait' } }); }
+  simulate(result) {
+    const { purpose, origin } = this.state.nfc;
+    if (result === 'cancel') { this.back(); setTimeout(() => this.flash('Lecture annulée'), 0); return; }
+    if (result === 'fail') { this.setState(s => ({ nfc: { ...s.nfc, st: 'error' } })); return; }
+    this.setState(s => ({ nfc: { ...s.nfc, st: 'read' } }));
+    setTimeout(() => {
+      if (origin === 'computer') { this.back(); setTimeout(() => this.flash('Tag envoyé à l\u2019ordinateur'), 0); return; }
+      const pr = this.state.prev;
+      const base = { prev: pr, nfc: { ...this.state.nfc, st: 'wait' } };
+      if (purpose === 'consume') {
+        if (result === 'ok') this.setState({ ...base, screen: 'consumed', bottle: 1, comment: '', commentOpen: false });
+        else this.setState({ ...base, screen: 'consumeError', errKind: result });
+      } else if (purpose === 'identify' || purpose === 'search') {
+        if (result === 'ok') this.setState({ ...base, screen: 'bottle', bottle: 5 });
+        else this.setState({ ...base, screen: 'consumeError', errKind: result });
+      } else if (purpose === 'intake') {
+        if (result === 'ok') this.setState({ prev: pr.slice(0, -1), screen: 'form', tag: '04A32BFF' });
+        else { this.setState({ prev: pr.slice(0, -1), screen: 'form' }); setTimeout(() => this.flash(result === 'already' ? 'Ce tag est déjà associé à une bouteille en stock' : 'Tag non reconnu, réessayez'), 0); }
+      }
+    }, 900);
+  }
+  renderVals() {
+    const WT = window.WT || { I: {}, bottles: [], W: {}, colors: [], regions: [], tastings: [], appellations: [], domaines: [], cuvees: [], WINES: [] };
+    const S = this.state; const scr = S.screen || this.props.start || 'home';
+    const keys = ['home', 'nfc', 'consumed', 'consumeError', 'bottle', 'inventory', 'form', 'catalogue', 'catForm', 'dashboard', 'history', 'settings', 'address', 'connections'];
+    const is = {}; keys.forEach(k => is[k] = scr === k);
+    const native = ['nfc', 'address', 'connections'].includes(scr);
+    const tabOf = { home: 'home', dashboard: 'home', history: 'home', inventory: 'inventory', bottle: 'inventory', form: 'inventory', catalogue: 'catalogue', catForm: 'catalogue', settings: 'settings' };
+    const tab = {}; ['home', 'inventory', 'catalogue', 'settings'].forEach(k => tab[k] = tabOf[scr] === k ? 'var(--wt-accent-ink)' : 'var(--wt-ink3)');
+    const go = {}; keys.forEach(k => go[k] = () => this.nav(k));
+    const purposes = { consume: 'Consommer une bouteille', identify: 'Identifier une bouteille', intake: 'Entrer une bouteille en stock', search: 'Rechercher une bouteille par son tag' };
+    const n = S.nfc;
+    const filters = [['all', 'Tout'], ['rouge', 'Rouge'], ['blanc', 'Blanc'], ['rose', 'Rosé'], ['eff', 'Effervescent'], ['garde', 'À boire']].map(([k, l]) => ({
+      label: l, on: S.invFilter === k, bg: S.invFilter === k ? 'var(--wt-ink)' : 'var(--wt-card)', fg: S.invFilter === k ? 'var(--wt-paper)' : 'var(--wt-ink)', pick: () => this.setState({ invFilter: k }) }));
+    const f = S.invFilter;
+    const inv = (S.empty ? [] : WT.bottles).filter(b => f === 'all' ? true : f === 'garde' ? (b.gardeKey === 'over' || b.gardeKey === 'year') : b.color === f).map(b => ({ ...b, open: () => this.setState({ bottle: b.id, modal: true }) }));
+    const catTabs = [['appellations', 'Appellations'], ['domaines', 'Domaines'], ['cuvees', 'Cuvées']].map(([k, l]) => ({ label: l, bg: S.catTab === k ? 'var(--wt-card)' : 'transparent', fg: S.catTab === k ? 'var(--wt-ink)' : 'var(--wt-ink2)', sh: S.catTab === k ? '0 1px 3px rgba(42,29,21,0.12)' : 'none', pick: () => this.setState({ catTab: k }) }));
+    const catList = S.catTab === 'appellations' ? WT.appellations : S.catTab === 'domaines' ? WT.domaines : WT.cuvees;
+    const cs = catList[S.catSel || 0] || {};
+    const catRel = WT.bottles.filter(x => S.catTab === 'appellations' ? x.appellation === cs.name : S.catTab === 'domaines' ? x.domaine === cs.name : false).map(x => ({ ...x, sub: S.catTab === 'appellations' ? x.domaine : x.appellation }));
+    const cuvB = S.catTab === 'cuvees' ? (WT.bottles[S.catSel || 0] || {}) : {};
+    const catItems = catList.map((it, idx) => ({ ...it, idx }))
+      .map(it => ({ ...it, hasW: !!it.w, open: () => this.nav('catForm', { catSel: it.idx, delRefused: false }) }));
+    const conns = [
+      { id: 0, name: 'Firefox sur macOS', meta: 'Autorisé le 12 oct. 2026 · actif il y a 2 min', ip: '192.168.1.27', live: true },
+      { id: 1, name: 'Chrome sur Windows', meta: 'Autorisé le 3 sept. 2026 · actif le 28 sept.', ip: '192.168.1.54', live: false },
+      { id: 2, name: 'Safari sur macOS', meta: 'Autorisé le 18 juin 2026 · actif le 2 août', ip: '192.168.1.31', live: false },
+    ].filter(c => !S.revoked.includes(c.id)).map(c => ({ ...c, revoke: () => { this.setState(s => ({ revoked: [...s.revoked, c.id] })); this.flash('Connexion révoquée'); } }));
+    return {
+      wrapStyle: this.props.bare ? { display: 'flex' } : { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, boxSizing: 'border-box' },
+      isDesktop: this.props.vue === 'ordinateur', isPhone: this.props.vue !== 'ordinateur',
+      desktopStart: this.props.ecranOrdinateur || 'inventory', theme: this.props.theme || 'clair',
+      modalOpen: !!S.modal, closeModal: () => this.setState({ modal: false }), stop: e => e.stopPropagation(),
+      modalModel: () => this.nav('form', { modal: false, tag: '', caseN: 1 }),
+      modalEdit: () => this.nav('form', { modal: false }),
+      addrOk: !S.addrNone, addrNone: !!S.addrNone, invEmpty: !!S.empty, formErr: !!S.formErr, formOk: !S.formErr, restoreErr: !!S.restoreErr,
+      ic: WT.I, is, go, tab, back: this.back, showTabs: !native && scr !== 'consumed' && scr !== 'consumeError',
+      darkVars: this.props.theme === 'sombre' ? window.WT_DARK : { display: 'contents' },
+      screenLabel: scr, toast: S.toast,
+      b: WT.bottles[S.bottle] || {}, bConsumed: WT.bottles[1] || {}, bIdent: WT.bottles[5] || {},
+      W: WT.W, wines: WT.WINES, colors: WT.colors, regions: WT.regions, tastings: WT.tastings, tastingsShort: WT.tastings.slice(0, 2),
+      inv, invCount: S.empty ? 0 : inv.reduce((a, b) => a + b.qty, 0) + (f === 'all' ? 141 : 0), filters,
+      catTabs, catItems, catSel: cs, catKind: { appellations: 'Appellation', domaines: 'Domaine', cuvees: 'Cuvée' }[S.catTab],
+      catIsApp: S.catTab === 'appellations', catIsDom: S.catTab === 'domaines', catIsCuv: S.catTab === 'cuvees',
+      catRel, catRelN: catRel.length, catRelLabel: catRel.length > 1 ? 'cuvées en cave' : 'cuvée en cave', catStock: catRel.reduce((a, r) => a + r.qty, 0), cuvB,
+      cuvColors: WT.WINES.map(w => ({ w, bd: cuvB.w && cuvB.w.key === w.key ? 'var(--wt-accent)' : 'var(--wt-line2)', bg: cuvB.w && cuvB.w.key === w.key ? 'var(--wt-accent-tint)' : 'var(--wt-card)', fw: cuvB.w && cuvB.w.key === w.key ? '600' : '400' })),
+      delRefused: !!S.delRefused, tryDelete: () => this.setState({ delRefused: true }), saveCat: () => { this.back(); setTimeout(() => this.flash('Fiche enregistrée'), 0); }, catAdd: S.catTab === 'appellations' ? 'Nouvelle appellation' : S.catTab === 'domaines' ? 'Nouveau domaine' : 'Nouvelle cuvée',
+      nfcConsume: () => this.startNfc('consume'), nfcIdentify: () => this.startNfc('identify'), nfcIntake: () => this.startNfc('intake'), nfcSearch: () => this.startNfc('search'),
+      nfcPurpose: purposes[n.purpose], nfcFromComputer: n.origin === 'computer', nfcFromPhone: n.origin !== 'computer',
+      nfcWait: n.st === 'wait', nfcRead: n.st === 'read', nfcErr: n.st === 'error',
+      simOk: () => this.simulate('ok'), simUnknown: () => this.simulate('unknown'), simAlready: () => this.simulate('already'), simFail: () => this.simulate('fail'), simCancel: () => this.simulate('cancel'),
+      retry: () => this.setState(s => ({ nfc: { ...s.nfc, st: 'wait' } })),
+      errUnknown: S.errKind === 'unknown', errAlready: S.errKind === 'already',
+      commentOpen: S.commentOpen, commentClosed: !S.commentOpen, openComment: () => this.setState({ commentOpen: true }),
+      comment: S.comment, onComment: e => this.setState({ comment: e.target.value }),
+      saveComment: () => { this.setState({ commentOpen: false }); this.flash('Commentaire enregistré'); },
+      doneConsumed: () => this.setState({ screen: 'home', prev: [] }),
+      tag: S.tag, hasTag: !!S.tag, noTag: !S.tag, caseN: S.caseN, caseLabel: S.caseN > 1 ? S.caseN + 'e bouteille de la caisse' : 'Nouvelle bouteille',
+      saveContinue: () => { this.setState(s => ({ caseN: s.caseN + 1, tag: '' })); this.flash('Bouteille enregistrée · même cuvée, tag suivant'); },
+      saveForm: () => { this.back(); setTimeout(() => this.flash('Bouteille enregistrée'), 0); },
+      newBottle: () => this.nav('form', { tag: '', caseN: 1 }),
+      fromModel: () => this.nav('form', { tag: '', caseN: 1 }),
+      consumeNoTag: () => { this.back(); setTimeout(() => this.flash('Bouteille consommée'), 0); },
+      filterGarde: () => this.nav('inventory', { invFilter: 'garde' }),
+      filterColor: () => this.nav('inventory', { invFilter: 'rouge' }),
+      aiClaude: S.aiChoice === 'claude', aiGpt: S.aiChoice === 'chatgpt',
+      pickClaude: () => this.setState({ aiChoice: 'claude' }), pickGpt: () => this.setState({ aiChoice: 'chatgpt' }),
+      restoreAsk: S.restoreAsk, askRestore: () => this.setState({ restoreAsk: true }), cancelRestore: () => this.setState({ restoreAsk: false }),
+      confirmRestore: () => { this.setState({ restoreAsk: false }); this.flash('Cave restaurée'); },
+      backup: () => this.flash('Fichier winetap-2026-10-18.db enregistré'),
+      askAi: () => this.flash('Ouverture de Claude dans le navigateur'),
+      authOpen: S.authOpen, showAuth: () => this.setState({ authOpen: true }),
+      allowAuth: () => { this.setState({ authOpen: false }); this.flash('Firefox sur macOS autorisé'); },
+      denyAuth: () => { this.setState({ authOpen: false }); this.flash('Connexion refusée'); },
+      conns, hasConns: conns.length > 0, noConns: conns.length === 0, revokeAll: () => { this.setState({ revoked: [0, 1, 2] }); this.flash('Toutes les connexions sont révoquées'); },
+      editComment: S.commentEdit, 
+    };
+  }
+}
+</script>
+</body>
+</html>

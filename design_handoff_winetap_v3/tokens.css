@@ -1,0 +1,70 @@
+/* WineTap v3 — variables de la charte (D-15). À importer une fois dans app.css. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+/* En production, embarquer les polices dans les ressources (le site fonctionne sans Internet). */
+
+:root {
+  /* Surfaces */
+  --wt-paper: #F6F1E7;      /* fond de page */
+  --wt-card: #FFFDF8;       /* cartes, champs, barre d'onglets */
+  --wt-card2: #EFE7D8;      /* fond secondaire, en-tête de table, segmenté */
+  --wt-line: #E4D9C6;       /* filets */
+  --wt-line2: #CDBFA6;      /* bordures de champs et boutons secondaires */
+  /* Encre */
+  --wt-ink: #2A1D15;
+  --wt-ink2: #5C4A3C;
+  --wt-ink3: #76624F;       /* légendes ; 5,1:1 sur papier */
+  /* Action */
+  --wt-accent: #7B1E2E;     /* bordeaux : boutons principaux, onglet actif */
+  --wt-on-accent: #FFFDF8;
+  --wt-accent-tint: #F3E3E1;
+  --wt-accent-ink: #7B1E2E; /* texte bordeaux sur fond clair */
+  /* États */
+  --wt-danger: #A8321F;  --wt-danger-tint: #F8E2DB;  /* garde dépassée, erreurs, déjà consommée, injoignable */
+  --wt-warn: #7F5300;    --wt-warn-tint: #F6E9C8;    /* garde cette année, tag inconnu, attente d'autorisation */
+  --wt-ok: #2F6B3A;      --wt-ok-tint: #E2EDD9;      /* en stock, tag lu, joignable */
+  --wt-shadow: 0 10px 30px rgba(42, 29, 21, 0.08);
+
+  /* Couleurs des vins (identiques dans les deux thèmes) */
+  --wine-rouge: #6E1A2B;
+  --wine-blanc: #E3C04F;
+  --wine-rose: #EC9AA8;
+  --wine-eff: #EFE0A0;
+  --wine-autre: #B5762A;
+  --wine-inconnue: transparent;
+
+  /* Typographie */
+  --font-serif: 'Newsreader', Georgia, serif;          /* titres, chiffres, commentaires (italique) */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif; /* interface */
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace; /* tags NFC, adresse */
+
+  /* Rayons */
+  --r-xs: 6px;  /* pastilles de table */
+  --r-sm: 8px;  /* champs et boutons ordinateur */
+  --r-md: 12px; /* cartes ordinateur */
+  --r-lg: 14px; /* champs téléphone */
+  --r-xl: 16px; /* boutons et cartes téléphone */
+  --r-sheet: 28px; /* feuilles du bas */
+  --r-pill: 999px;
+}
+
+[data-theme="sombre"] {
+  --wt-paper: #1A1411;
+  --wt-card: #241C17;
+  --wt-card2: #2F2520;
+  --wt-line: #3A2E27;
+  --wt-line2: #54443A;
+  --wt-ink: #F3EADB;
+  --wt-ink2: #CDBFAE;
+  --wt-ink3: #A8988A;
+  --wt-accent: #E09AA4;
+  --wt-on-accent: #1A1411;
+  --wt-accent-tint: rgba(224, 154, 164, 0.16);
+  --wt-accent-ink: #E9AEB6;
+  --wt-danger: #F1A097;  --wt-danger-tint: rgba(241, 160, 151, 0.14);
+  --wt-warn: #E6B868;    --wt-warn-tint: rgba(230, 184, 104, 0.14);
+  --wt-ok: #9CCB98;      --wt-ok-tint: rgba(156, 203, 152, 0.14);
+  --wt-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html, body { margin: 0; background: var(--wt-paper); color: var(--wt-ink); font-family: var(--font-sans); }
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--wt-accent); outline-offset: 2px; }

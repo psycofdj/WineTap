@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800"
+     font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0078D4"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#455A64"/>
+    </marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2E7D32"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#B85C00"/>
+    </marker>
+  </defs>
+  <rect width="1400" height="800" fill="#FFFFFF"/>
+  <text x="30" y="40" font-size="24" font-weight="700" fill="#1A1A1A">Lecture à distance — entrée en stock depuis un ordinateur</text>
+  <text x="30" y="64" font-size="14" fill="#555">L'ordinateur demande une lecture ; le téléphone affiche N-E4 et lit le tag ; le résultat revient par le canal d'événements déjà ouvert</text>
+
+  <!-- Participants -->
+  <g font-size="14" font-weight="700" text-anchor="middle" fill="#1A1A1A">
+    <rect x="70" y="90" width="240" height="50" rx="10" fill="#EEF5FC" stroke="#0078D4" stroke-width="2"/>
+    <text x="190" y="112">Site, sur l'ordinateur</text>
+    <text x="190" y="130" font-size="11.5" font-weight="400" fill="#555">Formulaire de bouteille, lireTag</text>
+    <rect x="450" y="90" width="260" height="50" rx="10" fill="#EEF5FC" stroke="#0078D4" stroke-width="2"/>
+    <text x="580" y="112">Téléphone — serveur</text>
+    <text x="580" y="130" font-size="11.5" font-weight="400" fill="#555">/api/scan, RemoteScan, EventHub</text>
+    <rect x="830" y="90" width="260" height="50" rx="10" fill="#EEF5FC" stroke="#0078D4" stroke-width="2"/>
+    <text x="960" y="112">Téléphone — natif</text>
+    <text x="960" y="130" font-size="11.5" font-weight="400" fill="#555">ReadingController, N-E4, NfcService</text>
+    <rect x="1170" y="90" width="180" height="50" rx="10" fill="#F1F8F1" stroke="#2E7D32" stroke-width="2"/>
+    <text x="1260" y="121">Tag NFC</text>
+  </g>
+  <g stroke="#90A4AE" stroke-width="1.5" stroke-dasharray="5 5">
+    <line x1="190" y1="140" x2="190" y2="770"/>
+    <line x1="580" y1="140" x2="580" y2="770"/>
+    <line x1="960" y1="140" x2="960" y2="770"/>
+    <line x1="1260" y1="140" x2="1260" y2="770"/>
+  </g>
+
+  <g font-size="13" fill="#1A1A1A">
+    <!-- 0 canal ouvert -->
+    <rect x="186" y="165" width="398" height="26" rx="6" fill="#FFF4E5" stroke="#B85C00" stroke-width="1.4"/>
+    <text x="200" y="183" fill="#7A3E00">0. GET /api/events — canal ouvert depuis le chargement du site</text>
+
+    <!-- 1 -->
+    <line x1="190" y1="235" x2="576" y2="235" stroke="#0078D4" stroke-width="2.2" marker-end="url(#ab)"/>
+    <text x="210" y="227">1. POST /api/scan {"objet": "entree"}</text>
+    <line x1="580" y1="265" x2="194" y2="265" stroke="#455A64" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ag)"/>
+    <text x="210" y="257" fill="#555">202 {"id"} (409 « occupe » si une lecture est en cours)</text>
+    <rect x="30" y="280" width="320" height="40" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="44" y="305">Le site affiche « En attente du tag »</text>
+
+    <!-- 2 -->
+    <line x1="580" y1="345" x2="956" y2="345" stroke="#0078D4" stroke-width="2.2" marker-end="url(#ab)"/>
+    <text x="600" y="337">2. Nouvelle demande (flux RemoteScan.changes)</text>
+    <rect x="975" y="360" width="370" height="58" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="988" y="382">N-E4 par-dessus la WebView : « Demandé par</text>
+    <text x="988" y="402">un ordinateur · Firefox sur macOS » ; lecture lancée</text>
+
+    <!-- 3 -->
+    <line x1="1260" y1="465" x2="964" y2="465" stroke="#2E7D32" stroke-width="2.5" marker-end="url(#av)"/>
+    <text x="1000" y="457">3. UID lu (04A32BFF)</text>
+    <rect x="975" y="475" width="290" height="36" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="988" y="498">« Tag lu » 0,9 s, puis N-E4 se ferme</text>
+
+    <!-- 4 -->
+    <line x1="960" y1="545" x2="584" y2="545" stroke="#0078D4" stroke-width="2.2" marker-end="url(#ab)"/>
+    <text x="600" y="537">4. complete(id, tag) ; « Tag envoyé à l'ordinateur »</text>
+
+    <!-- 5 -->
+    <line x1="580" y1="590" x2="194" y2="590" stroke="#B85C00" stroke-width="2.2" marker-end="url(#ao)"/>
+    <text x="210" y="582" fill="#7A3E00">5. event: scan {"id", "statut": "lu", "tag_id": "04A32BFF"}</text>
+
+    <!-- 6 -->
+    <rect x="30" y="610" width="320" height="40" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="44" y="635">Champ du tag rempli ; l'utilisateur valide</text>
+    <line x1="190" y1="680" x2="576" y2="680" stroke="#0078D4" stroke-width="2.2" marker-end="url(#ab)"/>
+    <text x="210" y="672">6. POST /api/bouteilles {cuvee_id, millesime, tag_id…}</text>
+    <line x1="580" y1="720" x2="194" y2="720" stroke="#B85C00" stroke-width="2.2" marker-end="url(#ao)"/>
+    <text x="210" y="712" fill="#7A3E00">7. event: donnees {"quoi": ["bouteilles"]} à tous les clients</text>
+
+    <!-- annulation -->
+    <rect x="620" y="610" width="340" height="80" rx="8" fill="none" stroke="#78909C" stroke-width="1.4" stroke-dasharray="4 3"/>
+    <text x="632" y="630" font-size="12" font-weight="700" fill="#455A64">Annulation, à tout moment</text>
+    <text x="632" y="652" font-size="12.5">Ordinateur : DELETE /api/scan/&lt;id&gt;, N-E4 se ferme</text>
+    <text x="632" y="674" font-size="12.5">Téléphone : « Annuler », event scan « annule »</text>
+  </g>
+</svg>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="winetap-data.js"></script>
+<style>body{margin:0;background:#E9E2D4}a{color:#7B1E2E}a:hover{color:#5A1420}</style>
+</helmet>
+<div style="--wt-paper:#F6F1E7;--wt-card:#FFFDF8;--wt-card2:#EFE7D8;--wt-line:#E4D9C6;--wt-line2:#CDBFA6;--wt-ink:#2A1D15;--wt-ink2:#5C4A3C;--wt-ink3:#76624F;--wt-accent:#7B1E2E;--wt-on-accent:#FFFDF8;--wt-accent-tint:#F3E3E1;--wt-accent-ink:#7B1E2E;--wt-danger:#A8321F;--wt-danger-tint:#F8E2DB;--wt-warn:#7F5300;--wt-warn-tint:#F6E9C8;--wt-ok:#2F6B3A;--wt-ok-tint:#E2EDD9;padding:64px;display:flex;flex-direction:column;gap:80px;font-family:'IBM Plex Sans',sans-serif;color:#2A1D15">
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#76624F">WineTap v3</span><h1 style="margin:0;font-family:'Newsreader',serif;font-size:56px;font-weight:500;letter-spacing:-0.01em">Charte graphique</h1><p style="margin:0;font-size:17px;color:#5C4A3C;max-width:760px">Un carnet de cave : papier crème, encre brune, bordeaux pour l'action. Newsreader pour les titres et les chiffres, IBM Plex Sans pour l'interface, IBM Plex Mono pour les tags.</p></div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,300px));gap:20px">
+      <div style="background:#FFFDF8;border:1px solid #E4D9C6;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">Couleurs</span>
+        <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="8"><div style="display:flex;align-items:center;gap:10px;font-size:13.5px"><span style="width:32px;height:32px;flex:none;border-radius:8px;background:{{ s.hex }};box-shadow:inset 0 0 0 1px rgba(42,29,21,0.12)"></span><span style="flex:1">{{ s.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#76624F">{{ s.hex }}</span></div></sc-for>
+      </div>
+      <div style="background:#FFFDF8;border:1px solid #E4D9C6;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">Couleurs des vins</span>
+        <span style="font-size:13px;color:#5C4A3C">La forme du verre et le libellé doublent toujours la couleur.</span>
+        <sc-for list="{{ wines }}" as="w" hint-placeholder-count="6"><div style="display:flex;align-items:center;gap:10px;font-size:14px"><svg viewBox="0 0 20 20" width="30" height="30" style="flex:none"><path d="{{ w.liquid }}" style="fill:{{ w.fill }}"></path><path d="{{ w.glass }}" style="fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round"></path></svg><span style="flex:1;font-weight:500">{{ w.label }}</span><span style="font-size:12px;color:#76624F">{{ w.shape }}</span></div></sc-for>
+      </div>
+      <div style="background:#FFFDF8;border:1px solid #E4D9C6;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">États</span>
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#76624F">Garde · bouteille</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:600"><span style="background:#F8E2DB;color:#A8321F;border-radius:6px;padding:3px 8px">2025 dépassée</span><span style="background:#F6E9C8;color:#7F5300;border-radius:6px;padding:3px 8px">2026 cette année</span><span style="color:#5C4A3C;padding:3px 8px;border:1px solid #E4D9C6;border-radius:6px;font-weight:500">2045</span><span style="background:#E2EDD9;color:#2F6B3A;border-radius:999px;padding:3px 10px">En stock</span><span style="background:#EFE7D8;color:#5C4A3C;border-radius:999px;padding:3px 10px">Consommée</span></div>
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#76624F">Lecture NFC</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:600"><span style="background:#F3E3E1;color:#7B1E2E;border-radius:999px;padding:3px 10px">En attente du tag</span><span style="background:#E2EDD9;color:#2F6B3A;border-radius:999px;padding:3px 10px">Tag lu</span><span style="background:#F6E9C8;color:#7F5300;border-radius:999px;padding:3px 10px">Tag inconnu</span><span style="background:#F8E2DB;color:#A8321F;border-radius:999px;padding:3px 10px">Déjà consommée</span><span style="background:#EFE7D8;color:#5C4A3C;border-radius:999px;padding:3px 10px">Lecture annulée</span></div>
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#76624F">Connexion</span>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13.5px"><span style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:99px;background:#2F6B3A"></span>Téléphone joignable</span><span style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:99px;background:#A8321F"></span>Téléphone injoignable</span><span style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:99px;background:#7F5300"></span>En attente d'autorisation</span></div>
+      </div>
+      <div style="background:#FFFDF8;border:1px solid #E4D9C6;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-family:'Newsreader',serif;font-size:22px;font-weight:500">Typographie</span>
+        <span style="font-family:'Newsreader',serif;font-size:56px;line-height:1;font-weight:500">182</span>
+        <span style="font-family:'Newsreader',serif;font-size:30px;line-height:1.1;font-weight:500">Les Pucelles</span>
+        <span style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#5C4A3C">« Superbe, encore jeune »</span>
+        <span style="font-size:16px">Domaine Leflaive · Puligny-Montrachet</span>
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#76624F">Catalogue</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;letter-spacing:0.05em">04A32BFF</span>
+        <div style="display:flex;gap:8px;margin-top:6px"><span style="height:44px;border-radius:12px;background:#7B1E2E;color:#FFFDF8;display:flex;align-items:center;padding:0 14px;font-size:14px;font-weight:600">Consommer</span><span style="height:44px;border-radius:12px;border:1px solid #CDBFA6;display:flex;align-items:center;padding:0 14px;font-size:14px;font-weight:600">Annuler</span></div>
+      </div>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <h2 style="margin:0;font-family:'Newsreader',serif;font-size:40px;font-weight:500">Téléphone</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:56px 40px">
+      <sc-for list="{{ phones }}" as="p" hint-placeholder-count="8">
+      <div style="display:flex;flex-direction:column;gap:12px"><span style="display:flex;gap:8px;align-items:baseline"><b style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7B1E2E">{{ p.id }}</b><span style="font-size:15px;font-weight:500">{{ p.label }}</span></span><dc-import name="WineTap-Telephone" start="{{ p.start }}" bare="{{ true }}" theme="{{ theme }}" hint-size="390px,844px"></dc-import></div>
+      </sc-for>
+    </div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:28px">
+    <h2 style="margin:0;font-family:'Newsreader',serif;font-size:40px;font-weight:500">Ordinateur</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:56px 48px">
+      <sc-for list="{{ desks }}" as="d" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:12px"><span style="display:flex;gap:8px;align-items:baseline"><b style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#7B1E2E">{{ d.id }}</b><span style="font-size:15px;font-weight:500">{{ d.label }}</span></span><dc-import name="WineTap-Ordinateur" start="{{ d.start }}" theme="{{ theme }}" keyboard="{{ false }}" hint-size="1280px,800px"></dc-import></div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clair&quot;,&quot;sombre&quot;],&quot;default&quot;:&quot;clair&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const WT = window.WT || { WINES: [] };
+    return {
+      theme: this.props.theme || 'clair',
+      wines: WT.WINES,
+      swatches: [['Papier', '#F6F1E7'], ['Carte', '#FFFDF8'], ['Filet', '#E4D9C6'], ['Encre', '#2A1D15'], ['Encre secondaire', '#5C4A3C'], ['Bordeaux (action)', '#7B1E2E'], ['Dépassée', '#A8321F'], ['Cette année', '#7F5300'], ['En stock', '#2F6B3A']].map(([name, hex]) => ({ name, hex })),
+      phones: [
+        ['E-01', 'Accueil', 'home'], ['N-E4', 'Lecture NFC · consommer', 'nfc'], ['N-E4', 'Lecture NFC · demandée par un ordinateur', 'nfcComputer'], ['N-E4', 'Lecture NFC · tag lu', 'nfcRead'],
+        ['E-02', 'Bouteille consommée', 'consumed'], ['E-02', 'Commentaire de dégustation', 'commentOpen'], ['E-02', 'Tag inconnu', 'consumeError'], ['E-02', 'Déjà consommée', 'alreadyConsumed'],
+        ['E-03', 'Identification · fiche', 'bottle'], ['E-04', 'Inventaire', 'inventory'], ['E-04', 'Inventaire vide', 'inventoryEmpty'], ['E-04', 'Détail d\u2019une bouteille', 'bottleModal'], ['E-05', 'Entrée en stock', 'form'], ['E-05', 'Entrée en stock · tag lu', 'formTag'], ['E-05', 'Champ en erreur', 'formError'],
+        ['E-06', 'Catalogue · cuvées', 'catalogue'], ['E-06', 'Appellations', 'catalogueApp'], ['E-06', 'Fiche appellation · carte', 'catForm'], ['E-06', 'Domaines', 'catalogueDom'], ['E-06', 'Fiche domaine', 'catFormDom'], ['E-07', 'Tableau de bord', 'dashboard'], ['E-08', 'Dégustations', 'history'],
+        ['E-09', 'Réglages', 'settings'], ['E-09', 'Restauration refusée', 'restoreError'], ['N-E1', 'Adresse de connexion', 'address'], ['N-E1', 'Pas de réseau local', 'addressNone'], ['N-E2', 'Demande d\u2019autorisation', 'authReq'], ['N-E3', 'Connexions autorisées', 'connections'],
+      ].map(([id, label, start]) => ({ id, label, start })),
+      desks: [
+        ['E-04', 'Inventaire', 'inventory'], ['E-04', 'Inventaire vide', 'inventoryEmpty'], ['E-04', 'Détail d\u2019une bouteille', 'bottleModal'], ['E-05', 'Formulaire de bouteille', 'inventoryPanel'], ['E-05', 'Champs en erreur', 'formError'], ['E-05', 'Attente du tag (scan demandé au téléphone)', 'scanWait'], ['E-05', 'Tag déjà associé', 'scanUsed'], ['E-07', 'Tableau de bord', 'dashboard'],
+        ['E-06', 'Catalogue · cuvées', 'catalogue'], ['E-06', 'Appellations · carte', 'catalogueApp'], ['E-06', 'Domaines', 'catalogueDom'], ['E-08', 'Dégustations', 'history'], ['E-09', 'Paramètres', 'settings'], ['E-09', 'Restauration refusée', 'restoreError'], ['E-10', 'En attente d\u2019autorisation', 'waitingAuth'], ['E-11', 'Téléphone injoignable', 'unreachable'],
+      ].map(([id, label, start]) => ({ id, label, start })),
+    };
+  }
+}
+</script>
+</body>
+</html>

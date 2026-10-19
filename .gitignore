@@ -5,14 +5,14 @@
 
 # OS
 .DS_Store
-/main
-/winetap
-/cfru5102_read
-/nfc_seed
-/server
+
+# Bases locales
 /winetap.db*
-/manager
 
 # Mobile signing
 mobile/android/key.properties
 mobile/ios/Flutter/Local.xcconfig
+
+# Site embarqué, construit par scripts/build_web.sh
+/mobile/assets/site/
+/mobile/test/native/rendus/

@@ -1,210 +1,80 @@
 import 'dart:developer' as dev;
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'l10n/strings.dart';
-import 'providers/intake_provider.dart';
-import 'providers/scan_provider.dart';
-import 'providers/server_provider.dart';
-import 'screens/consume_screen.dart';
-import 'screens/intake_screen.dart';
-import 'server/consume_tracker.dart';
+import 'native/app_shell.dart';
+import 'native/network.dart';
+import 'native/prefs_store.dart';
+import 'native/reading.dart';
+import 'server/api/context.dart';
 import 'server/database.dart';
+import 'server/db_holder.dart';
 import 'server/dev_seed.dart';
-import 'server/scan_coordinator.dart';
-import 'server/server.dart';
+import 'server/events.dart';
+import 'server/preferences.dart';
+import 'server/remote_scan.dart';
 import 'server/server_lifecycle.dart';
-import 'services/discovery_service.dart';
+import 'server/sessions.dart';
 import 'services/nfc_service.dart';
+
+/// Reads a file of the built site from the app's assets (assets/site/).
+Future<List<int>?> loadSite(String path) async {
+  try {
+    final data = await rootBundle.load('assets/site/$path');
+    return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  } catch (_) {
+    return null;
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Database
+  // 1. Base (schéma inchangé, C-01). Une requête force l'ouverture du fichier.
   final db = AppDatabase();
-
-  // 2. Scan coordinator & consume tracker
-  final coordinator = ScanCoordinator();
-  final consumeTracker = ConsumeTracker();
-
-  // 3. NFC — constructor starts a persistent session that claims
-  //    foreground dispatch (suppresses Android's default tag dialog).
-  final nfc = NfcService();
-
-  // 4. Resolve database file path for backup/restore.
-  //    Force a trivial query so Drift's lazy connection materializes the file.
   await db.customSelect('SELECT 1').get();
-
-  // Dev-only: auto-populate the bottles table on a dev build when it is empty.
-  // Awaited so the UI sees the seeded data on first paint; failures are logged
-  // and swallowed so a broken seeder can never crash startup.
   try {
     await seedDevDataIfNeeded(db);
   } catch (e) {
     dev.log('seedDevDataIfNeeded failed (non-fatal): $e', name: 'main');
   }
-
-  final docsDir = await getApplicationDocumentsDirectory();
-  final dbFile = File('${docsDir.path}/winetap.sqlite');
-  dev.log(
-    'dbFile path: ${dbFile.path}, exists: ${await dbFile.exists()}',
-    name: 'main',
+  final docs = await getApplicationDocumentsDirectory();
+  final dbs = DbHolder(
+    db,
+    File('${docs.path}/winetap.sqlite'),
+    () => AppDatabase(),
   );
 
-  // Restart callback: exit the process after a successful restore.
-  // The app restarts fresh on next launch with the restored database.
-  Future<void> restartDb() async {
-    dev.log('Database restored — exiting for clean restart', name: 'main');
-    exit(0);
-  }
-
-  // 4. HTTP server — running before UI renders
-  late final HttpServer server;
-  try {
-    server = await startServer(
-      db,
-      coordinator,
-      dbFile,
-      restartDb,
-      consumeTracker,
-      nfcService: nfc,
-    );
-    dev.log('Server started on port ${server.port}', name: 'main');
-  } catch (e) {
-    dev.log('Server failed to start: $e', name: 'main');
-    rethrow;
-  }
-
-  // 4. mDNS registration (non-fatal — continue without it)
-  final discovery = DiscoveryService();
-  try {
-    await discovery.register(server.port);
-    dev.log(
-      'mDNS registered _winetap._tcp on port ${server.port}',
-      name: 'main',
-    );
-  } catch (e) {
-    dev.log('mDNS registration failed (non-fatal): $e', name: 'main');
-  }
-
-  // 5. Lifecycle manager — restarts server + mDNS + NFC on foreground resume
-  final lifecycle = ServerLifecycle(
-    db: db,
-    coordinator: coordinator,
-    dbFile: dbFile,
-    restartDb: restartDb,
-    consumeTracker: consumeTracker,
-    nfcService: nfc,
-    discovery: discovery,
-    initialServer: server,
-  );
-
-  // 6. UI
-  runApp(
-    MultiProvider(
-      providers: [
-        Provider<AppDatabase>.value(value: db),
-        Provider<ScanCoordinator>.value(value: coordinator),
-        Provider<NfcService>.value(value: nfc),
-        Provider<ServerLifecycle>.value(value: lifecycle),
-        ChangeNotifierProvider(create: (_) => ServerProvider(server.port)),
-        ChangeNotifierProvider(
-          create: (ctx) => ScanProvider(
-            db,
-            consumeTracker,
-            nfcService: ctx.read<NfcService>(),
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (ctx) => IntakeProvider(
-            coordinator,
-            nfcService: ctx.read<NfcService>(),
-            scanProvider: ctx.read<ScanProvider>(),
-          ),
-        ),
-      ],
-      child: const WineTapApp(),
+  // 2. État hors de la base : sessions autorisées, réglages.
+  final store = SharedPrefsStore(await SharedPreferences.getInstance());
+  final sessions = SessionStore(store)..load();
+  final events = EventHub(isAuthorized: sessions.isAuthorized);
+  final ctx = ApiContext(
+    dbs: dbs,
+    sessions: sessions,
+    events: events,
+    scan: RemoteScan(events),
+    settings: Settings(store),
+    phone: PhoneInfo(
+      name: Platform.isIOS ? 'iPhone' : 'Android',
+      localAddress: localAddress,
     ),
   );
-}
 
-class WineTapApp extends StatelessWidget {
-  const WineTapApp({super.key});
+  // 3. NFC (session permanente sur Android) et serveur, avant l'interface.
+  final nfc = NfcService();
+  final lifecycle = ServerLifecycle(ctx, loadSite: loadSite, nfcService: nfc);
+  await lifecycle.start();
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: S.appTitle,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF722F37),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  final int _currentIndex = 0;
-
-  static const _screens = [ConsumeScreen(), IntakeScreen()];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      dev.log('App resumed — restarting server, mDNS, and NFC', name: 'main');
-      context.read<ServerLifecycle>().restart();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Auto-switch tabs based on IntakeProvider state (FR12)
-    final intake = context.watch<IntakeProvider>();
-    final intakeActive = intake.shouldShowIntakeScreen;
-    // Derive tab index: intake takes over when active, returns home when done
-    final effectiveIndex = intakeActive ? 1 : _currentIndex;
-
-    return Scaffold(
-      body: IndexedStack(index: effectiveIndex, children: _screens),
-      /*
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: effectiveIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.nfc),
-            label: S.consumeButton,
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2),
-            label: S.intake,
-          ),
-        ],
-      ),
-      */
-    );
-  }
+  runApp(
+    WineTapApp(
+      ctx: ctx,
+      reading: ReadingController(nfc, ctx.scan),
+      lifecycle: lifecycle,
+    ),
+  );
 }

@@ -50,11 +50,12 @@
 	<key>NFCReaderUsageDescription</key>
 	<string>WineTap utilise le NFC pour lire l'identifiant unique des tags collés sur vos bouteilles. Par exemple, lors de l'entrée en cave, le téléphone scanne le tag NFC pour associer la bouteille à votre inventaire.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>WineTap héberge un serveur local sur votre téléphone pour gérer l'inventaire de votre cave. L'application s'annonce sur le réseau local via le protocole Bonjour afin que l'application de bureau puisse la découvrir automatiquement. Depuis l'ordinateur vous pouvez alors parcourir votre cave, enregistrer de nouvelles bouteilles ou déclencher un scan NFC sur le téléphone.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_winetap._tcp</string>
-	</array>
+	<string>WineTap sert votre cave sur le réseau local : depuis un ordinateur du même Wi-Fi, vous l'ouvrez dans un navigateur à l'adresse affichée par l'application, après l'avoir autorisé sur le téléphone.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
