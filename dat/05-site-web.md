@@ -28,7 +28,7 @@ l'application et dans le navigateur d'un ordinateur.
 | Vérification | `svelte-check` sur des types JSDoc (`jsconfig.json`) |
 | Polices | Newsreader (titres, chiffres), IBM Plex Sans (interface), IBM Plex Mono (tags), sous-ensemble latin, empaquetées par `@fontsource` |
 | Icônes | Tracés Lucide recopiés dans le code |
-| Charte | Jetons CSS de la maquette (`tokens.css`) : papier crème, encre brune, bordeaux pour l'action ; thèmes clair et sombre selon le système |
+| Charte | Jetons CSS de la maquette (`tokens.css`) : papier crème, encre brune, bordeaux pour l'action ; thèmes clair et sombre : celui du système, ou celui choisi par l'interrupteur « Thème sombre » des réglages, propre à chaque appareil |
 
 Le site ne fait **aucun appel à Internet** à l'exécution : polices, icônes et images sont dans les
 fichiers construits. `scripts/build_web.sh` construit le site (`npm ci` si besoin, puis
@@ -69,7 +69,7 @@ téléphone et du navigateur revient à l'écran précédent.
 | E-06 | Catalogue | Les deux | Appellations (avec carte, affichée en grand d'un clic), domaines, cuvées : listes, fiches, formulaires, complétion des noms, « Demander à l'IA » ; suppression refusée avec un message quand l'objet est utilisé |
 | E-07 | Tableau de bord | Les deux | Total et alertes de garde ; anneau des couleurs animé (survol ou toucher d'une part : son détail au centre) ; régions, chaque barre découpée par couleur ; histogrammes des consommations et des achats (entrées en stock, avec le montant) des 12 derniers mois, empilés par couleur. Un clic sur une couleur ou une région ouvre l'inventaire filtré. Le tableau de bord charge aussi les bouteilles consommées |
 | E-08 | Dégustations | Les deux | Bouteilles consommées, de la plus récente à la plus ancienne, par pages de 20 ; commentaire modifiable |
-| E-09 | Réglages, Paramètres | Les deux | Choix de l'assistant IA ; sauvegarde et restauration ; dans l'application, accès aux écrans natifs N-E1 et N-E3 |
+| E-09 | Réglages, Paramètres | Les deux | Interrupteur « Thème sombre » (propre à l'appareil, avec retour au thème du système) ; choix de l'assistant IA ; sauvegarde et restauration ; dans l'application, accès aux écrans natifs N-E1 et N-E3 |
 | E-10 | En attente d'autorisation | Ordinateur | Consigne de regarder le téléphone, puis refus éventuel |
 | E-11 | Téléphone injoignable | Ordinateur | Application fermée ou en arrière-plan ; consigne pour reprendre |
 
@@ -95,8 +95,8 @@ révocation ferme le canal et ramène le navigateur à E-10.
 ## 5.5 État et événements
 
 Le site tient en mémoire des magasins d'état (catalogue, cave, réglages, lecture à distance,
-dégustations), chargés depuis l'API au démarrage. Il ne garde rien dans le stockage du
-navigateur.
+dégustations), chargés depuis l'API au démarrage. Il ne garde dans le stockage du navigateur
+que le thème choisi sur cet appareil (clé `wt.theme`), sans lequel il suit le système.
 
 Chaque modification, d'où qu'elle vienne, fait émettre au serveur l'événement `donnees`, avec la
 liste de ce qui a changé (`bouteilles`, `catalogue`, `reglages`). Chaque navigateur ouvert, et la

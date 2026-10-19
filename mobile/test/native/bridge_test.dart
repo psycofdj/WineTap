@@ -25,6 +25,7 @@ void main() {
   late List<String> replies;
   late List<MethodCall> calls;
   Object? picked;
+  late List<String> themes;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('winetap-bridge');
@@ -35,12 +36,14 @@ void main() {
     replies = [];
     calls = [];
     picked = null;
+    themes = [];
     final events = EventHub(isAuthorized: (_) => true);
     bridge = Bridge(
       reading: ReadingController(FakeNfc(), RemoteScan(events)),
       dbs: DbHolder(db, file, open),
       reply: (js) async => replies.add(js),
       openNative: (_) {},
+      setTheme: themes.add,
     );
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
@@ -82,6 +85,12 @@ void main() {
     final bytes = args['bytes'] as Uint8List;
     expect(String.fromCharCodes(bytes.sublist(0, 15)), 'SQLite format 3');
     expect(args['name'], r['nom']);
+  });
+
+  test('setTheme passes the theme chosen in the site to the app', () async {
+    expect(await send('setTheme', ['sombre']), true);
+    expect(await send('setTheme', []), true);
+    expect(themes, ['sombre', 'systeme']);
   });
 
   test('unknown method', () async {

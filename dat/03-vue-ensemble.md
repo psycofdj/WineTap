@@ -35,8 +35,9 @@ Le système compte une application, un site qu'elle embarque, et aucun serveur.
 3. **Un ordinateur** du même réseau ouvre `http://<adresse du téléphone>:8080`. Le site y prend le
    format ordinateur. Tant que le téléphone n'a pas autorisé ce navigateur, l'API ne lui répond
    pas.
-4. **Toute donnée vit sur le téléphone.** Le site ne garde rien dans le navigateur : il lit et
-   écrit par l'API, et un canal d'événements le prévient des modifications faites ailleurs.
+4. **Toute donnée vit sur le téléphone.** Le site ne garde dans le navigateur que le thème choisi
+   sur cet appareil : il lit et écrit tout le reste par l'API, et un canal d'événements le prévient
+   des modifications faites ailleurs.
 
 Autour, trois services externes, qui ne voient jamais la base : **GitHub** (code, CI, releases),
 **Google Play** et **App Store Connect** (distribution de l'application). Le site ouvre aussi

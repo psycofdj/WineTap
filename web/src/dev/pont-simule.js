@@ -60,5 +60,9 @@ export function installerPont() {
     openExternal(url) {
       window.open(url, '_blank', 'noopener');
     },
+    setTheme(theme) {
+      // Dans l'application, les écrans natifs suivent ce thème.
+      console.info(`[pont simulé] thème des écrans natifs : ${theme}`);
+    },
   };
 }

@@ -166,6 +166,7 @@ Dans la WebView, l'application expose `window.winetapBridge` :
 | `pickFile()` → `Promise<{ nom, base64 } \| { annule: true }>` | Choisit un fichier avec le sélecteur du système : fichier de restauration, carte d'appellation |
 | `openNative(ecran)` | Ouvre un écran natif : `adresse` (N-E1) ou `connexions` (N-E3) |
 | `openExternal(url)` | Ouvre une adresse dans le navigateur du téléphone (assistant IA) |
+| `setTheme(theme)` | Thème des écrans natifs : `clair`, `sombre` ou `systeme`. Le site l'envoie au démarrage et à chaque changement ; l'application le garde pour son prochain lancement |
 
 Le site détecte l'application par la présence de `window.winetapBridge`. Dans l'application, le pont
 est injecté par le serveur dans `index.html` : la WebView ouvre `/?jeton=<secret>`, qui pose le

@@ -17,7 +17,14 @@ import 'nfc_screen.dart';
 import 'reading.dart';
 import 'theme.dart';
 
-class WineTapApp extends StatelessWidget {
+/// Theme mode for a theme chosen in the site: 'clair', 'sombre' or 'systeme'.
+ThemeMode themeModeOf(String theme) => switch (theme) {
+  'clair' => ThemeMode.light,
+  'sombre' => ThemeMode.dark,
+  _ => ThemeMode.system,
+};
+
+class WineTapApp extends StatefulWidget {
   const WineTapApp({
     super.key,
     required this.ctx,
@@ -30,13 +37,33 @@ class WineTapApp extends StatelessWidget {
   final ServerLifecycle lifecycle;
 
   @override
+  State<WineTapApp> createState() => _WineTapAppState();
+}
+
+class _WineTapAppState extends State<WineTapApp> {
+  // Thème retenu au dernier lancement, puis celui que le site envoie par le pont.
+  late ThemeMode _mode = themeModeOf(widget.ctx.settings.theme);
+
+  void _setTheme(String theme) {
+    widget.ctx.settings.setTheme(theme);
+    final mode = themeModeOf(theme);
+    if (mode != _mode) setState(() => _mode = mode);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'WineTap',
       debugShowCheckedModeBanner: false,
       theme: winetapTheme(Brightness.light),
       darkTheme: winetapTheme(Brightness.dark),
-      home: AppShell(ctx: ctx, reading: reading, lifecycle: lifecycle),
+      themeMode: _mode,
+      home: AppShell(
+        ctx: widget.ctx,
+        reading: widget.reading,
+        lifecycle: widget.lifecycle,
+        onTheme: _setTheme,
+      ),
     );
   }
 }
@@ -49,11 +76,15 @@ class AppShell extends StatefulWidget {
     required this.ctx,
     required this.reading,
     required this.lifecycle,
+    this.onTheme,
   });
 
   final ApiContext ctx;
   final ReadingController reading;
   final ServerLifecycle lifecycle;
+
+  /// Theme chosen in the site ('clair', 'sombre', 'systeme').
+  final void Function(String theme)? onTheme;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -77,6 +108,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       dbs: ctx.dbs,
       reply: _runJs,
       openNative: _openNative,
+      setTheme: (t) => widget.onTheme?.call(t),
     );
     _web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
