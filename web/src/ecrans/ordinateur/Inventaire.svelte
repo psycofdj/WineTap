@@ -15,7 +15,8 @@
   import { vin, ORDRE_COULEURS } from '../../lib/vins.js';
   import { comparer, dateCourte, millesime, pluriel, accord, simplifier } from '../../lib/format.js';
   import Button from '../../components/Button.svelte';
-  import Checkbox from '../../components/Checkbox.svelte';
+  import Interrupteur from '../../components/Interrupteur.svelte';
+  import FiltreMultiple from '../../components/FiltreMultiple.svelte';
   import Icon from '../../components/Icon.svelte';
   import Kbd from '../../components/Kbd.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
@@ -35,7 +36,8 @@
     cuvee: '',
     domaine: '',
     appellation: '',
-    region: q.region ?? '',
+    /** @type {string[]} */
+    region: q.region ? [q.region] : [],
     millesime: '',
     garde: q.filtre === 'garde' ? 'a_boire' : (q.garde ?? ''),
   });
@@ -60,7 +62,7 @@
     if (f.cuvee && !simplifier(b.cuvee?.nom).includes(simplifier(f.cuvee))) return false;
     if (f.domaine && !simplifier(b.domaine?.nom).includes(simplifier(f.domaine))) return false;
     if (f.appellation && !simplifier(b.appellation?.nom ?? 'Sans appellation').includes(simplifier(f.appellation))) return false;
-    if (f.region && (b.region || 'Sans région') !== f.region) return false;
+    if (f.region.length && !f.region.includes(b.region || 'Sans région')) return false;
     if (f.millesime && !millesime(b.millesime).includes(f.millesime.trim().toUpperCase())) return false;
     if (f.garde === 'a_boire' && !gardeSignalee(b.garde)) return false;
     if (f.garde && f.garde !== 'a_boire' && b.garde !== f.garde) return false;
@@ -172,7 +174,7 @@
     if (i < 0 && cave.parTag(r.tag_id)) {
       // Masquée par un filtre : on les retire.
       recherche = '';
-      filtres = { couleur: '', cuvee: '', domaine: '', appellation: '', region: '', millesime: '', garde: '' };
+      filtres = { couleur: '', cuvee: '', domaine: '', appellation: '', region: [], millesime: '', garde: '' };
       await tick();
       i = lignes.findIndex((l) => l.bouteilles.some((b) => b.tag_id === r.tag_id));
     }
@@ -222,7 +224,7 @@
     }
   }
 
-  const colonnes = [
+  const COLONNES = [
     ['couleur', 'Couleur'],
     ['cuvee', 'Cuvée'],
     ['domaine', 'Domaine'],
@@ -234,6 +236,12 @@
     ['entree', 'Entrée'],
     ['consommee', 'Consommée'],
   ];
+  // La colonne « Consommée » n'a de sens qu'avec les bouteilles consommées.
+  const colonnes = $derived(consommees ? COLONNES : COLONNES.filter(([c]) => c !== 'consommee'));
+  // Tri sur la colonne retirée : retour au tri par défaut.
+  $effect(() => {
+    if (!consommees && tri.col === 'consommee') tri = { col: 'cuvee', sens: 1 };
+  });
 </script>
 
 <svelte:window onkeydown={clavier} />
@@ -260,8 +268,8 @@
           <input bind:this={champRecherche} type="search" placeholder="Rechercher" bind:value={recherche} aria-label="Rechercher" />
           <Kbd touche="/" discret />
         </label>
-        <Checkbox bind:coche={groupe} libelle="Regrouper les bouteilles identiques" />
-        <Checkbox bind:coche={consommees} libelle="Afficher les bouteilles consommées" />
+        <Interrupteur bind:actif={groupe} libelle="Regrouper" titre="Regrouper les bouteilles identiques" />
+        <Interrupteur bind:actif={consommees} libelle="Consommées" titre="Afficher les bouteilles consommées" />
         <div class="espace"></div>
         <span class="sel-lib">Sélection&nbsp;:</span>
         <Button taille="ord-xs" icone="copy" tailleIcone={14} kbd="M" disabled={!ligneSel} onclick={() => ouvrirPanneau({ type: 'nouvelle', modele: ligneSel.b })}
@@ -276,7 +284,7 @@
     </div>
 
     <div class="table-zone" bind:this={zoneTable}>
-      <div class="table" role="grid" aria-label="Bouteilles" aria-rowcount={lignes.length}>
+      <div class="table" class:avec-conso={consommees} role="grid" aria-label="Bouteilles" aria-rowcount={lignes.length}>
         <div class="ligne entete" role="row">
           <span></span>
           {#each colonnes as [col, lib] (col)}
@@ -304,12 +312,7 @@
           <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.cuvee} aria-label="Filtrer par cuvée" /></span>
           <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.domaine} aria-label="Filtrer par domaine" /></span>
           <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.appellation} aria-label="Filtrer par appellation" /></span>
-          <span class="f"
-            ><select class="filtre" bind:value={filtres.region} aria-label="Filtrer par région">
-              <option value="">Toutes</option>
-              {#each regions as r (r)}<option value={r}>{r}</option>{/each}
-            </select></span
-          >
+          <span class="f"><FiltreMultiple options={regions} bind:choix={filtres.region} pluriel="régions" label="Filtrer par région" /></span>
           <span class="f"><input class="filtre" placeholder="—" bind:value={filtres.millesime} aria-label="Filtrer par millésime" /></span>
           <span class="f"
             ><select class="filtre" bind:value={filtres.garde} aria-label="Filtrer par date de garde">
@@ -321,7 +324,7 @@
               <option value="aucune">Sans date</option>
             </select></span
           >
-          <span></span><span></span><span></span>
+          <span></span><span></span>{#if consommees}<span></span>{/if}
         </div>
 
         {#if vide && !lignesConsommees.length}
@@ -368,7 +371,9 @@
             </span>
             <span class="tnum droite qte">{l.qte}</span>
             <span class="tnum gris decale">{dateCourte(l.entree)}</span>
-            <span class="tnum" class:date-conso={l.consommee} class:tiret={!l.consommee}>{l.consommee ? dateCourte(b.consommee_le) : '—'}</span>
+            {#if consommees}
+              <span class="tnum" class:date-conso={l.consommee} class:tiret={!l.consommee}>{l.consommee ? dateCourte(b.consommee_le) : '—'}</span>
+            {/if}
           </div>
         {/each}
       </div>
@@ -518,12 +523,18 @@
     scrollbar-width: thin;
   }
   .table {
+    min-width: 926px;
+  }
+  .table.avec-conso {
     min-width: 1018px;
   }
   .ligne {
     display: grid;
-    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 92px 68px 150px 44px 96px 92px;
+    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 92px 68px 150px 44px 96px;
     align-items: center;
+  }
+  .avec-conso .ligne {
+    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 92px 68px 150px 44px 96px 92px;
   }
   .entete {
     position: sticky;
