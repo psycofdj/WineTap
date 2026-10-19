@@ -1,12 +1,13 @@
 <script>
-  // E-09 — Réglages (téléphone) : assistant IA, sauvegarde, accès depuis un ordinateur.
-  import { ctx } from '../../lib/contexte.svelte.js';
+  // E-09 — Réglages (téléphone) : apparence, assistant IA, sauvegarde, accès depuis un ordinateur.
+  import { ctx, choisirTheme } from '../../lib/contexte.svelte.js';
   import { reglages } from '../../lib/stores/reglages.svelte.js';
   import { Restauration } from '../../lib/stores/restauration.svelte.js';
   import { sauvegarder, choisirFichierNatif } from '../../lib/sauvegarde.js';
   import { toast } from '../../lib/toast.svelte.js';
   import { pluriel } from '../../lib/format.js';
   import Icon from '../../components/Icon.svelte';
+  import Interrupteur from '../../components/Interrupteur.svelte';
 
   const r = new Restauration();
   let entree = /** @type {HTMLInputElement} */ ($state());
@@ -21,6 +22,18 @@
 </script>
 
 <div class="page">
+  <section>
+    <span class="groupe">Apparence</span>
+    <div class="carte">
+      <Interrupteur ligne libelle="Thème sombre" actif={ctx.theme === 'sombre'} onchange={(v) => choisirTheme(v ? 'sombre' : 'clair')} />
+    </div>
+    {#if ctx.choixTheme}
+      <button type="button" class="note lien" onclick={() => choisirTheme(null)}>Suivre le thème du système</button>
+    {:else}
+      <span class="note">Suit le thème du système</span>
+    {/if}
+  </section>
+
   <section>
     <span class="groupe">Assistant IA</span>
     <div class="carte">
@@ -156,6 +169,18 @@
   .nb {
     color: var(--wt-ink3);
     font-size: 15px;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--wt-ink3);
+    padding: 0 4px;
+    align-self: flex-start;
+  }
+  .lien {
+    border: 0;
+    background: transparent;
+    color: var(--wt-accent-ink);
+    font-weight: 500;
   }
   .alerte {
     background: var(--wt-danger-tint);

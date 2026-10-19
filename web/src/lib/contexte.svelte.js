@@ -8,6 +8,17 @@ const LARGEUR_ORDINATEUR = 720;
  */
 const HAUTEUR_ORDINATEUR = 500;
 const FORMAT_ORDINATEUR = `(min-width: ${LARGEUR_ORDINATEUR}px) and (min-height: ${HAUTEUR_ORDINATEUR}px)`;
+const CLE_THEME = 'wt.theme';
+
+/** @returns {'clair'|'sombre'|null} */
+function lireChoixTheme() {
+  try {
+    const v = localStorage.getItem(CLE_THEME);
+    return v === 'clair' || v === 'sombre' ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 function pont() {
   return typeof window !== 'undefined' ? window.winetapBridge ?? null : null;
@@ -34,8 +45,10 @@ class Contexte {
   annee = $state(new Date().getFullYear());
   /** Nombre de connexions autorisées (réglages de l'application). */
   connexions = $state(0);
-  /** Thème : 'clair' | 'sombre', celui du système par défaut. */
+  /** Thème affiché : 'clair' | 'sombre'. */
   theme = $state('clair');
+  /** Thème choisi sur cet appareil ; null : celui du système. */
+  choixTheme = $state(/** @type {'clair'|'sombre'|null} */ (null));
 
   get pont() {
     return pont();
@@ -44,17 +57,40 @@ class Contexte {
 
 export const ctx = new Contexte();
 
+const systeme = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+function majTheme() {
+  ctx.theme = ctx.choixTheme ?? (systeme?.matches ? 'sombre' : 'clair');
+  document.documentElement.dataset.theme = ctx.theme;
+}
+
 if (typeof window !== 'undefined') {
   const mq = window.matchMedia(FORMAT_ORDINATEUR);
   const majFormat = () => (ctx.ordinateur = mq.matches);
   mq.addEventListener('change', majFormat);
   majFormat();
 
-  const sombre = window.matchMedia('(prefers-color-scheme: dark)');
-  const majTheme = () => {
-    ctx.theme = sombre.matches ? 'sombre' : 'clair';
-    document.documentElement.dataset.theme = ctx.theme;
-  };
-  sombre.addEventListener('change', majTheme);
+  systeme.addEventListener('change', majTheme);
+  ctx.choixTheme = lireChoixTheme();
   majTheme();
+  // Dans l'application, les écrans natifs suivent le même thème.
+  pont()?.setTheme?.(ctx.choixTheme ?? 'systeme');
+}
+
+/**
+ * Choisit le thème sur cet appareil : 'clair', 'sombre', ou null pour suivre le système. Le choix
+ * est propre à chaque appareil (un ordinateur et le téléphone peuvent différer) : il est gardé
+ * dans le navigateur, pas dans les réglages communs du téléphone.
+ * @param {'clair'|'sombre'|null} choix
+ */
+export function choisirTheme(choix) {
+  ctx.choixTheme = choix;
+  try {
+    if (choix) localStorage.setItem(CLE_THEME, choix);
+    else localStorage.removeItem(CLE_THEME);
+  } catch {
+    // Stockage indisponible (navigation privée) : le choix vaut pour cette page.
+  }
+  majTheme();
+  pont()?.setTheme?.(choix ?? 'systeme');
 }

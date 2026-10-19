@@ -44,7 +44,8 @@ String bridgeScript(String token) =>
     saveBackup: function () { return appel('saveBackup', []); },
     pickFile: function () { return appel('pickFile', []); },
     openNative: function (ecran) { return appel('openNative', [ecran]); },
-    openExternal: function (url) { return appel('openExternal', [url]); }
+    openExternal: function (url) { return appel('openExternal', [url]); },
+    setTheme: function (theme) { return appel('setTheme', [theme]); }
   };
 })();
 </script>

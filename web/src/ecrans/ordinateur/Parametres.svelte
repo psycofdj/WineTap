@@ -1,5 +1,7 @@
 <script>
-  // E-09 — Paramètres (ordinateur) : assistant IA, sauvegarde et restauration.
+  // E-09 — Paramètres (ordinateur) : apparence, assistant IA, sauvegarde et restauration.
+  import { ctx, choisirTheme } from '../../lib/contexte.svelte.js';
+  import Interrupteur from '../../components/Interrupteur.svelte';
   import { reglages } from '../../lib/stores/reglages.svelte.js';
   import { Restauration } from '../../lib/stores/restauration.svelte.js';
   import { sauvegarder } from '../../lib/sauvegarde.js';
@@ -22,6 +24,21 @@
 
 <div class="page">
   <h1>Paramètres</h1>
+
+  <section>
+    <div class="s-tete">
+      <span class="s-titre">Apparence</span>
+      <span class="s-texte">Propre à ce navigateur.</span>
+    </div>
+    <div class="theme">
+      <Interrupteur libelle="Thème sombre" actif={ctx.theme === 'sombre'} onchange={(v) => choisirTheme(v ? 'sombre' : 'clair')} />
+      {#if ctx.choixTheme}
+        <button type="button" class="lien" onclick={() => choisirTheme(null)}>Suivre le thème du système</button>
+      {:else}
+        <span class="note">Suit le thème du système</span>
+      {/if}
+    </div>
+  </section>
 
   <section>
     <div class="s-tete">
@@ -157,6 +174,24 @@
     height: 10px;
     border-radius: 99px;
     background: var(--wt-accent);
+  }
+  .theme {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-left: -8px;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--wt-ink3);
+  }
+  .lien {
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    color: var(--wt-accent-ink);
+    font-weight: 500;
+    padding: 0;
   }
   .rangee {
     display: flex;

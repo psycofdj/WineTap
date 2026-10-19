@@ -16,6 +16,7 @@ class Bridge {
     required this.dbs,
     required this.reply,
     required this.openNative,
+    this.setTheme,
   });
 
   final ReadingController reading;
@@ -26,6 +27,9 @@ class Bridge {
 
   /// Opens N-E1 ('adresse') or N-E3 ('connexions').
   final void Function(String screen) openNative;
+
+  /// Theme chosen in the site: 'clair', 'sombre' or 'systeme'.
+  final void Function(String theme)? setTheme;
 
   static const _files = MethodChannel('com.winetap.mobile/file_io');
 
@@ -78,6 +82,9 @@ class Bridge {
           return false;
         }
         return launchUrl(uri, mode: LaunchMode.externalApplication);
+      case 'setTheme':
+        setTheme?.call('${args.isEmpty ? 'systeme' : args.first}');
+        return true;
       default:
         return {'erreur': 'méthode inconnue'};
     }

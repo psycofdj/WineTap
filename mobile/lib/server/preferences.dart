@@ -29,4 +29,20 @@ class Settings {
 
   Future<void> setAssistant(String value) =>
       _store.set(_assistantKey, value == 'chatgpt' ? 'chatgpt' : 'claude');
+
+  static const _themeKey = 'v3.theme';
+
+  /// Theme of the native screens on this phone: 'clair', 'sombre' or
+  /// 'systeme' (default). Chosen in the site of the app, sent by the bridge;
+  /// kept here so the app starts in the right theme. Not shared with browsers.
+  String get theme => switch (_store.get(_themeKey)) {
+    'clair' => 'clair',
+    'sombre' => 'sombre',
+    _ => 'systeme',
+  };
+
+  Future<void> setTheme(String value) => _store.set(
+    _themeKey,
+    value == 'clair' || value == 'sombre' ? value : 'systeme',
+  );
 }

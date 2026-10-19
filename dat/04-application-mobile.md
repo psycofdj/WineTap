@@ -62,6 +62,7 @@ poste un message `{id, methode, args}`, la classe `Bridge` le traite, puis rappe
 | `pickFile()` | Ouvre le sélecteur de documents et rend le fichier choisi en base64 : sauvegarde à restaurer, carte d'une appellation |
 | `openNative(ecran)` | Ouvre l'écran d'adresse (`adresse`, N-E1) ou la liste des connexions (`connexions`, N-E3) |
 | `openExternal(url)` | Ouvre une adresse `http` ou `https` dans le navigateur du téléphone |
+| `setTheme(theme)` | Applique aux écrans natifs le thème du site : `clair`, `sombre` ou `systeme` ; le choix est gardé dans les préférences (`v3.theme`) pour le lancement suivant |
 
 Autres comportements de la coque :
 
@@ -71,8 +72,9 @@ Autres comportements de la coque :
   à la page précédente du site, puis quitte l'application.
 - **Messages.** Un bandeau natif confirme les actions faites hors du site : « Tag envoyé à
   l'ordinateur », « <navigateur> autorisé », « Connexion refusée », « Connexion révoquée ».
-- **Thème.** Les écrans natifs suivent le thème clair ou sombre du système, comme le site ; ils
-  utilisent les polices du site, embarquées dans l'application.
+- **Thème.** Les écrans natifs et la barre d'état suivent le thème du site : celui du système, ou
+  celui choisi dans les réglages, que le site transmet par `setTheme` au démarrage et à chaque
+  changement. Ils utilisent les polices du site, embarquées dans l'application.
 
 ## 4.3 Écrans natifs
 

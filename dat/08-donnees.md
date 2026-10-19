@@ -87,7 +87,7 @@ La base n'est **pas chiffrée par l'application**. Elle bénéficie du chiffreme
 téléphone, actif par défaut sur les versions récentes d'Android et d'iOS, et du cloisonnement des
 applications : aucune autre application ne peut la lire.
 
-Le site ne stocke rien dans les navigateurs ([§5.5](05-site-web.md#55-état-et-événements)).
+Le site ne garde dans les navigateurs que le thème choisi sur l'appareil ([§5.5](05-site-web.md#55-état-et-événements)).
 
 ## 8.5 Données hors de la base
 
@@ -99,6 +99,7 @@ Ce qu'elle ajoute est rangé dans les **préférences de l'application** (`share
 |---|---|
 | `v3.sessions` | Sessions autorisées : empreinte SHA-256 de l'identifiant de session, navigateur, système, dernière adresse IP, date d'autorisation, dernière activité. L'identifiant lui-même n'est pas gardé |
 | `v3.assistant` | Assistant IA choisi : `claude` (par défaut) ou `chatgpt` |
+| `v3.theme` | Thème des écrans natifs, reçu du site : `clair`, `sombre` ou `systeme` (par défaut) |
 
 Ne sont gardés **qu'en mémoire**, et perdus à l'arrêt du processus : le jeton d'application, les
 demandes d'autorisation en attente ou refusées, la lecture à distance en cours et les tags libérés
