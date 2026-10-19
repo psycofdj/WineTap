@@ -2,11 +2,13 @@
   // E-06 — Catalogue (ordinateur) : colonne liste de 330 px et détail.
   import { routeur } from '../../lib/routeur.svelte.js';
   import { catalogue } from '../../lib/stores/catalogue.svelte.js';
+  import { creation } from '../../lib/stores/creation.svelte.js';
   import { elements, RUBRIQUES } from '../../lib/catalogue-vues.js';
   import { simplifier } from '../../lib/format.js';
   import Icon from '../../components/Icon.svelte';
   import Kbd from '../../components/Kbd.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
+  import Blason from '../../components/Blason.svelte';
   import FicheCatalogue from '../FicheCatalogue.svelte';
 
   const rubrique = $derived(RUBRIQUES[routeur.segments[1]] ? routeur.segments[1] : 'cuvees');
@@ -23,12 +25,18 @@
   // Sans fiche choisie : la première de la liste.
   const id = $derived(routeur.segments[2] ?? (liste[0] ? String(liste[0].id) : 'nouveau'));
 
+  /** « Ajouter » : écran de création sans objet d'origine. */
+  function ajouter() {
+    creation.vider();
+    routeur.aller(`/catalogue/${rubrique}/nouveau`);
+  }
+
   function clavier(e) {
     const t = /** @type {HTMLElement} */ (e.target);
     if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'n') {
       e.preventDefault();
-      routeur.aller(`/catalogue/${rubrique}/nouveau`);
+      ajouter();
     }
   }
 </script>
@@ -40,7 +48,7 @@
     <div class="c-haut">
       <div class="c-titre">
         <h1>{RUBRIQUES[rubrique].titre}</h1>
-        <button type="button" class="ajouter" onclick={() => routeur.aller(`/catalogue/${rubrique}/nouveau`)}>
+        <button type="button" class="ajouter" onclick={ajouter}>
           <Icon nom="plus" taille={14} epaisseur={2.2} />Ajouter<Kbd touche="N" />
         </button>
       </div>
@@ -55,10 +63,17 @@
           type="button"
           class="element"
           class:on={String(e.id) === id}
-          onclick={() => routeur.aller(`/catalogue/${rubrique}/${e.id}`, { remplacer: true })}
+          onclick={() => {
+            creation.vider();
+            routeur.aller(`/catalogue/${rubrique}/${e.id}`, { remplacer: true });
+          }}
         >
           {#if e.couleur !== undefined}<WineGlass couleur={e.couleur} taille={18} />{/if}
-          <span class="textes"><span class="nom">{e.nom}</span><span class="sous">{e.sous}</span></span>
+          <span class="textes"
+            ><span class="nom">{e.nom}</span><span class="sous"
+              >{#if e.region}<Blason region={e.region} largeur={11} hauteur={13} />{/if}<span class="coupe">{e.sous}</span></span
+            ></span
+          >
         </button>
       {/each}
     </div>
@@ -173,6 +188,12 @@
   .sous {
     font-size: 12.5px;
     color: var(--wt-ink2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .coupe {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -5,9 +5,9 @@
 
   /**
    * @type {{ titre?: string, sousTitre?: string, retour?: string, onretour?: () => void,
-   *   action?: string, onaction?: () => void, actionDesactivee?: boolean, marge?: number }}
+   *   action?: string, onaction?: () => void, actionDesactivee?: boolean, marge?: number, droite?: any }}
    */
-  let { titre = '', sousTitre = '', retour = '/', onretour, action = '', onaction, actionDesactivee = false, marge = 12 } = $props();
+  let { titre = '', sousTitre = '', retour = '/', onretour, action = '', onaction, actionDesactivee = false, marge = 12, droite } = $props();
 </script>
 
 <header class="entete" style:margin="0 -{marge}px">
@@ -18,6 +18,7 @@
     {#if titre}<span class="titre">{titre}</span>{/if}
     {#if sousTitre}<span class="sous">{sousTitre}</span>{/if}
   </span>
+  {@render droite?.()}
   {#if action}
     <button type="button" class="action" disabled={actionDesactivee} onclick={onaction}>{action}</button>
   {/if}

@@ -6,6 +6,7 @@
   import { dateLongue, millesime } from '../../lib/format.js';
   import EnTete from '../../components/EnTete.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
+  import Blason from '../../components/Blason.svelte';
   import Icon from '../../components/Icon.svelte';
   import Button from '../../components/Button.svelte';
 
@@ -49,7 +50,11 @@
         {/if}
       </div>
       <span class="titre">{b.domaine?.nom} · {b.cuvee?.nom}</span>
-      <span class="meta">{b.appellation?.nom ?? 'Sans appellation'} · {millesime(b.millesime)}</span>
+      <span class="meta"
+        >{b.appellation?.nom ?? 'Sans appellation'} · {millesime(b.millesime)}{#if b.region}<span class="meta-region"
+            >·<Blason region={b.region} largeur={12} hauteur={14} />{b.region}</span
+          >{/if}</span
+      >
       {#if edition === b.id}
         <!-- svelte-ignore a11y_autofocus -->
         <textarea class="champ edition" rows="3" placeholder="Vos impressions…" bind:value={texte} autofocus></textarea>
@@ -112,6 +117,15 @@
   .meta {
     font-size: 13px;
     color: var(--wt-ink2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .meta-region {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
   .com {
     font-family: var(--font-serif);

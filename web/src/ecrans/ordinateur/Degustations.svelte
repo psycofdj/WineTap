@@ -5,6 +5,7 @@
   import { toast } from '../../lib/toast.svelte.js';
   import { dateLongue, millesime, pluriel } from '../../lib/format.js';
   import WineGlass from '../../components/WineGlass.svelte';
+  import Blason from '../../components/Blason.svelte';
   import Icon from '../../components/Icon.svelte';
 
   const PAR_PAGE = 20;
@@ -58,7 +59,14 @@
         <span class="date tnum">{dateLongue(b.consommee_le)}</span>
         <WineGlass couleur={b.couleur} taille={20} style="margin-top:1px" />
         <div class="textes">
-          <span class="nom">{b.domaine?.nom} · {b.cuvee?.nom} <span class="meta">· {b.appellation?.nom ?? 'Sans appellation'} · {millesime(b.millesime)}</span></span>
+          <span class="nom"
+            >{b.domaine?.nom} · {b.cuvee?.nom}
+            <span class="meta"
+              >· {b.appellation?.nom ?? 'Sans appellation'} · {millesime(b.millesime)}{#if b.region}<span class="meta-region"
+                  >·<Blason region={b.region} largeur={12} hauteur={14} />{b.region}</span
+                >{/if}</span
+            ></span
+          >
           {#if edition === b.id}
             <div class="edition">
               <textarea bind:this={champ} class="champ-edition" rows="2" bind:value={texte} onkeydown={clavier} aria-label="Commentaire"></textarea>
@@ -150,6 +158,15 @@
   .meta {
     color: var(--wt-ink3);
     font-weight: 400;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    vertical-align: -2px;
+  }
+  .meta-region {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
   .com {
     font-family: var(--font-serif);

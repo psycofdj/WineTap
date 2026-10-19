@@ -164,13 +164,18 @@ Toutes les requêtes passent par deux intergiciels :
 Le serveur ne fonctionne que **quand l'application est ouverte au premier plan**. Rien ne le garde
 actif en arrière-plan : iOS suspend l'application, Android peut arrêter son processus.
 
-À chaque retour au premier plan, `ServerLifecycle` relance tout, dans cet ordre, chaque étape
-étant tentée même si la précédente échoue :
+À chaque retour au premier plan après un passage en arrière-plan (état `paused`),
+`ServerLifecycle` relance tout, dans cet ordre, chaque étape étant tentée même si la précédente
+échoue :
 
 1. fermeture de tous les canaux d'événements ;
 2. fermeture forcée du serveur HTTP ;
 3. réouverture de la session NFC (Android) ;
 4. démarrage d'un nouveau serveur HTTP.
+
+Une simple perte de focus, sans passage en arrière-plan, ne relance rien : la feuille NFC d'iOS, le
+centre de contrôle ou une alerte du système font passer l'application par l'état `inactive` puis
+`resumed`, et le serveur continue de répondre.
 
 Les navigateurs rouvrent seuls leur canal d'événements, au bout de 5 secondes
 ([§5.4](05-site-web.md#54-accès-et-connexion-au-téléphone)). Le jeton d'application, les sessions

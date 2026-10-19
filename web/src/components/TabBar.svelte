@@ -2,6 +2,7 @@
   // Barre d'onglets du téléphone (D-17) : Accueil, Inventaire, Consommer (rond central), Catalogue, Réglages.
   import { routeur } from '../lib/routeur.svelte.js';
   import { ctx } from '../lib/contexte.svelte.js';
+  import { creation } from '../lib/stores/creation.svelte.js';
   import Icon from './Icon.svelte';
 
   /** @type {{ onconsommer: () => void }} */
@@ -34,7 +35,10 @@
     class="onglet"
     class:actif={actif === o.cle}
     aria-current={actif === o.cle ? 'page' : undefined}
-    onclick={() => routeur.aller(o.chemin, { remplacer: true })}
+    onclick={() => {
+      creation.vider();
+      routeur.aller(o.chemin, { remplacer: true });
+    }}
   >
     <Icon nom={o.icone} taille={24} />{o.libelle}
   </button>

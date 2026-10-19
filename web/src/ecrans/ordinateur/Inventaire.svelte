@@ -8,42 +8,36 @@
   import { catalogue } from '../../lib/stores/catalogue.svelte.js';
   import { lireTag } from '../../lib/nfc.js';
   import { scanDistant } from '../../lib/stores/scan.svelte.js';
+  import { creation } from '../../lib/stores/creation.svelte.js';
+  import { filtresInventaire } from '../../lib/stores/filtres-inventaire.svelte.js';
   import { toast } from '../../lib/toast.svelte.js';
   import { grouper } from '../../lib/groupes.js';
-  import { correspond } from '../../lib/filtres.js';
-  import { gardeSignalee } from '../../lib/garde.js';
   import { vin, ORDRE_COULEURS } from '../../lib/vins.js';
-  import { comparer, dateCourte, millesime, pluriel, accord, simplifier } from '../../lib/format.js';
+  import { comparer, dateCourte, millesime, pluriel, accord } from '../../lib/format.js';
   import Button from '../../components/Button.svelte';
   import Interrupteur from '../../components/Interrupteur.svelte';
   import FiltreMultiple from '../../components/FiltreMultiple.svelte';
   import Icon from '../../components/Icon.svelte';
   import Kbd from '../../components/Kbd.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
+  import Blason from '../../components/Blason.svelte';
   import GardeBadge from '../../components/GardeBadge.svelte';
   import BottleDetail from '../../components/BottleDetail.svelte';
   import Confirmation from '../../components/Confirmation.svelte';
   import PanneauBouteille from './PanneauBouteille.svelte';
 
   // --- État ---------------------------------------------------------------------
-  const q = routeur.query;
-  let recherche = $state('');
+  // Filtres gardés pendant la session ; l'adresse (tableau de bord, accueil) les remplace.
+  filtresInventaire.depuisAdresse(routeur.query);
+  const filtres = $derived(filtresInventaire.f);
   let groupe = $state(true);
   let consommees = $state(false);
   let tri = $state({ col: 'cuvee', sens: 1 });
-  let filtres = $state({
-    couleur: q.couleur ?? '',
-    cuvee: '',
-    domaine: '',
-    appellation: '',
-    /** @type {string[]} */
-    region: q.region ? [q.region] : [],
-    millesime: '',
-    garde: q.filtre === 'garde' ? 'a_boire' : (q.garde ?? ''),
-  });
   let sel = $state(-1);
   let detail = $state(/** @type {any} */ (null));
-  let panneau = $state(/** @type {any} */ (null));
+  // Retour de la création d'une cuvée lancée depuis le formulaire : il rouvre, brouillon repris.
+  const repris = creation.reprendre();
+  let panneau = $state(/** @type {any} */ (repris ? { type: 'reprise', brouillon: repris.cadre.brouillon, cadre: repris.cadre, cree: repris.resultat } : null));
   let numeroPanneau = $state(0);
   let aSupprimer = $state(/** @type {any} */ (null));
   let scanEnCours = $state(false);
@@ -55,19 +49,7 @@
   });
 
   // --- Lignes -------------------------------------------------------------------
-  function passeFiltres(b) {
-    const f = filtres;
-    if (!correspond(b, recherche)) return false;
-    if (f.couleur !== '' && b.couleur !== Number(f.couleur)) return false;
-    if (f.cuvee && !simplifier(b.cuvee?.nom).includes(simplifier(f.cuvee))) return false;
-    if (f.domaine && !simplifier(b.domaine?.nom).includes(simplifier(f.domaine))) return false;
-    if (f.appellation && !simplifier(b.appellation?.nom ?? 'Sans appellation').includes(simplifier(f.appellation))) return false;
-    if (f.region.length && !f.region.includes(b.region || 'Sans région')) return false;
-    if (f.millesime && !millesime(b.millesime).includes(f.millesime.trim().toUpperCase())) return false;
-    if (f.garde === 'a_boire' && !gardeSignalee(b.garde)) return false;
-    if (f.garde && f.garde !== 'a_boire' && b.garde !== f.garde) return false;
-    return true;
-  }
+  const passeFiltres = (b) => filtresInventaire.passe(b);
 
   const CLES = {
     couleur: (r) => vin(r.b.couleur).libelle,
@@ -108,7 +90,21 @@
   const lignes = $derived([...lignesStock, ...lignesConsommees]);
   const ligneSel = $derived(lignes[sel] ?? null);
   const vide = $derived(cave.enStock.length === 0);
-  const regions = $derived([...new Set(cave.enStock.map((b) => b.region || 'Sans région'))].sort(comparer));
+  const filtreActif = $derived(filtresInventaire.actif);
+  const bouteillesFiltrees = $derived(enStockFiltrees.length);
+
+  // Choix des filtres multiples, avec le nombre de bouteilles en stock de chacun.
+  const optionsCouleur = $derived.by(() => {
+    const n = new Map();
+    for (const b of cave.enStock) n.set(b.couleur, (n.get(b.couleur) ?? 0) + 1);
+    return ORDRE_COULEURS.map((c) => ({ valeur: c, libelle: vin(c).libelle, n: n.get(c) ?? 0, couleur: c }));
+  });
+  const optionsRegion = $derived.by(() => {
+    const n = new Map();
+    for (const b of cave.enStock) n.set(b.region || 'Sans région', (n.get(b.region || 'Sans région') ?? 0) + 1);
+    for (const r of filtres.region) if (!n.has(r)) n.set(r, 0);
+    return [...n.keys()].sort(comparer).map((r) => ({ valeur: r, libelle: r, n: n.get(r), region: r }));
+  });
 
   // Garde la sélection dans les bornes.
   $effect(() => {
@@ -173,8 +169,7 @@
     let i = lignes.findIndex((l) => l.bouteilles.some((b) => b.tag_id === r.tag_id));
     if (i < 0 && cave.parTag(r.tag_id)) {
       // Masquée par un filtre : on les retire.
-      recherche = '';
-      filtres = { couleur: '', cuvee: '', domaine: '', appellation: '', region: [], millesime: '', garde: '' };
+      filtresInventaire.effacer();
       await tick();
       i = lignes.findIndex((l) => l.bouteilles.some((b) => b.tag_id === r.tag_id));
     }
@@ -253,7 +248,10 @@
         <div class="titre">
           <h1>Inventaire</h1>
           <span class="resume">
-            {#if vide}0 bouteille{:else}{pluriel(cave.enStock.length, 'bouteille')} · {pluriel(lignesStock.length, 'ligne')}{/if}
+            {#if vide}0 bouteille{:else if filtreActif}{pluriel(bouteillesFiltrees, 'bouteille')} · {pluriel(lignesStock.length, 'ligne')} sur {cave.enStock.length}{:else}{pluriel(
+                cave.enStock.length,
+                'bouteille',
+              )} · {pluriel(lignesStock.length, 'ligne')}{/if}
           </span>
         </div>
         <div class="actions no-print">
@@ -265,7 +263,20 @@
       <div class="outils no-print">
         <label class="recherche">
           <Icon nom="search" taille={16} />
-          <input bind:this={champRecherche} type="search" placeholder="Rechercher" bind:value={recherche} aria-label="Rechercher" />
+          <input
+            bind:this={champRecherche}
+            id="inv-recherche"
+            type="search"
+            placeholder="Rechercher"
+            bind:value={filtresInventaire.f.q}
+            aria-label="Rechercher dans l'inventaire"
+            onkeydown={(e) => {
+              if (e.key !== 'Escape') return;
+              e.preventDefault();
+              filtresInventaire.f.q = '';
+              champRecherche.blur();
+            }}
+          />
           <Kbd touche="/" discret />
         </label>
         <Interrupteur bind:actif={groupe} libelle="Regrouper" titre="Regrouper les bouteilles identiques" />
@@ -302,26 +313,31 @@
           {/each}
         </div>
         <div class="ligne filtres no-print">
-          <span class="f-icone"><Icon nom="filter" taille={13} /></span>
+          <span class="f-icone">
+            {#if filtreActif}
+              <button type="button" class="effacer-filtres" aria-label="Effacer les filtres" title="Effacer les filtres" onclick={() => filtresInventaire.effacer()}
+                ><Icon nom="x" taille={13} epaisseur={2} /></button
+              >
+            {:else}
+              <Icon nom="filter" taille={13} />
+            {/if}
+          </span>
+          <span class="f"><FiltreMultiple options={optionsCouleur} bind:choix={filtresInventaire.f.couleur} pluriel="couleurs" label="Filtrer par couleur" /></span>
+          <span class="f"><input class="filtre" class:actif={!!filtres.cuvee.trim()} placeholder="Filtrer" bind:value={filtresInventaire.f.cuvee} aria-label="Filtrer par cuvée" /></span>
+          <span class="f"><input class="filtre" class:actif={!!filtres.domaine.trim()} placeholder="Filtrer" bind:value={filtresInventaire.f.domaine} aria-label="Filtrer par domaine" /></span>
           <span class="f"
-            ><select class="filtre" bind:value={filtres.couleur} aria-label="Filtrer par couleur">
-              <option value="">Toutes</option>
-              {#each ORDRE_COULEURS as c (c)}<option value={String(c)}>{vin(c).libelle}</option>{/each}
-            </select></span
+            ><input class="filtre" class:actif={!!filtres.appellation.trim()} placeholder="Filtrer" bind:value={filtresInventaire.f.appellation} aria-label="Filtrer par appellation" /></span
           >
-          <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.cuvee} aria-label="Filtrer par cuvée" /></span>
-          <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.domaine} aria-label="Filtrer par domaine" /></span>
-          <span class="f"><input class="filtre" placeholder="Filtrer" bind:value={filtres.appellation} aria-label="Filtrer par appellation" /></span>
-          <span class="f"><FiltreMultiple options={regions} bind:choix={filtres.region} pluriel="régions" label="Filtrer par région" /></span>
-          <span class="f"><input class="filtre" placeholder="—" bind:value={filtres.millesime} aria-label="Filtrer par millésime" /></span>
+          <span class="f"><FiltreMultiple options={optionsRegion} bind:choix={filtresInventaire.f.region} pluriel="régions" label="Filtrer par région" /></span>
+          <span class="f"><input class="filtre" class:actif={!!filtres.millesime.trim()} placeholder="—" bind:value={filtresInventaire.f.millesime} aria-label="Filtrer par millésime" /></span>
           <span class="f"
-            ><select class="filtre" bind:value={filtres.garde} aria-label="Filtrer par date de garde">
+            ><select class="filtre" class:actif={!!filtres.garde} bind:value={filtresInventaire.f.garde} aria-label="Filtrer par date de garde">
               <option value="">Toutes dates</option>
-              <option value="a_boire">À boire</option>
               <option value="depassee">Dépassée</option>
-              <option value="annee">Cette année ({ctx.annee})</option>
-              <option value="ok">Plus tard</option>
+              <option value="annee">Cette année</option>
+              <option value="ok">À venir</option>
               <option value="aucune">Sans date</option>
+              {#if filtres.garde === 'a_boire'}<option value="a_boire">À boire</option>{/if}
             </select></span
           >
           <span></span><span></span>{#if consommees}<span></span>{/if}
@@ -340,7 +356,11 @@
             </div>
           </div>
         {:else if !lignes.length}
-          <div class="aucune">Aucune bouteille ne correspond aux filtres.</div>
+          <div class="aucune">
+            <span class="a-titre">Aucune bouteille ne correspond</span>
+            <span class="a-texte">Modifiez les filtres ou la recherche.</span>
+            {#if filtreActif}<Button taille="ord-s" style="margin-top:6px;font-weight:600" onclick={() => filtresInventaire.effacer()}>Effacer les filtres</Button>{/if}
+          </div>
         {/if}
 
         {#each lignes as l, i (l.cle)}
@@ -364,7 +384,7 @@
             <span class="cuvee coupe">{b.cuvee?.nom}</span>
             <span class="coupe">{b.domaine?.nom}</span>
             <span class="coupe gris">{b.appellation?.nom ?? '—'}</span>
-            <span class="gris coupe">{b.region || '—'}</span>
+            <span class="region gris">{#if b.region}<Blason region={b.region} largeur={15} hauteur={18} />{/if}<span class="coupe-seul">{b.region || '—'}</span></span>
             <span class="tnum">{millesime(b.millesime)}</span>
             <span class="garde">
               {#if l.consommee}<span class="g-conso">{b.a_boire_avant || '—'}</span>{:else}<GardeBadge annee={b.a_boire_avant} />{/if}
@@ -523,18 +543,18 @@
     scrollbar-width: thin;
   }
   .table {
-    min-width: 926px;
+    min-width: 900px;
   }
   .table.avec-conso {
-    min-width: 1018px;
+    min-width: 992px;
   }
   .ligne {
     display: grid;
-    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 92px 68px 150px 44px 96px;
+    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 112px 68px 104px 44px 96px;
     align-items: center;
   }
   .avec-conso .ligne {
-    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 92px 68px 150px 44px 96px 92px;
+    grid-template-columns: 32px 112px minmax(130px, 1.3fr) minmax(140px, 1.4fr) minmax(130px, 1.2fr) 112px 68px 104px 44px 96px 92px;
   }
   .entete {
     position: sticky;
@@ -581,8 +601,21 @@
     display: flex;
     justify-content: center;
   }
+  .effacer-filtres {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 6px;
+    padding: 0;
+    background: var(--wt-accent-tint);
+    color: var(--wt-accent-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .f {
     padding-right: 8px;
+    min-width: 0;
   }
   .filtre {
     width: 100%;
@@ -600,6 +633,11 @@
   }
   .filtre:focus {
     border-color: var(--wt-accent);
+    box-shadow: 0 0 0 2px var(--wt-accent-tint);
+  }
+  .filtre.actif {
+    border-color: var(--wt-accent);
+    background-color: var(--wt-accent-tint);
   }
   select.filtre {
     -webkit-appearance: none;
@@ -651,6 +689,18 @@
   }
   .gris {
     color: var(--wt-ink2);
+  }
+  .region {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding-right: 8px;
+  }
+  .coupe-seul {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .garde {
     display: flex;
@@ -713,9 +763,21 @@
     margin-top: 6px;
   }
   .aucune {
-    padding: 40px 24px;
+    padding: 56px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    color: var(--wt-ink3);
+    gap: 8px;
+  }
+  .a-titre {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 500;
+  }
+  .a-texte {
+    font-size: 14px;
+    color: var(--wt-ink2);
   }
   .aide {
     flex: none;

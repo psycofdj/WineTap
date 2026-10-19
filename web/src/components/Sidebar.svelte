@@ -2,6 +2,7 @@
   // Barre latérale de l'ordinateur (D-18) : Cave, Catalogue, Paramètres ; état du téléphone en bas.
   import { routeur } from '../lib/routeur.svelte.js';
   import { ctx } from '../lib/contexte.svelte.js';
+  import { creation } from '../lib/stores/creation.svelte.js';
   import Icon from './Icon.svelte';
 
   const groupes = [
@@ -37,7 +38,10 @@
       {#if g.titre}<div class="titre">{g.titre}</div>{/if}
       {#each g.elements as e (e.chemin)}
         {@const on = e.actif(routeur.segments)}
-        <button type="button" class="element" class:on aria-current={on ? 'page' : undefined} onclick={() => routeur.aller(e.chemin)}>
+        <button type="button" class="element" class:on aria-current={on ? 'page' : undefined} onclick={() => {
+            creation.vider();
+            routeur.aller(e.chemin);
+          }}>
           <Icon nom={e.icone} taille={18} couleur={on ? 'var(--wt-accent-ink)' : 'var(--wt-ink3)'} />
           {e.libelle}
         </button>
