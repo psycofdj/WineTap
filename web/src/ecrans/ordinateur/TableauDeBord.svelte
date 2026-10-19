@@ -105,7 +105,12 @@
     .grille {
       grid-template-columns: 280px minmax(0, 1fr);
     }
-    .grille > :last-child {
+    /* Le total et les alertes occupent la première colonne sur deux lignes : couleurs et régions
+       s'empilent dans la seconde, sans vide entre elles. */
+    .col1 {
+      grid-row: 1 / span 2;
+    }
+    .grille > :global(:last-child) {
       grid-column: 2;
     }
   }
@@ -113,7 +118,10 @@
     .grille {
       grid-template-columns: 1fr;
     }
-    .grille > :last-child {
+    .col1 {
+      grid-row: auto;
+    }
+    .grille > :global(:last-child) {
       grid-column: auto;
     }
   }
