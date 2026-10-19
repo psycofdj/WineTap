@@ -46,4 +46,6 @@ export const I = {
   minusC: 'M22 12a10 10 0 1 1-20 0a10 10 0 1 1 20 0M8 12h8',
   plusC: 'M22 12a10 10 0 1 1-20 0a10 10 0 1 1 20 0M8 12h8M12 8v8',
   more: 'M12 12h.01M19 12h.01M5 12h.01',
+  agrandir: 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7',
+  flecheG: 'M19 12H5M12 19l-7-7 7-7',
 };

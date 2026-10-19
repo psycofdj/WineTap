@@ -2,16 +2,17 @@
   // E-05 — Formulaire de bouteille en panneau à droite (D-18), la table restant visible.
   import { onMount, untrack } from 'svelte';
   import { FormulaireBouteille } from '../../lib/formulaire.svelte.js';
+  import { creation } from '../../lib/stores/creation.svelte.js';
   import Field from '../../components/Field.svelte';
   import Autocomplete from '../../components/Autocomplete.svelte';
   import TagField from '../../components/TagField.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
   import Button from '../../components/Button.svelte';
   import Icon from '../../components/Icon.svelte';
-  import NouvelleCuvee from '../../components/NouvelleCuvee.svelte';
 
   /**
    * mode : { type: 'nouvelle', modele?: any } | { type: 'modifier', bouteille: any }
+   *      | { type: 'reprise', brouillon: any, cadre: any, cree: any } (retour de la création d'une cuvée)
    * @type {{ mode: any, onfermer: () => void }}
    */
   let { mode, onfermer } = $props();
@@ -20,15 +21,26 @@
   const depart = untrack(() => mode);
   const f = new FormulaireBouteille();
   if (depart.type === 'modifier') f.modifier(depart.bouteille);
+  else if (depart.type === 'reprise') f.reprendre(depart.brouillon, depart.cadre, depart.cree);
   else f.nouvelle(depart.modele ?? null);
 
   const raccourci = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘↵' : 'Ctrl ↵';
-  let creation = $state(/** @type {string|null} */ (null));
   let champCuvee = /** @type {HTMLInputElement} */ ($state());
 
   onMount(() => {
-    if (depart.type !== 'modifier' && !depart.modele) champCuvee?.focus();
+    if (depart.type === 'nouvelle' && !depart.modele) champCuvee?.focus();
   });
+
+  /** « Créer la cuvée … » : écran de création du catalogue, puis retour ici. */
+  function creerCuvee(texte) {
+    creation.lancer({
+      champ: 'cuv',
+      q: texte,
+      libelle: 'la bouteille',
+      fil: f.modification ? 'Bouteille' : 'Nouvelle bouteille',
+      brouillon: { ...f.brouillon(), cuveeId: null, texteCuvee: texte },
+    });
+  }
 
   async function enregistrer(continuer) {
     const ok = await f.enregistrer(continuer);
@@ -60,13 +72,15 @@
         id="o-cuvee"
         bind:element={champCuvee}
         bind:valeur={f.texteCuvee}
+        bind:choisi={f.cuveeId}
         options={f.options}
         erreur={!!f.erreurs.cuvee}
-        placeholder="Nom de la cuvée"
+        placeholder="Rechercher une cuvée"
         onchoisir={(o) => f.choisirCuvee(o.id)}
-        onsaisie={(t) => f.saisieCuvee(t)}
-        oncreer={(t) => (creation = t)}
+        oncreer={creerCuvee}
         libelleCreer={(t) => `Créer la cuvée « ${t} »`}
+        vide="Saisissez le nom d’une cuvée"
+        frais={f.cuveeFraiche && f.cuveeId ? 'Cuvée créée à l’instant' : ''}
       />
     </Field>
     {#if f.derive}
@@ -107,17 +121,6 @@
     >
   </div>
 </aside>
-
-{#if creation !== null}
-  <NouvelleCuvee
-    nom={creation}
-    onfermer={() => (creation = null)}
-    oncree={(id) => {
-      f.choisirCuvee(id);
-      creation = null;
-    }}
-  />
-{/if}
 
 <style>
   .panneau {
@@ -188,7 +191,6 @@
     background: var(--wt-paper);
     border-radius: 8px;
     padding: 8px 10px;
-    margin-top: -6px;
   }
   .trois {
     display: grid;

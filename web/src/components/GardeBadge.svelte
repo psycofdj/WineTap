@@ -6,7 +6,7 @@
 
   /**
    * forme :
-   * - 'table'    : cellule de l'inventaire ordinateur (année en 600 + libellé)
+   * - 'table'    : cellule de l'inventaire ordinateur (année en 600 sur fond coloré, état en infobulle)
    * - 'liste'    : sous une ligne de liste téléphone (« Avant 2026 · cette année »), si signalée
    * - 'pastille' : pastille ronde des fiches, si signalée
    * - 'fiche'    : pastille ronde avec horloge (« À boire avant 2026 · cette année »), si signalée
@@ -23,7 +23,7 @@
   {#if etat === 'aucune'}
     <span class="vide">—</span>
   {:else}
-    <span class="badge table {etat}"><b>{annee}</b>{#if libelle}{libelle}{/if}</span>
+    <span class="badge table {etat}" title={libelle || undefined}><b>{annee}</b></span>
   {/if}
 {:else if signalee}
   {#if forme === 'liste'}

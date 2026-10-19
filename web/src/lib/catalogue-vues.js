@@ -29,7 +29,7 @@ export function elements(rubrique) {
   if (rubrique === 'appellations') {
     return catalogue.appellations.map((a) => {
       const n = catalogue.cuvees.filter((c) => c.appellation_id === a.id).length;
-      return { id: a.id, nom: a.nom, sous: [a.region, pluriel(n, 'cuvée')].filter(Boolean).join(' · ') };
+      return { id: a.id, nom: a.nom, region: a.region, sous: [a.region, pluriel(n, 'cuvée')].filter(Boolean).join(' · ') };
     });
   }
   if (rubrique === 'domaines') {

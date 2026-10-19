@@ -28,7 +28,12 @@ class Routeur {
     window.addEventListener('hashchange', () => this.#appliquer());
   }
 
+  /** Dernière adresse appliquée : popstate et hashchange arrivent tous deux pour un retour. */
+  #adresse = '';
+
   #appliquer() {
+    if (location.hash === this.#adresse) return;
+    this.#adresse = location.hash;
     const r = lire();
     this.chemin = r.chemin;
     this.segments = r.segments;

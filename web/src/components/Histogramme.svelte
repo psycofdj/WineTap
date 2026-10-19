@@ -1,16 +1,25 @@
 <script>
-  // Histogramme des 12 derniers mois (E-07), barres empilées par couleur de vin. Les barres poussent
-  // à l'ouverture ; survol, focus ou toucher d'un mois affiche son détail dans une bulle.
-  import { teinteGraphique, vin } from '../lib/vins.js';
-  import { plafond } from '../lib/stats.js';
+  // Historique des 12 derniers mois (E-07), barres empilées par couleur, par appellation ou par
+  // région (sélecteur propre à chaque carte). Les barres poussent à l'ouverture ; survol, focus ou
+  // toucher d'un mois affiche son détail dans une bulle. Légende en tableau sous le graphique.
+  import { parMois, plafond } from '../lib/stats.js';
   import { accord, prix } from '../lib/format.js';
+  import Selecteur from './Selecteur.svelte';
+  import TableauLegende from './TableauLegende.svelte';
 
   /**
-   * @type {{ titre: string, donnees: ReturnType<typeof import('../lib/stats.js').parMois> | null,
-   *   verbe: string, montant?: boolean, vide: string, hauteur?: number }}
+   * @type {{ titre: string, bouteilles: any[] | null, champ: 'consommee_le'|'entree_le',
+   *   par?: 'couleur'|'appellation'|'region', verbe: string, montant?: boolean, vide: string, hauteur?: number }}
    */
-  let { titre, donnees, verbe, montant = false, vide, hauteur = 150 } = $props();
+  let { titre, bouteilles, champ, par = $bindable('couleur'), verbe, montant = false, vide, hauteur = 150 } = $props();
 
+  const OPTIONS = [
+    { valeur: 'couleur', libelle: 'Couleur' },
+    { valeur: 'appellation', libelle: 'Appellation' },
+    { valeur: 'region', libelle: 'Région' },
+  ];
+
+  const donnees = $derived(bouteilles ? parMois(bouteilles, champ, par) : null);
   let pret = $state(false);
   let actif = $state(/** @type {number|null} */ (null));
 
@@ -24,6 +33,9 @@
   const haut = $derived(plafond(donnees?.max ?? 0));
   const moyenne = $derived(donnees ? Math.round(donnees.moyenne * 10) / 10 : 0);
   const choisi = $derived(donnees && actif !== null ? donnees.mois[actif] : null);
+  const legende = $derived(
+    (donnees?.series ?? []).map((s) => ({ ...s, cle: String(s.cle), valeurs: [s.total, s.moyenne, s.max] })),
+  );
 
   function bulle(i) {
     if (i <= 1) return 'gauche';
@@ -34,15 +46,18 @@
 
 <section class="carte">
   <div class="tete">
-    <span class="titre">{titre}</span>
-    {#if donnees}
-      <span class="resume">
-        <b class="tnum">{donnees.total}</b>
-        {accord(donnees.total, 'bouteille')} sur 12 mois · {moyenne.toLocaleString('fr-FR')} par mois{#if montant && donnees.montant}{' · '}<b
-            class="tnum">{prix(donnees.montant)}</b
-          >{/if}
-      </span>
-    {/if}
+    <div class="titres">
+      <span class="titre">{titre}</span>
+      {#if donnees}
+        <span class="resume">
+          <b class="tnum">{donnees.total}</b>
+          {accord(donnees.total, 'bouteille')} sur 12 mois · {moyenne.toLocaleString('fr-FR')} par mois{#if montant && donnees.montant}{' · '}<b
+              class="tnum">{prix(donnees.montant)}</b
+            >{/if}
+        </span>
+      {/if}
+    </div>
+    <Selecteur options={OPTIONS} bind:valeur={par} label="Répartition des {titre.toLowerCase()}" />
   </div>
 
   {#if !donnees}
@@ -71,8 +86,8 @@
             onblur={() => (actif = null)}
           >
             <span class="pile" style:height={pret ? `calc(var(--h) * ${m.n / haut})` : '0px'} style:transition-delay="{i * 35}ms">
-              {#each m.couleurs as c (c.code)}
-                <span class="morceau" style:flex-grow={c.n} style:background={teinteGraphique(c.code)}></span>
+              {#each m.parts as c (c.cle)}
+                <span class="morceau" style:flex-grow={c.n} style:background={c.teinte}></span>
               {/each}
             </span>
             {#if m.n}<span class="valeur tnum" class:visible={pret} style:--part={m.n / haut}>{m.n}</span>{/if}
@@ -84,8 +99,8 @@
               <span class="bulle {bulle(i)}" role="tooltip">
                 <span class="b-titre">{m.long}</span>
                 <span class="b-total">{m.n} {accord(m.n, 'bouteille')} {verbe}{#if montant && m.montant}{' · '}{prix(m.montant)}{/if}</span>
-                {#each m.couleurs as c (c.code)}
-                  <span class="b-ligne"><span class="pastille" style:background={teinteGraphique(c.code)}></span>{vin(c.code).libelle}<b class="tnum">{c.n}</b></span>
+                {#each m.parts as c (c.cle)}
+                  <span class="b-ligne"><span class="pastille" style:background={c.teinte}></span>{c.libelle}<b class="tnum">{c.n}</b></span>
                 {/each}
               </span>
             {/if}
@@ -93,6 +108,7 @@
         {/each}
       </div>
     </div>
+    <TableauLegende variante="histo" entete={donnees.entete} colonnes={['Total', 'Moy./mois', 'Max']} lignes={legende} label="Légende des {titre.toLowerCase()}" />
   {/if}
 </section>
 
@@ -108,6 +124,13 @@
     min-width: 0;
   }
   .tete {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px 12px;
+    flex-wrap: wrap;
+  }
+  .titres {
     display: flex;
     flex-direction: column;
     gap: 2px;

@@ -3,6 +3,7 @@
   import { routeur } from '../../lib/routeur.svelte.js';
   import { cave } from '../../lib/stores/cave.svelte.js';
   import { FormulaireBouteille } from '../../lib/formulaire.svelte.js';
+  import { creation } from '../../lib/stores/creation.svelte.js';
   import { normaliserTag } from '../../lib/format.js';
   import EnTete from '../../components/EnTete.svelte';
   import Field from '../../components/Field.svelte';
@@ -10,14 +11,25 @@
   import TagField from '../../components/TagField.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
   import Button from '../../components/Button.svelte';
-  import NouvelleCuvee from '../../components/NouvelleCuvee.svelte';
 
   const f = new FormulaireBouteille();
   const q = routeur.query;
-  if (q.modifier && cave.parId(Number(q.modifier))) f.modifier(cave.parId(Number(q.modifier)));
+  // Retour de la création d'une cuvée lancée d'ici : le brouillon est repris.
+  const repris = creation.reprendre();
+  if (repris) f.reprendre(repris.cadre.brouillon, repris.cadre, repris.resultat);
+  else if (q.modifier && cave.parId(Number(q.modifier))) f.modifier(cave.parId(Number(q.modifier)));
   else f.nouvelle(q.modele ? cave.parId(Number(q.modele)) : null, q.tag ? normaliserTag(q.tag) : null);
 
-  let creation = $state(/** @type {string|null} */ (null));
+  /** « Créer la cuvée … » : écran de création du catalogue, puis retour ici. */
+  function creerCuvee(texte) {
+    creation.lancer({
+      champ: 'cuv',
+      q: texte,
+      libelle: 'la bouteille',
+      fil: f.modification ? 'Bouteille' : 'Nouvelle bouteille',
+      brouillon: { ...f.brouillon(), cuveeId: null, texteCuvee: texte },
+    });
+  }
 
   const sousTitre = $derived(f.modification ? '' : f.rang > 1 ? `${f.rang}e bouteille de la caisse` : 'Nouvelle bouteille');
 
@@ -36,18 +48,26 @@
       <Autocomplete
         id="t-cuvee"
         bind:valeur={f.texteCuvee}
+        bind:choisi={f.cuveeId}
         options={f.options}
         erreur={!!f.erreurs.cuvee}
-        placeholder="Nom de la cuvée"
+        placeholder="Rechercher une cuvée"
         onchoisir={(o) => f.choisirCuvee(o.id)}
-        onsaisie={(t) => f.saisieCuvee(t)}
-        oncreer={(t) => (creation = t)}
+        oncreer={creerCuvee}
         libelleCreer={(t) => `Créer la cuvée « ${t} »`}
+        vide="Saisissez le nom d’une cuvée"
+        frais={f.cuveeFraiche && f.cuveeId ? 'Cuvée créée à l’instant' : ''}
       />
     </Field>
     {#if f.derive}
       <span class="derive"
-        ><WineGlass couleur={f.derive.couleur} taille={16} style="color:var(--wt-ink)" />{[f.derive.libelle, f.derive.domaine, f.derive.appellation].filter(Boolean).join(' · ')}</span
+        ><WineGlass couleur={f.derive.couleur} taille={16} style="color:var(--wt-ink)" />{[
+          f.derive.libelle,
+          f.derive.domaine,
+          f.derive.appellation && f.derive.appellation + (f.derive.region ? ` (${f.derive.region})` : ''),
+        ]
+          .filter(Boolean)
+          .join(' · ')}</span
       >
     {/if}
   </div>
@@ -85,17 +105,6 @@
     {/if}
   </div>
 </div>
-
-{#if creation !== null}
-  <NouvelleCuvee
-    nom={creation}
-    onfermer={() => (creation = null)}
-    oncree={(id) => {
-      f.choisirCuvee(id);
-      creation = null;
-    }}
-  />
-{/if}
 
 <style>
   .page {

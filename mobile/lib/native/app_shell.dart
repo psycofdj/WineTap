@@ -95,6 +95,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final Bridge _bridge;
   StreamSubscription<void>? _sessionsSub;
   bool _authSheetOpen = false;
+  bool _wasPaused = false;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
   ApiContext get ctx => widget.ctx;
@@ -141,9 +142,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Restarts the server only after a real trip to the background. A plain
+  /// inactive → resumed (the iOS NFC sheet, Control Center, a system alert)
+  /// leaves the server running: restarting it would cut the browsers' event
+  /// streams right after a tag is sent to the computer.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) widget.lifecycle.restart();
+    if (state == AppLifecycleState.paused) {
+      _wasPaused = true;
+    } else if (state == AppLifecycleState.resumed && _wasPaused) {
+      _wasPaused = false;
+      widget.lifecycle.restart();
+    }
   }
 
   Future<void> _runJs(String js) => _web.runJavaScript(js);

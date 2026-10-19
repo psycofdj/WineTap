@@ -1,36 +1,40 @@
 <script>
-  // E-07 — Tableau de bord (ordinateur) : total, alertes de garde, couleurs, régions par couleur,
-  // consommations et achats des 12 derniers mois.
+  // E-07 — Tableau de bord (ordinateur) : total, alertes de garde, stock par couleur, appellation ou
+  // région, consommations et achats des 12 derniers mois.
   import { onMount } from 'svelte';
   import { ctx } from '../../lib/contexte.svelte.js';
   import { routeur } from '../../lib/routeur.svelte.js';
   import { cave } from '../../lib/stores/cave.svelte.js';
-  import { statistiques, pourcentage, parMois } from '../../lib/stats.js';
-  import { vin } from '../../lib/vins.js';
+  import { tableau } from '../../lib/stores/tableau.svelte.js';
+  import { statistiques } from '../../lib/stats.js';
   import { pluriel, accord } from '../../lib/format.js';
   import { toast } from '../../lib/toast.svelte.js';
-  import WineGlass from '../../components/WineGlass.svelte';
-  import Donut from '../../components/Donut.svelte';
+  import CarteStock from '../../components/CarteStock.svelte';
   import Histogramme from '../../components/Histogramme.svelte';
-  import RegionsCouleurs from '../../components/RegionsCouleurs.svelte';
 
   const s = $derived(statistiques(cave.enStock));
   const liste = (noms) => (noms.length > 3 ? noms.slice(0, 3).join(', ') + '…' : noms.join(', '));
-  let actif = $state(/** @type {number|null} */ (null));
 
-  // Les histogrammes ont besoin des bouteilles consommées (chargées à la demande).
+  // Les historiques ont besoin des bouteilles consommées (chargées à la demande).
   onMount(() => {
     if (!cave.consommeesBrutes) cave.chargerConsommees().catch((e) => toast.afficher(e.message));
   });
-  const consommations = $derived(cave.consommeesBrutes ? parMois(cave.consommees, 'consommee_le') : null);
-  const achats = $derived(cave.consommeesBrutes ? parMois([...cave.enStock, ...cave.consommees], 'entree_le') : null);
+  const consommees = $derived(cave.consommeesBrutes ? cave.consommees : null);
+  const entrees = $derived(cave.consommeesBrutes ? [...cave.enStock, ...cave.consommees] : null);
+
+  /** Inventaire filtré sur la ligne choisie ; « Autres » ouvre l'inventaire sans filtre. */
+  function ouvrir(l, par) {
+    if (l.autres) return routeur.aller('/inventaire?tout');
+    const cle = par === 'couleur' ? 'couleur' : par === 'appellation' ? 'appellation' : 'region';
+    routeur.aller(`/inventaire?${cle}=${encodeURIComponent(par === 'couleur' ? l.couleur : l.cle)}`);
+  }
 </script>
 
 <div class="page">
   <h1>Tableau de bord</h1>
   <div class="grille">
     <div class="col1">
-      <button type="button" class="total" onclick={() => routeur.aller('/inventaire')}>
+      <button type="button" class="total" onclick={() => routeur.aller('/inventaire?tout')}>
         <span class="lib">En stock</span>
         <span class="chiffre">{s.total}</span>
         <span class="lib2">{accord(s.total, 'bouteille')} · {pluriel(s.references, 'référence')}</span>
@@ -45,38 +49,12 @@
       </button>
     </div>
 
-    <section class="carte">
-      <span class="c-titre">Par couleur</span>
-      <div class="couleurs">
-        <Donut parts={s.couleurs} total={s.total} taille={180} bind:actif onchoisir={(c) => routeur.aller(`/inventaire?couleur=${c}`)} />
-        <div class="legende">
-          {#each s.couleurs as c (c.code)}
-            <button
-              type="button"
-              class="leg"
-              class:active={actif === c.code}
-              onpointerenter={() => (actif = c.code)}
-              onpointerleave={() => (actif = null)}
-              onfocus={() => (actif = c.code)}
-              onblur={() => (actif = null)}
-              onclick={() => routeur.aller(`/inventaire?couleur=${c.code}`)}
-            >
-              <WineGlass couleur={c.code} taille={18} />
-              <span class="leg-nom">{vin(c.code).libelle}</span>
-              <b class="tnum">{c.n}</b>
-              <span class="pct tnum">{pourcentage(c.pct)}</span>
-            </button>
-          {/each}
-        </div>
-      </div>
-    </section>
-
-    <RegionsCouleurs regions={s.regions} couleurs={s.couleurs} />
+    <div class="stock"><CarteStock enStock={cave.enStock} onchoisir={ouvrir} /></div>
   </div>
 
   <div class="histos">
-    <Histogramme titre="Consommations" donnees={consommations} verbe="consommées" vide="Aucune bouteille consommée sur les 12 derniers mois." />
-    <Histogramme titre="Achats" donnees={achats} verbe="entrées en stock" montant vide="Aucune bouteille entrée en stock sur les 12 derniers mois." />
+    <Histogramme titre="Consommations" bouteilles={consommees} champ="consommee_le" bind:par={tableau.conso} verbe="consommées" vide="Aucune bouteille consommée sur les 12 derniers mois." />
+    <Histogramme titre="Achats" bouteilles={entrees} champ="entree_le" bind:par={tableau.achats} verbe="entrées en stock" montant vide="Aucune bouteille entrée en stock sur les 12 derniers mois." />
   </div>
 </div>
 
@@ -101,27 +79,16 @@
     gap: 16px;
     align-items: start;
   }
-  @media (max-width: 1120px) {
-    .grille {
-      grid-template-columns: 280px minmax(0, 1fr);
-    }
-    /* Le total et les alertes occupent la première colonne sur deux lignes : couleurs et régions
-       s'empilent dans la seconde, sans vide entre elles. */
-    .col1 {
-      grid-row: 1 / span 2;
-    }
-    .grille > :global(:last-child) {
-      grid-column: 2;
-    }
+  /* La carte « Stock » occupe les deux colonnes à droite des alertes. */
+  .stock {
+    grid-column: span 2;
+    min-width: 0;
   }
   @media (max-width: 900px) {
     .grille {
       grid-template-columns: 1fr;
     }
-    .col1 {
-      grid-row: auto;
-    }
-    .grille > :global(:last-child) {
+    .stock {
       grid-column: auto;
     }
   }
@@ -193,61 +160,5 @@
   .a-texte {
     font-size: 15px;
     color: var(--wt-ink);
-  }
-  .carte {
-    border: 1px solid var(--wt-line);
-    background: var(--wt-card);
-    border-radius: 14px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .c-titre {
-    font-family: var(--font-serif);
-    font-size: 20px;
-    font-weight: 500;
-  }
-  .couleurs {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 16px 22px;
-    align-items: center;
-    margin-top: 4px;
-  }
-  .legende {
-    flex: 1;
-    min-width: 210px;
-    display: flex;
-    flex-direction: column;
-  }
-  .leg {
-    border: 0;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 30px;
-    padding: 0 6px;
-    border-radius: 6px;
-    color: var(--wt-ink);
-    font-size: 13.5px;
-  }
-  .leg:hover,
-  .leg.active {
-    background: var(--wt-card2);
-  }
-  .leg-nom {
-    flex: 1;
-    text-align: left;
-  }
-  b {
-    font-weight: 600;
-  }
-  .pct {
-    width: 52px;
-    text-align: right;
-    color: var(--wt-ink3);
   }
 </style>

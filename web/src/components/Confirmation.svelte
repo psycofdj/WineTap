@@ -1,12 +1,13 @@
 <script>
-  // Confirmation d'une action destructrice (suppression d'une bouteille).
+  // Confirmation d'une action destructrice (suppression d'une bouteille, d'une fiche du catalogue).
+  // `empile` (téléphone) : boutons de 52 px l'un sous l'autre, l'action en premier.
   import { ctx } from '../lib/contexte.svelte.js';
   import Modal from './Modal.svelte';
   import Sheet from './Sheet.svelte';
   import Button from './Button.svelte';
 
-  /** @type {{ titre: string, texte: string, action: string, onconfirmer: () => void, onfermer: () => void }} */
-  let { titre, texte, action, onconfirmer, onfermer } = $props();
+  /** @type {{ titre: string, texte: string, action: string, empile?: boolean, onconfirmer: () => void, onfermer: () => void }} */
+  let { titre, texte, action, empile = false, onconfirmer, onfermer } = $props();
 </script>
 
 {#if ctx.ordinateur}
@@ -22,13 +23,20 @@
   </Modal>
 {:else}
   <Sheet {onfermer} label={titre}>
-    <div class="t">
+    <div class="t" class:empile>
       <span class="titre t-titre">{titre}</span>
       <p>{texte}</p>
-      <div class="t-boutons">
-        <Button taille="tel-l" onclick={onfermer}>Annuler</Button>
-        <Button taille="tel-l" variante="danger-plein" onclick={onconfirmer}>{action}</Button>
-      </div>
+      {#if empile}
+        <div class="t-pile">
+          <Button taille="tel-m" variante="danger-plein" style="border-radius:14px" onclick={onconfirmer}>{action}</Button>
+          <Button taille="tel-m" style="border-radius:14px" onclick={onfermer}>Annuler</Button>
+        </div>
+      {:else}
+        <div class="t-boutons">
+          <Button taille="tel-l" onclick={onfermer}>Annuler</Button>
+          <Button taille="tel-l" variante="danger-plein" onclick={onconfirmer}>{action}</Button>
+        </div>
+      {/if}
     </div>
   </Sheet>
 {/if}
@@ -66,6 +74,19 @@
   }
   .t p {
     font-size: 16px;
+  }
+  .empile .t-titre {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+  .empile p {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .t-pile {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   .t-boutons {
     display: grid;

@@ -2,11 +2,13 @@
   // E-06 — Catalogue (téléphone) : segmenté Appellations / Domaines / Cuvées, recherche, liste.
   import { routeur } from '../../lib/routeur.svelte.js';
   import { catalogue } from '../../lib/stores/catalogue.svelte.js';
+  import { creation } from '../../lib/stores/creation.svelte.js';
   import { elements, RUBRIQUES } from '../../lib/catalogue-vues.js';
   import { simplifier } from '../../lib/format.js';
   import Segmented from '../../components/Segmented.svelte';
   import Icon from '../../components/Icon.svelte';
   import WineGlass from '../../components/WineGlass.svelte';
+  import Blason from '../../components/Blason.svelte';
 
   const rubrique = $derived(RUBRIQUES[routeur.segments[1]] ? routeur.segments[1] : 'cuvees');
   let recherche = $state('');
@@ -39,16 +41,30 @@
       <Icon nom="search" taille={20} />
       <input type="search" placeholder="Rechercher" bind:value={recherche} aria-label="Rechercher" />
     </label>
-    <button type="button" class="ajouter" aria-label={RUBRIQUES[rubrique].nouvelle} onclick={() => routeur.aller(`/catalogue/${rubrique}/nouveau`)}>
+    <button type="button" class="ajouter" aria-label={RUBRIQUES[rubrique].nouvelle} onclick={() => {
+        creation.vider();
+        routeur.aller(`/catalogue/${rubrique}/nouveau`);
+      }}>
       <Icon nom="plus" taille={22} epaisseur={2} />
     </button>
   </div>
   {#if liste.length}
     <div class="liste">
       {#each liste as e (e.id)}
-        <button type="button" class="ligne" onclick={() => routeur.aller(`/catalogue/${rubrique}/${e.id}`)}>
+        <button
+          type="button"
+          class="ligne"
+          onclick={() => {
+            creation.vider();
+            routeur.aller(`/catalogue/${rubrique}/${e.id}`);
+          }}
+        >
           {#if e.couleur !== undefined}<WineGlass couleur={e.couleur} taille={20} />{/if}
-          <span class="textes"><span class="nom">{e.nom}</span><span class="sous">{e.sous}</span></span>
+          <span class="textes"
+            ><span class="nom">{e.nom}</span><span class="sous"
+              >{#if e.region}<Blason region={e.region} />{/if}<span class="coupe">{e.sous}</span></span
+            ></span
+          >
           <Icon nom="chevR" taille={18} couleur="var(--wt-ink3)" />
         </button>
       {/each}
@@ -148,6 +164,12 @@
   .sous {
     font-size: 13px;
     color: var(--wt-ink2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .coupe {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

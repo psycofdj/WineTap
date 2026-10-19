@@ -1,5 +1,6 @@
 <script>
-  // E-03 — Fiche d'une bouteille (identification, recherche par tag).
+  // E-03 — Fiche d'une bouteille (identification, recherche par tag) : informations, puis cuvée,
+  // domaine et appellation avec leurs descriptions et la carte.
   import { routeur } from '../../lib/routeur.svelte.js';
   import { cave } from '../../lib/stores/cave.svelte.js';
   import { toast } from '../../lib/toast.svelte.js';
@@ -11,6 +12,8 @@
   import StatusPill from '../../components/StatusPill.svelte';
   import GardeBadge from '../../components/GardeBadge.svelte';
   import Button from '../../components/Button.svelte';
+  import Blason from '../../components/Blason.svelte';
+  import VignetteCarte from '../../components/VignetteCarte.svelte';
 
   /** @type {{ id: number }} */
   let { id } = $props();
@@ -28,6 +31,10 @@
     }
   }
 </script>
+
+{#snippet description(texte)}
+  {#if texte}<span class="desc">{texte}</span>{:else}<span class="desc vide">Pas de description.</span>{/if}
+{/snippet}
 
 <div class="page">
   <EnTete retour="/inventaire" action={b && !b.consommee_le ? 'Modifier' : ''} onaction={() => routeur.aller(`/entree?modifier=${id}`)} />
@@ -48,11 +55,35 @@
 
     <div class="carte">
       <div><span>Appellation</span><span class="droite">{b.appellation?.nom ?? '—'}</span></div>
-      <div><span>Région</span><span>{b.region || '—'}</span></div>
+      <div><span>Région</span><span class="region"><Blason region={b.region} largeur={15} hauteur={18} />{b.region || '—'}</span></div>
       <div><span>À boire avant</span><span>{b.a_boire_avant || '—'}</span></div>
       <div><span>Prix d'achat</span><span>{prix(b.prix)}</span></div>
       <div><span>Entrée en cave</span><span>{dateCourte(b.entree_le)}</span></div>
       <div><span>Tag</span><span class="mono">{b.tag_id || '—'}</span></div>
+    </div>
+
+    <div class="blocs">
+      <div class="bloc">
+        <span class="surtitre">Cuvée</span>
+        <span class="nom">{b.cuvee?.nom}</span>
+        {@render description(b.cuvee?.description)}
+      </div>
+      <div class="bloc">
+        <span class="surtitre">Domaine</span>
+        <span class="nom">{b.domaine?.nom}</span>
+        {@render description(b.domaine?.description)}
+      </div>
+      {#if b.appellation}
+        <div class="bloc large">
+          <span class="surtitre">Appellation</span>
+          <VignetteCarte appellation={b.appellation} />
+          <span class="nom"
+            >{b.appellation.nom}
+            {#if b.region}<span class="b-region">· <Blason region={b.region} />{b.region}</span>{/if}</span
+          >
+          {@render description(b.appellation.description)}
+        </div>
+      {/if}
     </div>
 
     {#if !b.consommee_le}
@@ -125,6 +156,58 @@
   }
   .droite {
     text-align: right;
+  }
+  .region {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .blocs {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .bloc {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bloc + .bloc {
+    padding-top: 14px;
+    border-top: 1px solid var(--wt-line);
+  }
+  .bloc.large {
+    gap: 8px;
+  }
+  .surtitre {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--wt-ink3);
+  }
+  .nom {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .b-region {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--wt-ink3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    vertical-align: 1px;
+  }
+  .desc {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--wt-ink2);
+  }
+  .desc.vide {
+    color: var(--wt-ink3);
   }
   .boutons {
     display: flex;

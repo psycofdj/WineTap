@@ -21,6 +21,8 @@ export class FormulaireBouteille {
   rang = $state(1);
   erreurs = $state(/** @type {Record<string,string>} */ ({}));
   enCours = $state(false);
+  /** La cuvée vient d'être créée depuis ce formulaire (message sous le champ). */
+  cuveeFraiche = $state(false);
 
   cuvee = $derived(this.cuveeId ? catalogue.cuvee(this.cuveeId) : null);
 
@@ -38,7 +40,7 @@ export class FormulaireBouteille {
     catalogue.cuvees.map((c) => {
       const d = catalogue.domaine(c.domaine_id);
       const a = c.appellation_id ? catalogue.appellation(c.appellation_id) : null;
-      return { id: c.id, nom: c.nom, couleur: c.couleur, sous: [d?.nom, a?.nom, vin(c.couleur).libelle].filter(Boolean).join(' · ') };
+      return { id: c.id, nom: c.nom, sous: [d?.nom, a?.nom].filter(Boolean).join(' · ') };
     }),
   );
 
@@ -83,12 +85,42 @@ export class FormulaireBouteille {
   choisirCuvee(id) {
     this.cuveeId = id;
     this.texteCuvee = catalogue.cuvee(id)?.nom ?? '';
+    this.cuveeFraiche = false;
     delete this.erreurs.cuvee;
   }
 
-  /** La saisie du nom de cuvée ne correspond plus à la cuvée choisie. */
-  saisieCuvee(texte) {
-    if (this.cuvee && this.cuvee.nom !== texte) this.cuveeId = null;
+  /** Brouillon gardé pendant la création d'une cuvée (création en cascade). */
+  brouillon() {
+    return {
+      idModifie: this.idModifie,
+      cuveeId: this.cuveeId,
+      texteCuvee: this.texteCuvee,
+      millesime: this.millesime,
+      aBoireAvant: this.aBoireAvant,
+      prix: this.prix,
+      commentaire: this.commentaire,
+      tagId: this.tagId,
+      rang: this.rang,
+    };
+  }
+
+  /**
+   * Reprend un brouillon au retour de la création d'une cuvée : la cuvée créée est choisie ; après
+   * une annulation, le champ reprend le texte tapé, sans choix.
+   * @param {any} brouillon
+   * @param {{ q: string }} cadre
+   * @param {{ id: number }|null} cree
+   */
+  reprendre(brouillon, cadre, cree) {
+    Object.assign(this, brouillon);
+    this.erreurs = {};
+    if (cree) {
+      this.choisirCuvee(cree.id);
+      this.cuveeFraiche = true;
+    } else {
+      this.cuveeId = null;
+      this.texteCuvee = cadre.q;
+    }
   }
 
   valider() {

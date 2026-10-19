@@ -12,7 +12,8 @@
   import Modal from './Modal.svelte';
   import Button from './Button.svelte';
   import Icon from './Icon.svelte';
-  import Visionneuse from './Visionneuse.svelte';
+  import Blason from './Blason.svelte';
+  import VignetteCarte from './VignetteCarte.svelte';
 
   /**
    * @type {{ bouteille: any, qte?: number, onfermer: () => void, onmodele: () => void,
@@ -23,13 +24,10 @@
   const v = $derived(vin(b.couleur));
   const carte = $derived(catalogue.urlImage(b.appellation));
   const consommee = $derived(!!b.consommee_le);
-  let carteAgrandie = $state(false);
 </script>
 
-{#snippet vignette(classe)}
-  <button type="button" class="vignette {classe}" aria-label="Agrandir la carte de l'appellation {b.appellation.nom}" onclick={() => (carteAgrandie = true)}>
-    <img src={carte} alt="Carte de l'appellation {b.appellation.nom}" />
-  </button>
+{#snippet region()}
+  {#if b.region}<span class="region">· <Blason region={b.region} />{b.region}</span>{/if}
 {/snippet}
 
 {#snippet pastilles(t)}
@@ -53,7 +51,11 @@
       <div class="o-titres">
         <span class="surligne"><WineGlass couleur={b.couleur} taille={20} />{v.libelle} · {millesimeLong(b.millesime)}</span>
         <span class="o-cuvee">{b.cuvee?.nom}</span>
-        <span class="o-sous">{[b.domaine?.nom, b.appellation && `${b.appellation.nom} (${b.region})`].filter(Boolean).join(' · ')}</span>
+        <span class="o-sous"
+          >{[b.domaine?.nom, b.appellation?.nom].filter(Boolean).join(' · ')}{#if b.region}{' '}<span class="o-region"
+              >(<Blason region={b.region} largeur={13} hauteur={16} />{b.region})</span
+            >{/if}</span
+        >
         {@render pastilles(12.5)}
       </div>
       <button type="button" class="fermer o" aria-label="Fermer" onclick={onfermer}><Icon nom="x" taille={20} /></button>
@@ -74,10 +76,10 @@
       <div class="section"><span class="surtitre">Domaine</span><span class="nom">{b.domaine?.nom}</span>{@render description(b.domaine?.description)}</div>
       {#if b.appellation}
         <div class="section ligne">
-          {#if carte}{@render vignette('o-carte')}{/if}
+          {#if carte}<VignetteCarte appellation={b.appellation} />{/if}
           <div class="pile">
             <span class="surtitre">Appellation</span>
-            <span class="nom">{b.appellation.nom} <span class="region">· {b.region}</span></span>
+            <span class="nom">{b.appellation.nom} {@render region()}</span>
             {@render description(b.appellation.description)}
           </div>
         </div>
@@ -114,8 +116,8 @@
       {#if b.appellation}
         <div class="t-section bord large">
           <span class="surtitre">Appellation</span>
-          {#if carte}{@render vignette('t-carte')}{/if}
-          <span class="nom">{b.appellation.nom} <span class="region">· {b.region}</span></span>
+          {#if carte}<VignetteCarte appellation={b.appellation} />{/if}
+          <span class="nom">{b.appellation.nom} {@render region()}</span>
           {@render description(b.appellation.description)}
         </div>
       {/if}
@@ -129,9 +131,6 @@
   </Sheet>
 {/if}
 
-{#if carteAgrandie && carte}
-  <Visionneuse src={carte} alt="Carte de l'appellation {b.appellation.nom}" onfermer={() => (carteAgrandie = false)} />
-{/if}
 
 <style>
   .surligne {
@@ -189,6 +188,16 @@
     font-size: 14px;
     color: var(--wt-ink3);
     font-weight: 400;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    vertical-align: 1px;
+  }
+  .o-region {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    vertical-align: -2px;
   }
   .desc {
     font-size: 14px;
@@ -272,29 +281,6 @@
     flex-direction: column;
     gap: 4px;
   }
-  .vignette {
-    display: block;
-    padding: 0;
-    border: 1px solid var(--wt-line);
-    background: var(--wt-paper);
-    overflow: hidden;
-    cursor: zoom-in;
-  }
-  .vignette img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-  }
-  .vignette:hover {
-    border-color: var(--wt-line2);
-  }
-  .o-carte {
-    width: 132px;
-    height: 96px;
-    flex: none;
-    border-radius: 10px;
-  }
   .o-pied {
     padding: 14px 24px;
     border-top: 1px solid var(--wt-line);
@@ -354,11 +340,6 @@
   }
   .t-section.large {
     gap: 8px;
-  }
-  .t-carte {
-    width: 100%;
-    height: 110px;
-    border-radius: 12px;
   }
   .t-pied {
     display: grid;
