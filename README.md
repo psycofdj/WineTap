@@ -1,8 +1,8 @@
 # WineTap
 
-Wine cellar inventory management system using NFC/RFID tags to track bottles from purchase to consumption.
+Wine cellar inventory management system using NFC tags to track bottles from purchase to consumption.
 
-Attach an NFC tag to each bottle when you add it to your cellar. When you open a bottle, scan the tag to mark it as consumed -- the tag is freed and can be reused. Everything runs locally on your WiFi network between your phone and a desktop app, with no cloud or account required.
+Attach an NFC tag to each bottle when you add it to your cellar. When you open a bottle, scan the tag to mark it as consumed -- the tag is freed and can be reused. Everything runs locally on your WiFi network: the phone holds the cellar and serves a web site, usable in the app and from any desktop browser. No cloud, no account.
 
 ## Table of contents
 
@@ -10,93 +10,55 @@ Attach an NFC tag to each bottle when you add it to your cellar. When you open a
 - [How it works](#how-it-works)
 - [Installation](#installation)
   - [Mobile app](#mobile-app)
-  - [Manager (desktop)](#manager-desktop)
-  - [First run](#first-run)
+  - [Desktop access](#desktop-access)
 - [Architecture and Design](#architecture-and-design)
   - [System overview](#system-overview)
+  - [Desktop access and security](#desktop-access-and-security)
+  - [NFC reading](#nfc-reading)
   - [Data model](#data-model)
-  - [NFC scan coordination](#nfc-scan-coordination)
-  - [REST API](#rest-api)
   - [Project structure](#project-structure)
   - [Key design decisions](#key-design-decisions)
 - [Developer Guide](#developer-guide)
   - [Prerequisites](#prerequisites)
-  - [Running locally](#running-locally)
-  - [RFID reader setup](#rfid-reader-setup)
-  - [Seeding the database](#seeding-the-database)
-  - [End-to-end local testing](#end-to-end-local-testing)
+  - [Web site](#web-site)
+  - [Mobile app](#mobile-app-1)
   - [Running tests](#running-tests)
-  - [Code conventions](#code-conventions)
+  - [Continuous integration and releases](#continuous-integration-and-releases)
 
 ## Features
 
 - **NFC tag lifecycle** -- attach a tag on intake, scan to consume, tag is freed for reuse
-- **Full catalogue management** -- appellations (AOC/AOP), domains (producers), cuvees (named wines), and individual bottles
-- **Inventory browsing** -- sort, filter, and group your cellar by any field; multi-selection for bulk edits
-- **Drink-before warnings** -- yellow when approaching, red when overdue
-- **Autocompletion** -- domain, designation, and cuvee names autocomplete from your existing data
-- **Backup / restore** -- download or upload the entire database as a SQLite file
-- **mDNS auto-discovery** -- the desktop app finds the phone automatically on the local network
-- **AI-assisted catalogue entry** -- optional ChatGPT auto-fill for wine details (via ChromeDP)
-- **RFID reader support** -- Chafon CF-RU5102 UHF reader for desktop-side tag operations
+- **Full catalogue management** -- appellations (AOC/AOP, with region, description and map image), domains and cuvées
+- **Inventory** -- sort, filter and group the cellar; drink-before highlighting; add from an existing bottle; "save and continue" to enter a whole case, one tag after the other
+- **Dashboard** -- bottles in stock, breakdown by colour and by region
+- **Tasting history** -- consumed bottles, newest first, with editable comments
+- **Backup / restore** -- download or restore the whole database as a SQLite file, compatible with v2 backups
+- **"Ask the AI"** -- opens ChatGPT or Claude with a prepared question about an appellation, a domain or a cuvée
+- **Desktop access** -- the same site in a desktop browser, at the address shown by the phone; each browser must be authorized on the phone once
 
 ## How it works
 
-The system has two components:
+| Component | Tech | Role |
+|-----------|------|------|
+| **Web site** (`web/`) | Svelte 5 / Vite | All screens: inventory, catalogue, dashboard, tastings, settings. Shown in the app's WebView (phone layout) and in desktop browsers (wide layout) |
+| **Mobile app** (`mobile/`) | Flutter / Dart | HTTP server on port 8080 (site + `/api`), SQLite database, NFC reading, and the few native screens: address, connection approval, authorized connections, NFC reading |
 
-| Component | Tech | Runs on | Role |
-|-----------|------|---------|------|
-| **Mobile app** | Flutter / Dart | Android / iOS phone | HTTP server + NFC reader + SQLite database |
-| **Manager** | Go / Qt6 | Linux / macOS / Windows desktop | GUI client + optional RFID reader |
-
-The phone hosts the database and exposes a REST API on port 8080. The desktop manager connects as an HTTP client over WiFi. NFC scanning is coordinated via long-polling: the manager requests a scan, the phone activates NFC, the user taps a tag, and the result is sent back to the manager.
+The site is built once and embedded in the app's assets. The phone serves it, together with the JSON API described in [web/API.md](web/API.md).
 
 ## Installation
 
 ### Mobile app
 
-#### From a release (recommended)
-
-- **Android**: download the latest APK from the [GitHub Releases](https://github.com/psmusic/wine-caver/releases) page
+- **Android**: Google Play (internal track), or the `.aab` attached to each [GitHub release](https://github.com/psycofdj/WineTap/releases)
 - **iOS**: available on the App Store (search "WineTap")
 
-#### From source
+### Desktop access
 
-```bash
-cd mobile
-flutter pub get
-flutter build apk
-# Install the APK from build/app/outputs/flutter-apk/app-release.apk
-```
+1. Open WineTap on the phone, then Réglages → « Accès depuis un ordinateur »: the phone shows an address such as `http://192.168.1.42:8080`
+2. Type that address in a desktop browser on the same WiFi network
+3. Approve the connection on the phone (« Autoriser cette connexion ? »). The browser is remembered until you revoke it (Réglages → « Connexions autorisées »)
 
-Requires Flutter SDK 3.x and Android SDK API 26+.
-
-### Manager (desktop)
-
-#### From a release (recommended)
-
-Download the latest binary for your platform from the [GitHub Releases](https://github.com/psmusic/wine-caver/releases) page (Linux, macOS, Windows).
-
-```bash
-chmod +x winetap-manager   # Linux / macOS only
-./winetap-manager
-```
-
-#### From source
-
-```bash
-go mod download
-make build-manager
-./bin/winetap-manager
-```
-
-Requires Go 1.26+ and Qt6 development headers (for the miqt CGo bindings).
-
-### First run
-
-1. Install and open the mobile app on your Android phone -- it starts the HTTP server and advertises itself via mDNS
-2. Start the manager on your desktop -- it auto-discovers the phone on the same WiFi network
-3. If auto-discovery fails, enter the phone's IP manually in the manager's Settings screen
+The phone must stay on with WineTap open while you use it from the computer.
 
 ---
 
@@ -105,23 +67,41 @@ Requires Go 1.26+ and Qt6 development headers (for the miqt CGo bindings).
 ## System overview
 
 ```
-+----------------------------------+          +-------------------------------+
-|  Desktop (Linux / macOS / Win)   |          |    Phone (Android / iOS)      |
-|                                  |          |                               |
-|  +----------------------------+  |          |  +-------------------------+  |
-|  |     manager (Qt6 GUI)      |  |          |  |  mobile (Flutter app)   |  |
-|  |                            |  |  HTTP    |  |                         |  |
-|  |  Inventory / Add / Read /  |--+--REST ---+--|  shelf HTTP (:8080)     |  |
-|  |  Settings screens          |  |  WiFi    |  |  drift SQLite DB        |  |
-|  |                            |  |          |  |  NFC (flutter_nfc_kit)  |  |
-|  |  RFID reader (USB serial)  |  |          |  |  mDNS (_winetap._tcp)  |  |
-|  +----------------------------+  |          |  +-------------------------+  |
-+----------------------------------+          +-------------------------------+
++---------------------------+                 +--------------------------------------+
+|  Desktop browser          |                 |  Phone (Android / iOS)               |
+|                           |   HTTP + SSE    |                                      |
+|  WineTap site             |---- WiFi ------>|  shelf server (:8080)                |
+|  (wide layout)            |                 |    /           embedded site         |
++---------------------------+                 |    /api/*      JSON API              |
+                                              |    /api/events server-sent events    |
+                                              |  drift SQLite database               |
+                                              |  NFC (nfc_manager)                   |
+                                              |                                      |
+                                              |  WebView -> http://localhost:8080    |
+                                              |  (phone layout + JS bridge to NFC)   |
+                                              +--------------------------------------+
 ```
 
-- **No cloud, no accounts** -- everything stays on the local network
-- **Phone is the server** -- the SQLite database lives on the phone; the desktop is a client
-- **WiFi-only trust model** -- no authentication; security relies on network-level access control
+- **Phone is the server** -- the SQLite database lives on the phone; browsers are clients
+- **One site, two layouts** -- desktop layout from 720 px wide and 500 px high; phone layout otherwise, including a phone in landscape
+- **Live updates** -- `/api/events` pushes data changes, remote scan progress and session decisions to every open page
+
+## Desktop access and security
+
+There is no HTTPS (the phone has no certificate a browser would trust on a LAN). Access control relies on:
+
+- **Approval on the phone** -- a new browser gets a pending session cookie (`wt_session`, HttpOnly, SameSite=Strict); the phone asks « Autoriser cette connexion ? », showing the browser, system and IP address. Authorized sessions have no expiry and can be revoked one by one or all at once. Only hashes of session ids are stored
+- **App token** -- the WebView gets a random token generated at each launch, injected with the JavaScript bridge; it never leaves the phone
+- **Host and Origin checks** -- requests must target `localhost` or an IP address (against DNS rebinding), and writes must come from the same origin
+
+## NFC reading
+
+Every tag reading goes through the native NFC screen on the phone:
+
+- **In the app**, the site calls the JavaScript bridge (`winetapBridge.readTag`); the native screen opens and the tag id comes back to the page
+- **From a desktop browser**, the site asks the phone to read a tag (`POST /api/scan`); the phone opens the same native screen, labelled « Demandé par un ordinateur », and the result is pushed back through `/api/events`
+
+Consuming and identifying a bottle by its tag are only available in the app; intake works from both.
 
 ## Data model
 
@@ -139,7 +119,7 @@ bottles (physical instances)
 |-------|---------|-----------------|
 | `designations` | INAO appellations | `name` UNIQUE |
 | `domains` | Wine producers / estates | `name` UNIQUE |
-| `cuvees` | Named wines (links domain + designation + color) | FK to domains, FK to designations |
+| `cuvees` | Named wines (links domain + designation + colour) | FK to domains, FK to designations |
 | `bottles` | Physical bottles with optional NFC tag | `tag_id` UNIQUE among non-null; FK to cuvees |
 
 Bottle lifecycle:
@@ -147,68 +127,42 @@ Bottle lifecycle:
 - **Consumed**: `consumed_at` is set, `tag_id` cleared to NULL (tag freed for reuse)
 - **Hard deleted**: only for lost or damaged tag recovery
 
-A sentinel designation (`id=0`, name `(unassigned)`) is seeded on first database creation for cuvees with no appellation.
-
-## NFC scan coordination
-
-The manager and phone coordinate NFC scans via long-polling:
-
-```
-Manager                           Phone
-  |                                 |
-  |-- POST /scan/request --------->|  start NFC session
-  |<-- 201 {"status":"requested"} -|
-  |                                 |
-  |-- GET /scan/result ----------->|  hold up to 30s
-  |                                 |  (user scans tag)
-  |<-- 200 {"tag_id":"04AABB"} ----|
-  |                                 |
-  |   (on timeout: 204, retry)     |
-```
-
-## REST API
-
-26 endpoints served by the phone on port 8080. All JSON with `snake_case` fields, no authentication.
-
-See [docs/rest-api-contracts.md](docs/rest-api-contracts.md) for the full specification with request/response shapes, error codes, and examples.
+The schema is unchanged since v2: databases and backups are compatible both ways. Settings and authorized sessions are stored in the app's preferences, not in the database.
 
 ## Project structure
 
 ```
 winetap/
-|-- cmd/
-|   +-- manager/main.go           # Desktop GUI entry point
-|-- internal/
-|   |-- client/                    # HTTP client for the phone API
-|   +-- manager/
-|       |-- screen/                # Qt6 UI screens (inventory, add, read, settings, ...)
-|       |-- widget/                # Reusable Qt widgets (dashboard, charts)
-|       |-- assets/                # Embedded icon + stylesheet
-|       |-- manager.go             # Manager orchestration
-|       |-- nfc_scanner.go         # NFC scan coordination via HTTP
-|       |-- rfid_scanner.go        # Chafon CF-RU5102 RFID reader
-|       |-- discovery.go           # mDNS phone discovery
-|       +-- config.go              # YAML config loading/saving
+|-- web/                           # Embedded site (Svelte 5, Vite)
+|   |-- src/                       # Screens, components, API client
+|   |-- mock/                      # In-memory API for development
+|   +-- API.md                     # API and JS bridge contract
 |-- mobile/
-|   +-- lib/
-|       |-- server/                # HTTP server (shelf), database (drift), handlers
-|       |-- providers/             # ChangeNotifier state management
-|       |-- screens/               # Flutter UI screens
-|       |-- services/              # NFC, mDNS, tag normalization
-|       |-- widgets/               # Reusable Flutter widgets
-|       +-- l10n/                  # Localization (French)
-|-- docs/                          # Detailed documentation
-+-- spec.md                        # Full project specification
+|   |-- lib/
+|   |   |-- server/                # HTTP server, API, database, sessions, events
+|   |   |-- native/                # WebView shell, JS bridge, native screens
+|   |   +-- services/              # NFC, tag normalization
+|   +-- assets/
+|       |-- fonts/                 # Fonts of the native screens (OFL)
+|       +-- site/                  # Built site (generated, not versioned)
+|-- scripts/
+|   |-- build_web.sh               # Builds web/ into mobile/assets/site/
+|   +-- build_packages.sh          # Local signed Android build
+|-- specs/                         # v3 specification
+|-- design_handoff_winetap_v3/     # Mockups and design tokens
++-- dat/                           # Technical architecture document
 ```
 
 ## Key design decisions
 
 - **Phone as server**: the phone already has NFC hardware and is always with the user; making it the server avoids needing a separate always-on device
-- **No Raspberry Pi**: the initial plan included an RPi bridge, but the phone-as-server approach eliminated that need
-- **REST over gRPC**: switched from gRPC to plain HTTP REST for simplicity and easier debugging
+- **Web site instead of a desktop app**: one code base for the phone and the computer, nothing to install on the computer
+- **No mDNS**: the phone shows its address; the browser keeps it once typed
 - **Tags are temporary associations**: a tag does not permanently identify a wine -- it is an association that exists only while the bottle is in stock
 - **Single database on phone**: no sync, no replication -- the phone is the single source of truth, with backup/restore for safety
 - **French UI**: the app targets French wine cellars; all labels and strings are in French
+
+See [specs/v3-web.md](specs/v3-web.md) for the full specification and decisions.
 
 ---
 
@@ -216,121 +170,62 @@ winetap/
 
 ## Prerequisites
 
-### Mobile (Flutter)
-
 | Requirement | Version |
 |-------------|---------|
-| Flutter SDK | 3.x (includes Dart 3.x) |
+| Node.js | 22 (see `web/.nvmrc`) |
+| Flutter SDK | stable, Dart 3.11+ |
 | Android SDK | API 26+ |
-| NFC hardware | Physical Android device for NFC testing |
+| NFC hardware | Physical phone for NFC testing |
 
-### Manager (Go)
-
-| Requirement | Version |
-|-------------|---------|
-| Go | 1.26+ |
-| Qt6 headers | Required for miqt CGo bindings |
-| Chrome/Chromium | Optional, for AI auto-fill feature |
-| RFID reader | Optional, Chafon CF-RU5102 for hardware testing |
-
-## Running locally
-
-### Mobile
+## Web site
 
 ```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173, with a simulated API and phone
+npm run check    # svelte-check
+npm run build    # dist/
+```
+
+The development server simulates the phone: a « Téléphone simulé » panel approves connections and answers tag readings, and `?app` imitates the app's WebView. See [web/README.md](web/README.md).
+
+## Mobile app
+
+The site must be built into the app's assets before any Flutter build:
+
+```bash
+./scripts/build_web.sh
 cd mobile
 flutter pub get
 flutter run
 ```
 
-The app starts a shelf HTTP server on port 8080 and advertises itself via mDNS (`_winetap._tcp`). It is reachable on the local WiFi as soon as the app is open.
+On dev builds (version `0.0.0`), an empty database is seeded with a test catalogue.
 
-### Manager
-
-```bash
-go mod download
-make build-manager
-./bin/winetap-manager
-```
-
-On first launch, the manager auto-discovers the phone via mDNS. Configuration is saved to `~/.config/winetap/manager.yaml` when you use the Settings screen:
-
-```yaml
-phone_address: "192.168.1.x:8080"
-rfid_port: "/dev/ttyUSB0"
-log_level: "info"
-log_format: "text"
-```
-
-### RFID reader setup
-
-The Chafon CF-RU5102 connects via USB serial (57600 baud, 8N1). It typically appears as `/dev/ttyUSB0`. Grant serial port access:
+To try the real server with the built site in a desktop browser, without a phone:
 
 ```bash
-sudo usermod -aG dialout $USER
-# Log out and back in for the group change to take effect
+./scripts/build_web.sh
+cd mobile
+WINETAP_E2E=1 WINETAP_E2E_SECONDES=300 flutter test test/e2e/serve_test.dart
+# then open http://127.0.0.1:8099/ (connections are approved automatically)
 ```
-
-### Seeding the database
-
-A seed script populates the database with ~200 bottles across French wine regions (Bordeaux, Bourgogne, Rhone, Champagne, Loire, etc.) for development and testing:
-
-```bash
-# Against the phone app (default: http://localhost:8080)
-./seed_inventory.sh
-
-# Against a custom address
-./seed_inventory.sh http://192.168.1.42:8080
-```
-
-The script is idempotent -- it skips designations, domains, and cuvees that already exist.
-
-### End-to-end local testing
-
-1. Start the mobile app on an Android device connected to the same WiFi
-2. Run `./bin/winetap-manager`
-3. The manager discovers the phone automatically (or enter the IP in Settings)
-4. Use "Add Bottles": manager sends a scan request, phone shows intake screen, scan a tag, manager receives the tag ID and saves the bottle
 
 ## Running tests
 
-### Mobile
-
 ```bash
+cd web && npm run check
+
 cd mobile
-
-# All tests
+dart format --output=none --set-exit-if-changed .
+flutter analyze
 flutter test
-
-# Specific file
-flutter test test/providers/scan_provider_test.dart -v
 ```
 
-Tests use in-memory SQLite and a mock NfcService. The ScanCoordinator uses short timeouts (100ms) in test setup.
+Mobile tests use in-memory SQLite and a fake NFC service. The API tests run the shelf handler directly; the native screens are covered by widget tests.
 
-### Manager
+## Continuous integration and releases
 
-```bash
-# All tests
-go test ./...
-
-# Specific package
-go test ./internal/manager/... -v
-```
-
-## Code conventions
-
-### Mobile (Dart)
-
-- `lib/server/` has no Flutter imports -- pure Dart HTTP + database code
-- `lib/providers/` manages state via ChangeNotifier; no direct handler calls
-- `lib/screens/` is UI only -- reads from providers via `context.watch`, writes via `context.read`
-- Logging uses `dart:developer`'s `log()` with a `name:` tag
-
-### Manager (Go)
-
-- All logging via `log/slog` -- accept `*slog.Logger` as a dependency, never use `slog.Default()` outside main
-- Error logs include an `"error"` key with the error value
-- `screen.Ctx` callback pattern decouples screens from the manager
-- `doAsync()` runs work in a goroutine and dispatches the result back to the Qt main thread
-- `crudBase[T]` provides generic shared CRUD boilerplate for catalogue screens
+- `web-ci.yml` -- `svelte-check` and build, on pull requests touching `web/`
+- `mobile-ci.yml` -- builds the site, then format, analyze and tests, on pull requests touching `mobile/` or `web/`
+- `release.yml` -- on a `v*` tag: builds the site, then the signed Android bundle (uploaded to Google Play, internal track) and the iOS IPA (uploaded to App Store Connect), and attaches both to the GitHub release

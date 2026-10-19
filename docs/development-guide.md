@@ -2,151 +2,88 @@
 
 ## Prerequisites
 
-### Mobile (Flutter)
+| Requirement | Version / Details |
+|-------------|-------------------|
+| Node.js | 22 (see `web/.nvmrc`) |
+| Flutter SDK | stable, Dart 3.11+ |
+| Android SDK | API 26+ device or emulator |
+| Xcode | for iOS builds (macOS) |
+| NFC hardware | Physical phone for NFC testing |
 
-| Requirement      | Version / Details                               |
-|------------------|-------------------------------------------------|
-| Flutter SDK      | 3.x (includes Dart 3.x)                         |
-| Android SDK      | API 26+ target device or emulator               |
-| NFC hardware     | Physical Android device for NFC testing         |
-
-### Manager (Go)
-
-| Requirement      | Version / Details                               |
-|------------------|-------------------------------------------------|
-| Go               | 1.26+                                           |
-| Qt6 development  | Qt6 headers + miqt CGo bindings                 |
-| RFID reader      | Chafon CF-RU5102 (optional — hardware testing)  |
-| Chrome/Chromium  | Required for AI auto-fill (ChromeDP)            |
-
-## Getting Started
-
-### Mobile
+## Web Site (`web/`)
 
 ```bash
-cd mobile
+cd web
+npm install
+npm run dev      # http://localhost:5173, mock API and simulated phone
+npm run check    # svelte-check
+npm run build    # dist/
+```
 
-# Install Flutter dependencies
+`npm run dev` plugs into Vite a server (`web/mock/`) that implements [web/API.md](../web/API.md) in memory, with a cellar of about 180 bottles. A « Téléphone simulé » panel plays the phone: approve or refuse a connection, answer a tag read, cut the phone off. Useful URL parameters:
+
+| Parameter | Effect |
+|-----------|--------|
+| `?app` | Simulates the app's WebView (simulated `window.winetapBridge`, imitation of N-E4) |
+| `?mock_auth=attente` | This browser must be approved from the panel |
+| `?nodev` | Hides the simulated phone panel |
+
+See [web/README.md](../web/README.md) for the site's organisation.
+
+## Mobile App (`mobile/`)
+
+The site must be built into the app's assets before any Flutter build:
+
+```bash
+./scripts/build_web.sh        # web/ → mobile/assets/site/ (not versioned)
+cd mobile
 flutter pub get
-
-# Run on connected device or emulator
 flutter run
-
-# Run tests
-flutter test
 ```
 
-### Manager
+The app starts the HTTP server on port 8080 and shows the site in a WebView. On dev builds (version `0.0.0`, the version in `pubspec.yaml`), an empty `bottles` table is seeded with a test catalogue.
+
+To try the real server with the built site in a desktop browser, without a phone:
 
 ```bash
-# Install Go dependencies
-go mod download
-
-# Build manager binary
-make build-manager
-# Output: bin/winetap-manager
-
-# Run manager
-./bin/winetap-manager
-```
-
-## Build Targets (manager)
-
-| Target           | Command              | Output                      |
-|------------------|----------------------|-----------------------------|
-| Manager          | `make build-manager` | `bin/winetap-manager`    |
-| All binaries     | `make build`         | All in `bin/`               |
-| Clean            | `make clean`         | Removes `bin/`              |
-
-## Running Locally
-
-### Mobile
-
-```bash
+./scripts/build_web.sh
 cd mobile
-flutter run
+WINETAP_E2E=1 WINETAP_E2E_SECONDES=300 flutter test test/e2e/serve_test.dart
+# then open http://127.0.0.1:8099/ (connections are approved automatically)
 ```
 
-The app starts a shelf HTTP server on port 8080 and advertises itself via mDNS (`_winetap._tcp`). The server is visible on the local WiFi network as soon as the app is open.
+`scripts/build_packages.sh` builds a signed Android package locally, with secrets read from a KeePassXC vault.
 
-### Manager
+## Code Conventions (mobile)
 
-```bash
-./bin/winetap-manager
-```
-
-Config is auto-created at `~/.config/winetap/manager.yaml` on first save from the Settings screen. The manager can auto-discover the phone's IP via mDNS, or it can be set manually in Settings.
-
-**Config fields** (`manager.yaml`):
-```yaml
-phone_address: "192.168.1.x:8080"  # override if mDNS is not available
-rfid_port: "/dev/ttyUSB0"          # serial port for RFID reader
-log_level: "info"
-log_format: "text"
-```
-
-## Project Structure Conventions
-
-### Mobile
-
-- **`lib/server/`**: HTTP handlers, database, scan coordinator — no Flutter imports
-- **`lib/providers/`**: ChangeNotifier state — no direct HTTP handler calls
-- **`lib/screens/`**: UI only — reads providers via `context.watch`, calls via `context.read`
-- **Logging**: `dart:developer`'s `log()` function with `name:` tag. HTTP requests logged by shelf middleware.
-- **Dependency injection**: providers receive dependencies via constructor; NfcService is injectable (mock for tests)
-
-### Manager
-
-- **`cmd/`**: Entry points only — config loading, flag parsing, signal handling
-- **`internal/`**: All business logic
-- **Logging**: Always `log/slog`. Accept `*slog.Logger` as dependency; never `slog.Default()` outside main
-- **Error logs**: Must include `"error"` key with the error value
-- **HTTP logging**: All requests/responses logged at `slog.Info` in `internal/client/http_client.go`
+- **`lib/server/`**: no Flutter UI code; the handler is built from an `ApiContext` (database holder, sessions, events, remote scan, settings) so tests can run it directly
+- **`lib/native/`**: WebView shell, bridge and the four native screens only; all other UI is in the site
+- **State outside the database**: through the `KeyValueStore` interface (`shared_preferences` in the app, `MemoryStore` in tests)
+- **Logging**: `dart:developer` `log()` with a `name:` tag
+- **Language**: API routes, fields, error messages and UI strings in French; code identifiers and comments in English
 
 ## Testing
 
-### Mobile
-
 ```bash
+cd web && npm run check
+
 cd mobile
-
-# Run all tests
+dart format --output=none --set-exit-if-changed .
+flutter analyze
 flutter test
-
-# Run specific test file
-flutter test test/providers/scan_provider_test.dart -v
 ```
 
-Tests use in-memory SQLite (`NativeDatabase.memory()`) and a mock NfcService. `ScanCoordinator` uses short timeouts (`Duration(milliseconds: 100)`) in test setup.
+- `test/server/` — database tests (in-memory SQLite), dev seed, and API tests (`test/server/api/`: catalogue, bottles, system, security) that call the shelf handler directly
+- `test/native/` — bridge, reading controller and widget tests of the native screens
+- `test/services/` — NFC service (fake) and tag id normalization
+- `test/e2e/serve_test.dart` — skipped unless `WINETAP_E2E=1`
 
-### Manager
+## Continuous Integration and Releases
 
-```bash
-# Run all tests
-go test ./...
+| Workflow | Trigger | Steps |
+|----------|---------|-------|
+| `web-ci.yml` | Pull requests touching `web/` | `npm ci`, `svelte-check`, build |
+| `mobile-ci.yml` | Pull requests touching `mobile/` or `web/` | Build the site, `dart format`, `flutter analyze`, `flutter test` |
+| `release.yml` | `v*` tag | Build the site; signed Android app bundle uploaded to Google Play (internal track); iOS IPA uploaded to App Store Connect; both attached to the GitHub release |
 
-# Run specific package
-go test ./internal/manager/... -v
-```
-
-## RFID Reader Setup (manager)
-
-### CF-RU5102
-
-- USB serial at 57600 baud (8N1)
-- Typically appears as `/dev/ttyUSB0`
-- User needs permission: add to `dialout` group or use udev rule
-
-```bash
-sudo usermod -aG dialout $USER
-# Log out and back in
-```
-
-## End-to-End Local Testing
-
-1. Start mobile app on Android device connected to WiFi
-2. Start manager: `./bin/winetap-manager`
-3. Manager discovers phone via mDNS automatically (or enter IP in Settings)
-4. Use "Add Bottles" screen: manager sends POST /scan/request → phone shows intake screen → scan tag with phone → manager saves bottle
-
-No Raspberry Pi, no cloud, no gRPC — everything runs on local WiFi between phone and desktop.
+The repository is public: [psycofdj/WineTap](https://github.com/psycofdj/WineTap).

@@ -42,6 +42,8 @@ export ANDROID_KEY_PASSWORD
 export ANDROID_STORE_PASSWORD
 export ANDROID_KEYSTORE_PATH="$KEYSTORE_PATH"
 
+"$(dirname "$0")/build_web.sh"
+
 cd "$(dirname "$0")/../mobile"
 
 VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//;s/+.*//')

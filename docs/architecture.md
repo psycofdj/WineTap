@@ -3,138 +3,113 @@
 ## System Architecture
 
 ```
-┌─────────────────────────────────┐          ┌──────────────────────────────┐
-│        Desktop (Linux)           │          │       Android Phone           │
-│                                  │          │                              │
-│  ┌────────────────────────────┐  │          │  ┌────────────────────────┐  │
-│  │     manager (Qt6 GUI)      │  │          │  │  mobile (Flutter app)  │  │
-│  │                            │  │  HTTP    │  │                        │  │
-│  │  Inventory / Add / Read /  │──┼──REST ───┼──│  shelf HTTP (:8080)    │  │
-│  │  Settings screens          │  │  WiFi    │  │  drift SQLite DB       │  │
-│  │                            │  │          │  │  NFC (flutter_nfc_kit) │  │
-│  │  RFID reader (USB)         │  │          │  │  mDNS (_winetap._tcp)│  │
-│  └────────────────────────────┘  │          │  └────────────────────────┘  │
-└─────────────────────────────────┘          └──────────────────────────────┘
+┌──────────────────────────┐              ┌──────────────────────────────────────┐
+│  Desktop browser         │              │  Phone (Android / iOS)               │
+│                          │  HTTP + SSE  │                                      │
+│  WineTap site            │──── WiFi ───>│  shelf server (:8080)                │
+│  (desktop layout)        │              │    /            embedded site        │
+└──────────────────────────┘              │    /api/*       JSON API             │
+                                          │    /api/events  server-sent events   │
+                                          │  drift SQLite database               │
+                                          │  NFC (nfc_manager)                   │
+                                          │                                      │
+                                          │  WebView -> http://localhost:8080    │
+                                          │  (phone layout + JS bridge)          │
+                                          │  Native screens N-E1 .. N-E4         │
+                                          └──────────────────────────────────────┘
 ```
 
-Discovery: manager resolves the phone's IP via mDNS (`_winetap._tcp`). Phone advertises on startup.
+- The phone is the only server and holds the only copy of the data
+- The same site serves both layouts: desktop from 720 px wide and 500 px high, phone otherwise (a phone in landscape keeps the phone layout)
+- There is no discovery: the phone shows its address (N-E1) and the user types it in the browser
 
-## Component Details
+## Components
 
-### mobile (Flutter, `mobile/`)
+### Server (`mobile/lib/server/`)
 
-**HTTP Server** (`mobile/lib/server/`)
-- `shelf` + `shelf_router` listening on port 8080
-- Routes mounted under `/`: designations, domains, cuvees, bottles, scan, backup, restore, completions
-- `ScanCoordinator` manages single-scan lifecycle with `Completer<String?>` (long polling, injectable timeout)
+- `server.dart` — builds the handler: `/api/*` routed by `shelf_router`, everything else served by the static site; pipeline = security middleware, then wakelock middleware. Listens on all IPv4 addresses, port 8080
+- `server_lifecycle.dart` — starts the server, and restarts it (and the NFC session) when the app returns to the foreground, since the OS may have closed the socket
+- `api/` — handlers: `system_api.dart` (session, events, settings, remote scan, backup/restore), `catalog_api.dart` (appellations, domaines, cuvées), `bottle_api.dart` (bouteilles, consumption, tastings), `security.dart` (Host/Origin/authorization), `json.dart`, `context.dart` (shared `ApiContext`)
+- `database.dart` — drift schema and queries (see [data-models.md](./data-models.md))
+- `db_holder.dart` — holds the open database; backup (WAL checkpoint then file read), inspection of a file to restore (SQLite header, the four tables, `user_version` ≤ 2), and replacement in place without restarting the app
+- `sessions.dart` — browser identification, access requests, authorized sessions (hashes only), revocation, app token
+- `events.dart` — server-sent events hub (`donnees`, `scan`, `session`); unauthorized browsers only receive `session`
+- `remote_scan.dart` — one tag read at a time requested by a computer (`POST /api/scan`)
+- `static_site.dart` — serves `assets/site/`; for the WebView, `/?jeton=<token>` sets the `wt_app` cookie and the bridge script is injected into `index.html`
+- `preferences.dart` — key-value store interface and the shared settings (AI assistant: `claude` or `chatgpt`)
+- `dev_seed.dart` — on dev builds (version 0.0.0), seeds a test catalogue when `bottles` is empty
 
-**State Management** (`mobile/lib/providers/`)
-- `ScanProvider` — consume flow state machine: `idle → scanning → consumed | error`
-- `IntakeProvider` — polls ScanCoordinator; auto-starts NFC on request; exposes `shouldShowIntakeScreen`
-- `ServerProvider` — manages shelf server lifecycle (start/stop)
+### Native app (`mobile/lib/native/`)
 
-**Database** (`mobile/lib/server/database.dart`)
-- drift ORM over SQLite (`driftDatabase(name: 'winetap')`)
-- Tables: `designations`, `domains`, `cuvees`, `bottles`
-- Schema version tracked by drift; migrations in `MigrationStrategy`
-- Foreign keys enabled via `PRAGMA foreign_keys = ON`
+- `app_shell.dart` — WebView opening `http://localhost:8080/?jeton=<token>`, with the native screens on top
+- `bridge.dart` — native side of `window.winetapBridge`: `readTag`, `saveBackup`, `pickFile`, `openNative`, `openExternal`
+- `address_screen.dart` (N-E1), `auth_sheet.dart` (N-E2), `connections_screen.dart` (N-E3), `nfc_screen.dart` (N-E4)
+- `reading.dart` — `ReadingController`: runs every tag read through N-E4, local (bridge) or remote (`POST /api/scan`)
+- `network.dart` — finds the phone's local IPv4 address (WiFi interface first)
+- `prefs_store.dart` — `shared_preferences` implementation of the key-value store
+- `theme.dart` — design tokens shared with the site
 
-**Screens** (`mobile/lib/screens/`)
-- `HomeScreen` — single-screen shell with `IndexedStack`; auto-switches to intake screen when `shouldShowIntakeScreen` is true
-- `ConsumeScreen` — tap button → NFC scan → auto-consume → "Terminé"
-- `IntakeScreen` — shown by manager request only; "Ajout en cours" label while scanning
-- `InventoryScreen`, `SettingsScreen`, etc.
+### Services (`mobile/lib/services/`)
 
-### manager (Go, `cmd/manager/` + `internal/`)
+- `nfc_service.dart` (+ `_android`, `_ios`) — NFC reading through `nfc_manager`
+- `tag_id.dart` — tag id normalization (separators removed, uppercase hex)
 
-Desktop Qt6 application with sidebar navigation:
+### Site (`web/`)
 
-**Screens:**
-1. **Inventory** — grouped/flat/history views, multi-selection bulk edit, sort/filter/group, drink-before warnings
-2. **Add Bottles** — RFID scan trigger, form with autocompletion, loops for bulk intake (sends one scan request at a time, re-triggers after each save)
-3. **Read Bottle** — scan to lookup, edit fields, delete for lost tag recovery
-4. **Settings** — phone address (manual or auto-discovered), RFID port, log config
+Svelte 5 single-page application, built by Vite. `src/lib/api.js` and `session.js` call `/api` and listen to `/api/events`; `src/lib/nfc.js` reads a tag through the bridge in the app or through `POST /api/scan` from a computer. Screens are in `src/ecrans/telephone/` and `src/ecrans/ordinateur/`. See [web/README.md](../web/README.md).
 
-**Catalogue Management:**
-- Appellations (designations), Domaines, Cuvées — CRUD with AI auto-fill (ChromeDP / ChatGPT)
+## Security Model
 
-**Infrastructure:**
-- `screen.Ctx` callback pattern decouples screens from manager
-- `crudBase[T]` generic for shared CRUD boilerplate
-- `doAsync()` pattern: goroutine → Qt main thread callback
-- HTTP client (`internal/client/`) logs all requests/responses at `slog.Info`
+There is no HTTPS. Access control relies on:
 
-### cfru5102 Driver (`internal/integration/cfru5102/`)
+| Client | Authentication |
+|--------|----------------|
+| App WebView | Random token generated at each launch; passed once as `?jeton=` (sets the `wt_app` cookie, HttpOnly, SameSite=Strict), then as `X-WineTap-Token` header (or `?token=` for SSE and images). It never leaves the phone |
+| Desktop browser | `wt_session` cookie (HttpOnly, SameSite=Strict) set by `POST /api/session`; the phone shows N-E2 (« Autoriser cette connexion ? ») with browser, system and IP address |
 
-Go driver for Chafon CF-RU5102 UHF RFID reader:
+- Authorized sessions have no expiry; they are revoked one by one or all at once from N-E3
+- Only SHA-256 hashes of session ids are stored, in the app preferences, with browser, OS, IP address, authorization date and last activity
+- Pending and refused requests are kept in memory only
+- `Host` must be `localhost` or an IP address (against DNS rebinding); `POST`, `PUT`, `PATCH`, `DELETE` require an `Origin` equal to `http://<Host>`
+- Without an authorized session, only `GET`/`POST /api/session` and `GET /api/events` answer; everything else returns 401
+- `index.html` is served with a Content-Security-Policy restricted to `'self'`
 
-- **Protocol**: Binary frames over RS232 at 57600 baud (8N1)
-- **Frame format**: `[Len][Addr][Cmd][Data...][CRC_LSB][CRC_MSB]`
-- **CRC**: CRC-16/MCRF4XX (polynomial 0x8408, initial 0xFFFF)
-- **Supported protocols**: ISO 18000-6C (EPC C1G2) and ISO 18000-6B
+## NFC Reading Flow
 
-## Data Architecture
+Every tag read goes through the native N-E4 screen.
 
-### Entity Relationships
-
-```
-designations (INAO appellations)
-    │
-    ├── 1:N ── cuvees (named wines)
-                   │
-                   ├── N:1 ── domains (producers)
-                   │
-                   └── 1:N ── bottles (physical instances)
-```
-
-### Database Tables (drift / SQLite, on phone)
-
-| Table           | Key Fields                                                                    |
-|-----------------|-------------------------------------------------------------------------------|
-| `designations`  | id, name (UNIQUE), region, description                                        |
-| `domains`       | id, name (UNIQUE), description                                                |
-| `cuvees`        | id, name, domain_id (FK), designation_id (FK), color, description            |
-| `bottles`       | id, tag_id (UNIQUE, nullable), cuvee_id (FK), vintage, description, purchase_price, drink_before, added_at, consumed_at |
-
-### Key Constraints
-
-- `tag_id` UNIQUE among non-null values (in-stock bottles only)
-- Bottles → Cuvees: FK (prevents cuvee deletion with existing bottles)
-- Cuvees → Domains / Designations: FK
-- Sentinel designation `id=0` named `(unassigned)` seeded on first create
-
-## REST API
-
-26 endpoints served by the phone on port 8080. See [rest-api-contracts.md](./rest-api-contracts.md).
-
-### Scan Coordination Flow
+**In the app**
 
 ```
-Manager                           Phone
-  │                                 │
-  │── POST /scan/request ──────────>│  coordinator.request()
-  │<── 201 {"status":"requested"} ──│
-  │                                 │  NFC session auto-starts
-  │── GET /scan/result ────────────>│  long poll (holds up to 30s)
-  │                                 │
-  │       (tag scanned by user)     │
-  │                                 │  coordinator.submitResult(tagId)
-  │<── 200 {"tag_id":"04AABB"} ─────│
-  │                                 │
-  │   (timeout: manager retries)    │
-  │<── 204 (empty) ─────────────────│
-  │── GET /scan/result ────────────>│  retry
+Site (WebView)                     App
+  │── winetapBridge.readTag(objet) ─>│  N-E4 opens, NFC read
+  │<── { tag_id } | { annule } ──────│  N-E4 closes
 ```
+
+**From a desktop browser**
+
+```
+Browser                            Phone
+  │── POST /api/scan {objet} ───────>│  RemoteScan.start → N-E4 « Demandé par un ordinateur »
+  │<── 202 { id } ───────────────────│
+  │                                  │  tag read (or cancelled)
+  │<── SSE event: scan {id, statut, tag_id?}
+  │── DELETE /api/scan/:id (cancel) ─>│
+```
+
+Only one remote read at a time (409 `occupe`). Consuming and identifying a bottle by its tag are only available in the app; intake and search by tag work from both.
+
+## Live Updates
+
+`GET /api/events` is a server-sent events stream (`retry: 5000`). After any data change the server sends `donnees` with what changed (`bouteilles`, `catalogue`, `reglages`); open pages reload the affected data. `scan` carries the result of a remote read, `session` the decision on the phone or a revocation.
 
 ## Configuration
 
-| Component | Config Source                        | Format |
-|-----------|--------------------------------------|--------|
-| manager   | `~/.config/winetap/manager.yaml`  | YAML   |
-| mobile    | no config file — all UI-driven       | —      |
+No configuration file. Port 8080 is fixed. Settings (AI assistant) are edited in the site and stored in the app preferences.
 
 ## Deployment
 
-- **Manager**: desktop Linux binary, run directly
-- **Mobile**: Flutter app installed on Android phone, started by user
-- **No servers, no RPi, no systemd** — both components run on personal devices
+- **Android**: signed app bundle, uploaded to Google Play (internal track) and attached to the GitHub release
+- **iOS**: IPA uploaded to App Store Connect and attached to the GitHub release
+- Built by `.github/workflows/release.yml` on a `v*` tag, after building the site
+- No other server: the computer only needs a browser

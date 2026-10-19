@@ -1,9 +1,6 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
-import '../l10n/strings.dart';
 import 'seed_data.dart';
 
 part 'database.g.dart';
@@ -66,24 +63,6 @@ class CuveeWithNames {
   });
 }
 
-/// Aggregated stock metrics for the home-screen panel.
-///
-/// - `totalInStock` is the number of bottles with `consumedAt IS NULL`.
-/// - `byColor` keys are raw cuvée color ints (0 means unknown).
-/// - `byRegion` keys are designation regions; empty/null regions are bucketed
-///   into [S.statsInconnue].
-class StockStats {
-  final int totalInStock;
-  final Map<int, int> byColor;
-  final Map<String, int> byRegion;
-
-  const StockStats({
-    required this.totalInStock,
-    required this.byColor,
-    required this.byRegion,
-  });
-}
-
 class BottleWithCuvee {
   final Bottle bottle;
   final Cuvee cuvee;
@@ -98,123 +77,6 @@ class BottleWithCuvee {
     required this.designationName,
     required this.region,
   });
-}
-
-// ---------------------------------------------------------------------------
-// toJson() extensions — snake_case keys matching docs/rest-api-contracts.md
-// ---------------------------------------------------------------------------
-
-extension DesignationToApiJson on Designation {
-  Map<String, dynamic> toApiJson() {
-    final json = <String, dynamic>{
-      'id': id,
-      'name': name,
-      'region': region,
-      'description': description,
-    };
-    if (picture != null) json['picture'] = base64Encode(picture!);
-    return json;
-  }
-
-  /// Lightweight representation for list endpoints — excludes description and
-  /// picture to keep payloads small.
-  Map<String, dynamic> toSummaryJson() => {
-    'id': id,
-    'name': name,
-    'region': region,
-  };
-}
-
-extension DomainToApiJson on Domain {
-  Map<String, dynamic> toApiJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-  };
-}
-
-extension CuveeWithNamesToApiJson on CuveeWithNames {
-  Map<String, dynamic> toApiJson() => {
-    'id': cuvee.id,
-    'name': cuvee.name,
-    'domain_id': cuvee.domainId,
-    'designation_id': cuvee.designationId,
-    'color': cuvee.color,
-    'description': cuvee.description,
-    'domain_name': domainName,
-    'designation_name': designationName,
-    'region': region,
-  };
-
-  /// Lightweight representation for list endpoints — excludes description.
-  Map<String, dynamic> toSummaryJson() => {
-    'id': cuvee.id,
-    'name': cuvee.name,
-    'domain_id': cuvee.domainId,
-    'designation_id': cuvee.designationId,
-    'color': cuvee.color,
-    'domain_name': domainName,
-    'designation_name': designationName,
-    'region': region,
-  };
-}
-
-extension BottleWithCuveeToApiJson on BottleWithCuvee {
-  Map<String, dynamic> toApiJson() {
-    final json = <String, dynamic>{
-      'id': bottle.id,
-      'cuvee_id': bottle.cuveeId,
-      'vintage': bottle.vintage,
-      'description': bottle.description,
-      'added_at': bottle.addedAt,
-      'cuvee': {
-        'id': cuvee.id,
-        'name': cuvee.name,
-        'domain_id': cuvee.domainId,
-        'designation_id': cuvee.designationId,
-        'color': cuvee.color,
-        'description': cuvee.description,
-        'domain_name': domainName,
-        'designation_name': designationName,
-        'region': region,
-      },
-    };
-    if (bottle.tagId != null) json['tag_id'] = bottle.tagId;
-    if (bottle.purchasePrice != null) {
-      json['purchase_price'] = bottle.purchasePrice;
-    }
-    if (bottle.drinkBefore != null) json['drink_before'] = bottle.drinkBefore;
-    if (bottle.consumedAt != null) json['consumed_at'] = bottle.consumedAt;
-    return json;
-  }
-
-  /// Lightweight representation for list endpoints — excludes descriptions
-  /// from both the bottle and nested cuvée.
-  Map<String, dynamic> toSummaryJson() {
-    final json = <String, dynamic>{
-      'id': bottle.id,
-      'cuvee_id': bottle.cuveeId,
-      'vintage': bottle.vintage,
-      'added_at': bottle.addedAt,
-      'cuvee': {
-        'id': cuvee.id,
-        'name': cuvee.name,
-        'domain_id': cuvee.domainId,
-        'designation_id': cuvee.designationId,
-        'color': cuvee.color,
-        'domain_name': domainName,
-        'designation_name': designationName,
-        'region': region,
-      },
-    };
-    if (bottle.tagId != null) json['tag_id'] = bottle.tagId;
-    if (bottle.purchasePrice != null) {
-      json['purchase_price'] = bottle.purchasePrice;
-    }
-    if (bottle.drinkBefore != null) json['drink_before'] = bottle.drinkBefore;
-    if (bottle.consumedAt != null) json['consumed_at'] = bottle.consumedAt;
-    return json;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -458,40 +320,6 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteBottle(int id) {
     return (delete(bottles)..where((t) => t.id.equals(id))).go();
-  }
-
-  // -------------------------------------------------------------------------
-  // Stock stats (home screen)
-  // -------------------------------------------------------------------------
-
-  Future<StockStats> getStockStats() async {
-    final query = select(bottles).join([
-      innerJoin(cuvees, cuvees.id.equalsExp(bottles.cuveeId)),
-      leftOuterJoin(
-        designations,
-        designations.id.equalsExp(cuvees.designationId),
-      ),
-    ])..where(bottles.consumedAt.isNull());
-
-    final rows = await query.get();
-    final byColor = <int, int>{};
-    final byRegion = <String, int>{};
-    for (final row in rows) {
-      // Any color int outside the canonical 1..5 range collapses into the
-      // "unknown" bucket (key 0) so the UI shows a single "Inconnue" slice
-      // rather than one slice per stray value.
-      final rawColor = row.readTable(cuvees).color;
-      final colorKey = (rawColor >= 1 && rawColor <= 5) ? rawColor : 0;
-      byColor[colorKey] = (byColor[colorKey] ?? 0) + 1;
-      final region = row.readTableOrNull(designations)?.region ?? '';
-      final regionKey = region.isEmpty ? S.statsInconnue : region;
-      byRegion[regionKey] = (byRegion[regionKey] ?? 0) + 1;
-    }
-    return StockStats(
-      totalInStock: rows.length,
-      byColor: byColor,
-      byRegion: byRegion,
-    );
   }
 
   // -------------------------------------------------------------------------

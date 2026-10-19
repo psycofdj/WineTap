@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760" viewBox="0 0 1500 760"
+     font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0078D4"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#EF6C00"/>
+    </marker>
+    <marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2E7D32"/>
+    </marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6A1B9A"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="760" fill="#FFFFFF"/>
+  <text x="20" y="38" font-size="24" font-weight="700" fill="#1A1A1A">Vue d'ensemble — WineTap v3</text>
+  <text x="20" y="62" font-size="14" fill="#555">Le téléphone porte la base, le NFC, le site et l'API ; l'application affiche le site dans une WebView, un ordinateur l'ouvre dans son navigateur</text>
+
+  <!-- Légende -->
+  <g font-size="12" fill="#333">
+    <line x1="1010" y1="18" x2="1050" y2="18" stroke="#0078D4" stroke-width="2.5"/>
+    <text x="1058" y="22">HTTP et événements, réseau local</text>
+    <line x1="1270" y1="18" x2="1310" y2="18" stroke="#6A1B9A" stroke-width="2.5"/>
+    <text x="1318" y="22">Pont JavaScript</text>
+    <line x1="1010" y1="40" x2="1050" y2="40" stroke="#EF6C00" stroke-width="2.5"/>
+    <text x="1058" y="44">HTTPS, Internet</text>
+    <line x1="1270" y1="40" x2="1310" y2="40" stroke="#2E7D32" stroke-width="2.5"/>
+    <text x="1318" y="44">NFC</text>
+  </g>
+
+  <!-- Réseau local -->
+  <rect x="20" y="85" width="1060" height="650" rx="14" fill="#F7FAFD" stroke="#0078D4" stroke-width="2.2"/>
+  <text x="38" y="112" font-size="16" font-weight="700" fill="#005A9E">Réseau local de l'utilisateur (Wi-Fi)</text>
+
+  <!-- Téléphone -->
+  <rect x="40" y="128" width="560" height="480" rx="14" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <text x="60" y="156" font-size="16" font-weight="700" fill="#1A1A1A">Téléphone (Android, iOS)</text>
+  <text x="60" y="176" font-size="12" fill="#555">Application mobile Flutter, au premier plan</text>
+  <g font-size="13" fill="#1A1A1A">
+    <!-- WebView -->
+    <rect x="60" y="192" width="250" height="88" rx="8" fill="#F5EEF8" stroke="#6A1B9A" stroke-width="1.6"/>
+    <text x="74" y="214" font-weight="700">WebView</text>
+    <text x="74" y="233" font-size="11.5" fill="#555">Site au format téléphone</text>
+    <text x="74" y="250" font-size="11.5" fill="#555">http://localhost:8080</text>
+    <text x="74" y="267" font-size="11.5" fill="#555">window.winetapBridge</text>
+    <!-- Natif -->
+    <rect x="330" y="192" width="250" height="88" rx="8" fill="#EEF5FC" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="344" y="214" font-weight="700">Écrans natifs</text>
+    <text x="344" y="233" font-size="11.5" fill="#555">N-E1 adresse, N-E2 autorisation,</text>
+    <text x="344" y="250" font-size="11.5" fill="#555">N-E3 connexions, N-E4 lecture NFC</text>
+    <text x="344" y="267" font-size="11.5" fill="#555">Bridge, ReadingController</text>
+    <!-- Serveur -->
+    <rect x="60" y="310" width="520" height="110" rx="8" fill="#EEF5FC" stroke="#0078D4" stroke-width="1.6"/>
+    <text x="74" y="332" font-weight="700">Serveur HTTP (shelf), port 8080, toutes les adresses IPv4</text>
+    <text x="74" y="352" font-size="11.5" fill="#555">/ : site construit (assets/site), pont injecté pour la WebView</text>
+    <text x="74" y="370" font-size="11.5" fill="#555">/api/* : 31 routes JSON ; /api/events : événements (SSE)</text>
+    <text x="74" y="388" font-size="11.5" fill="#555">securityMiddleware : Host, Origin, jeton ou session autorisée</text>
+    <text x="74" y="406" font-size="11.5" fill="#555">SessionStore, EventHub, RemoteScan</text>
+    <!-- Base / préférences -->
+    <rect x="60" y="440" width="250" height="56" rx="8" fill="#EEF5FC" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="74" y="462" font-weight="700">Base winetap.sqlite (drift)</text>
+    <text x="74" y="481" font-size="11.5" fill="#555">Schéma v2, seule copie de la cave</text>
+    <rect x="330" y="440" width="250" height="56" rx="8" fill="#EEF5FC" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="344" y="462" font-weight="700">Préférences</text>
+    <text x="344" y="481" font-size="11.5" fill="#555">Sessions autorisées, assistant IA</text>
+    <!-- NFC -->
+    <rect x="330" y="520" width="250" height="56" rx="8" fill="#F1F8F1" stroke="#2E7D32" stroke-width="1.6"/>
+    <text x="344" y="542" font-weight="700">NfcService</text>
+    <text x="344" y="561" font-size="11.5" fill="#555">Lecture de l'UID, rien n'est écrit</text>
+  </g>
+  <!-- Pont -->
+  <line x1="312" y1="236" x2="326" y2="236" stroke="#6A1B9A" stroke-width="2.5" marker-end="url(#ap)"/>
+  <!-- WebView vers serveur -->
+  <line x1="185" y1="282" x2="185" y2="306" stroke="#0078D4" stroke-width="2.5" marker-end="url(#ab)"/>
+  <text x="195" y="300" font-size="11" fill="#005A9E">localhost</text>
+
+  <!-- Tags -->
+  <rect x="330" y="640" width="250" height="56" rx="8" fill="#F1F8F1" stroke="#2E7D32" stroke-width="1.6"/>
+  <text x="344" y="663" font-size="13" font-weight="700" fill="#1A1A1A">Bouteilles et leurs tags NFC</text>
+  <text x="344" y="682" font-size="11.5" fill="#555">Un tag par bouteille en stock</text>
+  <line x1="455" y1="640" x2="455" y2="580" stroke="#2E7D32" stroke-width="2.5" marker-end="url(#av)"/>
+
+  <!-- Ordinateur -->
+  <rect x="700" y="200" width="360" height="190" rx="14" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <text x="720" y="228" font-size="16" font-weight="700" fill="#1A1A1A">Ordinateur</text>
+  <text x="720" y="248" font-size="12" fill="#555">N'importe quel navigateur récent</text>
+  <g font-size="13" fill="#1A1A1A">
+    <rect x="720" y="264" width="320" height="104" rx="8" fill="#EEF5FC" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="734" y="286" font-weight="700">Site au format ordinateur</text>
+    <text x="734" y="306" font-size="11.5" fill="#555">http://&lt;adresse affichée par N-E1&gt;:8080</text>
+    <text x="734" y="324" font-size="11.5" fill="#555">Cookie wt_session, autorisé sur le téléphone</text>
+    <text x="734" y="342" font-size="11.5" fill="#555">Lecture d'un tag : POST /api/scan,</text>
+    <text x="734" y="358" font-size="11.5" fill="#555">résultat par l'événement scan</text>
+  </g>
+  <line x1="698" y1="365" x2="584" y2="365" stroke="#0078D4" stroke-width="2.8" marker-end="url(#ab)"/>
+  <text x="640" y="455" font-size="12.5" font-weight="700" fill="#005A9E" text-anchor="middle">HTTP :8080</text>
+  <text x="640" y="473" font-size="11.5" fill="#555" text-anchor="middle">sans TLS</text>
+  <line x1="640" y1="440" x2="640" y2="368" stroke="#0078D4" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <text x="700" y="560" font-size="12.5" fill="#555">Aucun échange entre le téléphone et un navigateur</text>
+  <text x="700" y="578" font-size="12.5" fill="#555">ne sort du réseau local. Sans Wi-Fi, l'application</text>
+  <text x="700" y="596" font-size="12.5" fill="#555">fonctionne seule, par localhost.</text>
+
+  <!-- Internet -->
+  <rect x="1110" y="85" width="370" height="650" rx="14" fill="#FFF8F1" stroke="#EF6C00" stroke-width="2.2"/>
+  <text x="1128" y="112" font-size="16" font-weight="700" fill="#E65100">Internet</text>
+  <g font-size="13" fill="#1A1A1A">
+    <rect x="1130" y="200" width="330" height="56" rx="8" fill="#FFFFFF" stroke="#EF6C00" stroke-width="1.6"/>
+    <text x="1144" y="222" font-weight="700">chatgpt.com, claude.ai</text>
+    <text x="1144" y="241" font-size="11.5" fill="#555">Ouverts dans le navigateur, question préparée</text>
+    <rect x="1130" y="350" width="330" height="56" rx="8" fill="#FFFFFF" stroke="#78909C" stroke-width="1.6"/>
+    <text x="1144" y="372" font-weight="700">GitHub</text>
+    <text x="1144" y="391" font-size="11.5" fill="#555">Code, Actions (site puis application), Releases</text>
+    <rect x="1130" y="500" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#78909C" stroke-width="1.6"/>
+    <text x="1144" y="522" font-weight="700">Google Play</text>
+    <text x="1144" y="541" font-size="11.5" fill="#555">Piste interne</text>
+    <rect x="1305" y="500" width="155" height="56" rx="8" fill="#FFFFFF" stroke="#78909C" stroke-width="1.6"/>
+    <text x="1319" y="522" font-weight="700">App Store</text>
+    <text x="1319" y="541" font-size="11.5" fill="#555">Connect</text>
+  </g>
+  <line x1="1210" y1="406" x2="1210" y2="498" stroke="#EF6C00" stroke-width="2" marker-end="url(#ao)"/>
+  <line x1="1382" y1="406" x2="1382" y2="498" stroke="#EF6C00" stroke-width="2" marker-end="url(#ao)"/>
+  <text x="1296" y="445" font-size="11.5" fill="#555" text-anchor="middle">publication</text>
+  <text x="1296" y="461" font-size="11.5" fill="#555" text-anchor="middle">sur étiquette v*</text>
+  <text x="1130" y="620" font-size="12" fill="#555">Aucun de ces services ne reçoit la base.</text>
+  <text x="1130" y="637" font-size="12" fill="#555">L'assistant IA reçoit seulement le nom</text>
+  <text x="1130" y="654" font-size="12" fill="#555">du vin décrit, à la demande de l'utilisateur.</text>
+
+  <!-- Navigateur vers IA -->
+  <line x1="1062" y1="228" x2="1128" y2="228" stroke="#EF6C00" stroke-width="2.5" marker-end="url(#ao)"/>
+  <text x="1130" y="188" font-size="12" fill="#E65100">« Demander à l'IA »</text>
+</svg>

@@ -1,16 +1,8 @@
-# WineTap — API Contracts (Legacy Reference)
+# WineTap — API Contracts (Legacy Pointer)
 
-> **This document describes the v1 gRPC API, which is no longer in use.**
->
-> The current API is a REST/JSON API served by the Flutter phone app.
-> See [rest-api-contracts.md](./rest-api-contracts.md) for the live specification.
+Earlier versions used other APIs, none of which exist anymore:
 
----
+- **v1**: a gRPC service served by a Go binary on a Raspberry Pi
+- **v2**: a REST API served by the phone for the Go/Qt6 desktop manager (with mDNS discovery and long-polling scan)
 
-The original v1 system used a gRPC service (`WineTap`) defined in `proto/winetap/v1/winetap.proto`, served by a Go binary (`winetap-server`) running on a Raspberry Pi on port 50051.
-
-That architecture has been replaced by:
-- **Phone** (Flutter/Dart) — shelf HTTP server on port 8080, SQLite database via drift
-- **Manager** (Go/Qt6) — HTTP client connecting to the phone over WiFi
-
-The gRPC proto files, generated code, and the `rpc-server` / `cellar` binaries are preserved in git history but are no longer part of the active codebase.
+The current API is the `/api/*` JSON API served by the phone for the embedded site. See [rest-api-contracts.md](./rest-api-contracts.md) for a summary of routes, and [web/API.md](../web/API.md) for the full contract.

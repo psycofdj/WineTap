@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="600" viewBox="0 0 1500 600"
+     font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#455A64"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#EF6C00"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="600" fill="#FFFFFF"/>
+  <text x="30" y="40" font-size="24" font-weight="700" fill="#1A1A1A">Chaîne de livraison — GitHub Actions</text>
+  <text x="30" y="64" font-size="14" fill="#555">Vérifications sur chaque pull request ; publication de l'application sur une étiquette v*, le site étant construit d'abord</text>
+
+  <!-- Pull request -->
+  <rect x="20" y="90" width="1460" height="200" rx="14" fill="#F1F8F1" stroke="#2E7D32" stroke-width="2"/>
+  <text x="38" y="116" font-size="15" font-weight="700" fill="#1B5E20">Intégration continue</text>
+  <g font-size="13" fill="#1A1A1A">
+    <rect x="40" y="170" width="200" height="56" rx="10" fill="#FFFFFF" stroke="#2E7D32" stroke-width="1.8"/>
+    <text x="140" y="194" text-anchor="middle" font-weight="700">Pull request</text>
+    <text x="140" y="213" text-anchor="middle" font-size="11.5" fill="#555">vers main</text>
+
+    <rect x="340" y="128" width="600" height="44" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="354" y="155"><tspan font-weight="700">web</tspan>  — npm ci, svelte-check, vite build</text>
+    <rect x="340" y="180" width="600" height="44" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="354" y="207"><tspan font-weight="700">mobile</tspan>  — build_web.sh, dart format, flutter analyze, flutter test</text>
+    <rect x="340" y="232" width="600" height="44" rx="8" fill="#FFFFFF" stroke="#90A4AE" stroke-width="1.4"/>
+    <text x="354" y="259"><tspan font-weight="700">dependabot-automerge</tspan>  — fusion des correctifs (semver patch)</text>
+  </g>
+  <g stroke="#455A64" stroke-width="1.8" fill="none">
+    <path d="M240 198 H290 V150 H336" marker-end="url(#ag)"/>
+    <path d="M290 198 H336" marker-end="url(#ag)"/>
+    <path d="M290 198 V254 H336" marker-end="url(#ag)"/>
+  </g>
+  <text x="970" y="150" font-size="12" fill="#555">Selon les fichiers modifiés : web/ pour le site ;</text>
+  <text x="970" y="168" font-size="12" fill="#555">mobile/, web/ ou build_web.sh pour l'application.</text>
+  <text x="970" y="202" font-size="12" fill="#555">Dependabot : npm (web/), pub (mobile/) et actions,</text>
+  <text x="970" y="220" font-size="12" fill="#555">chaque semaine.</text>
+
+  <!-- Publication -->
+  <rect x="20" y="310" width="1460" height="270" rx="14" fill="#F7FAFD" stroke="#0078D4" stroke-width="2"/>
+  <text x="38" y="336" font-size="15" font-weight="700" fill="#005A9E">Publication (flux release)</text>
+  <g font-size="13" fill="#1A1A1A">
+    <rect x="40" y="420" width="200" height="56" rx="10" fill="#FFFFFF" stroke="#0078D4" stroke-width="1.8"/>
+    <text x="140" y="444" text-anchor="middle" font-weight="700">Étiquette v*</text>
+    <text x="140" y="463" text-anchor="middle" font-size="11.5" fill="#555">poussée sur le dépôt</text>
+
+    <rect x="340" y="370" width="420" height="60" rx="8" fill="#FFFFFF" stroke="#EF6C00" stroke-width="1.6"/>
+    <text x="354" y="394"><tspan font-weight="700">android</tspan> — ubuntu-24.04</text>
+    <text x="354" y="414" font-size="11.5" fill="#555">Node 22 : build_web.sh ; Java 17, Flutter : .aab signé</text>
+    <rect x="340" y="470" width="420" height="60" rx="8" fill="#FFFFFF" stroke="#EF6C00" stroke-width="1.6"/>
+    <text x="354" y="494"><tspan font-weight="700">ios</tspan> — macos-26</text>
+    <text x="354" y="514" font-size="11.5" fill="#555">Node 22 : build_web.sh ; Flutter : .ipa signé</text>
+
+    <rect x="860" y="352" width="230" height="80" rx="10" fill="#EEF5FC" stroke="#0078D4" stroke-width="1.8"/>
+    <text x="975" y="384" text-anchor="middle" font-weight="700">release</text>
+    <text x="975" y="404" text-anchor="middle" font-size="11.5" fill="#555">.aab et .ipa renommés,</text>
+    <text x="975" y="420" text-anchor="middle" font-size="11.5" fill="#555">notes générées</text>
+
+    <rect x="1190" y="362" width="270" height="60" rx="10" fill="#FFFFFF" stroke="#78909C" stroke-width="1.8"/>
+    <text x="1325" y="388" text-anchor="middle" font-weight="700">GitHub Releases</text>
+    <text x="1325" y="407" text-anchor="middle" font-size="11.5" fill="#555">.aab, .ipa</text>
+    <rect x="1190" y="440" width="270" height="56" rx="10" fill="#FFF8F1" stroke="#EF6C00" stroke-width="1.8"/>
+    <text x="1325" y="464" text-anchor="middle" font-weight="700">Google Play</text>
+    <text x="1325" y="482" text-anchor="middle" font-size="11.5" fill="#555">piste interne</text>
+    <rect x="1190" y="506" width="270" height="56" rx="10" fill="#FFF8F1" stroke="#EF6C00" stroke-width="1.8"/>
+    <text x="1325" y="530" text-anchor="middle" font-weight="700">App Store Connect</text>
+    <text x="1325" y="548" text-anchor="middle" font-size="11.5" fill="#555">codemagic-cli-tools</text>
+  </g>
+  <g stroke="#455A64" stroke-width="1.8" fill="none">
+    <path d="M240 448 H290 V400 H336" marker-end="url(#ag)"/>
+    <path d="M290 448 V500 H336" marker-end="url(#ag)"/>
+  </g>
+  <g stroke="#78909C" stroke-width="1.5" fill="none">
+    <path d="M760 392 H800"/>
+    <path d="M760 492 H800"/>
+    <path d="M800 392 V492"/>
+    <path d="M800 392 H856" stroke="#455A64" stroke-width="1.8" marker-end="url(#ag)"/>
+  </g>
+  <text x="796" y="455" font-size="11" fill="#555" text-anchor="end">artefacts</text>
+  <path d="M1090 392 H1186" stroke="#455A64" stroke-width="1.8" fill="none" marker-end="url(#ag)"/>
+  <path d="M760 415 H830 V468 H1186" stroke="#EF6C00" stroke-width="2.2" fill="none" marker-end="url(#ao)"/>
+  <path d="M760 515 H830 V534 H1186" stroke="#EF6C00" stroke-width="2.2" fill="none" marker-end="url(#ao)"/>
+  <text x="900" y="460" font-size="11.5" fill="#E65100">compte de service Google</text>
+  <text x="900" y="526" font-size="11.5" fill="#E65100">clé d'API App Store Connect</text>
+</svg>

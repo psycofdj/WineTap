@@ -4,71 +4,58 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
-import 'consume_tracker.dart';
-import 'database.dart';
-import 'handlers/backup.dart';
-import 'handlers/bottles.dart';
-import 'handlers/completions.dart';
-import 'handlers/cuvees.dart';
-import 'handlers/designations.dart';
-import 'handlers/domains.dart';
-import '../services/nfc_service.dart';
-import 'handlers/scan.dart';
+import 'api/bottle_api.dart';
+import 'api/catalog_api.dart';
+import 'api/context.dart';
+import 'api/json.dart';
+import 'api/security.dart';
+import 'api/system_api.dart';
 import 'middleware/wakelock.dart';
-import 'scan_coordinator.dart';
+import 'static_site.dart';
 
-/// Starts the shelf HTTP server on port 8080.
-///
-/// Database and ScanCoordinator are passed as parameters — no globals.
-/// [dbFile] is the resolved path to the SQLite database file (for backup/restore).
-/// [restartDb] is called after a successful restore to reinitialize the database.
-/// Set [enableWakelock] to false in tests (WakelockPlus needs platform channels).
-/// Returns the running [HttpServer] instance.
-Future<HttpServer> startServer(
-  AppDatabase db,
-  ScanCoordinator coordinator,
-  File dbFile,
-  Future<void> Function() restartDb,
-  ConsumeTracker consumeTracker, {
-  required NfcService nfcService,
+/// The whole HTTP handler: API under `/api/`, built site elsewhere.
+Handler buildHandler(
+  ApiContext ctx, {
+  required SiteLoader loadSite,
   bool enableWakelock = true,
-  int port = 8080,
-}) async {
-  final router = Router();
-
-  // Health check
-  router.get('/', (Request request) {
-    return Response.ok(
-      '{"status":"ok","last_consumed_at":${consumeTracker.lastConsumedAt}}',
-      headers: {'Content-Type': 'application/json'},
-    );
-  });
-
-  // Catalog REST API (Story 5.3)
-  router.mount('/designations', designationsRouter(db).call);
-  router.mount('/domains', domainsRouter(db).call);
-  router.mount('/cuvees', cuveesRouter(db).call);
-  router.mount('/bottles', bottlesRouter(db, consumeTracker).call);
-  router.mount('/completions', completionsRouter(db).call);
-  router.mount('/scan', scanRouter(coordinator, nfcService).call);
-
-  // Data resilience (Story 8.1)
-  router.get('/backup', (Request req) => handleBackup(req, db, dbFile));
-  router.post(
-    '/restore',
-    (Request req) => handleRestore(req, db, dbFile, restartDb),
+}) {
+  final api = Router(
+    notFoundHandler: (Request req) =>
+        apiError(404, 'introuvable', 'Route inconnue.'),
   );
+  mountSystemApi(api, ctx);
+  mountCatalogApi(api, ctx);
+  mountBottleApi(api, ctx);
+  final site = staticSite(load: loadSite, sessions: ctx.sessions);
 
-  var pipeline = const Pipeline();
-  if (enableWakelock) {
-    pipeline = pipeline.addMiddleware(wakelockMiddleware());
+  Future<Response> route(Request req) async {
+    if (req.url.path.startsWith('api/')) {
+      try {
+        return await api.call(req);
+      } catch (e, st) {
+        stderr.writeln('API ${req.method} /${req.url.path}: $e\n$st');
+        return apiError(500, 'interne', 'Erreur interne.');
+      }
+    }
+    return site(req);
   }
-  final handler = pipeline.addHandler(router.call);
 
+  var pipeline = const Pipeline().addMiddleware(securityMiddleware(ctx));
+  if (enableWakelock) pipeline = pipeline.addMiddleware(wakelockMiddleware());
+  return pipeline.addHandler(route);
+}
+
+/// Starts the server on all IPv4 addresses (D-04: no mDNS, the phone shows its
+/// address). Returns the running server.
+Future<HttpServer> startServer(
+  ApiContext ctx, {
+  required SiteLoader loadSite,
+  bool enableWakelock = true,
+}) async {
   final server = await shelf_io.serve(
-    handler,
+    buildHandler(ctx, loadSite: loadSite, enableWakelock: enableWakelock),
     InternetAddress.anyIPv4,
-    port,
+    ctx.port,
     shared: true,
   );
   server.idleTimeout = const Duration(seconds: 60);

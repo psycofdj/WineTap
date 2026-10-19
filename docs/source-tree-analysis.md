@@ -4,133 +4,106 @@
 
 ```
 winetap/
-├── cmd/                                  # Application entry points
-│   └── manager/main.go                   # Desktop GUI: config, logger, Qt app launch
+├── web/                                  # Embedded site (Svelte 5, Vite)
+│   ├── API.md                            # API and JavaScript bridge contract
+│   ├── README.md                         # Site development guide (French)
+│   ├── index.html, vite.config.js, package.json
+│   ├── mock/                             # Development only
+│   │   ├── serveur.js                    # In-memory API + simulated phone (Vite plugin)
+│   │   └── donnees.js                    # Test cellar (~180 bottles)
+│   └── src/
+│       ├── main.js, App.svelte           # Entry; authorization (E-10), unreachable phone (E-11), layout choice
+│       ├── app.css, styles/              # Design tokens, fonts
+│       ├── lib/                          # API client, session + SSE, NFC (bridge or remote scan),
+│       │   │                             #   router, bottle form, filters, grouping, stats, AI questions
+│       │   └── stores/                   # Catalogue, cellar, settings, remote read…
+│       ├── components/                   # Design system components (WineGlass, Field, Sheet, Modal, TagField…)
+│       ├── ecrans/telephone/             # Screens E-01 to E-09, phone layout
+│       ├── ecrans/ordinateur/            # Screens E-04 to E-09, desktop layout
+│       ├── ecrans/                       # Shared screens (E-10, E-11, catalogue record)
+│       └── dev/                          # Simulated bridge and phone panel (excluded from builds)
 │
-├── internal/                             # Go business logic (not importable externally)
-│   ├── client/                           # HTTP client for the phone API
-│   │   ├── api_types.go                  # Request/response structs, APIError type
-│   │   ├── http_client.go               # WineTapHTTPClient: all REST calls
-│   │   └── http_client_test.go          # Client unit tests (httptest server)
-│   │
-│   └── manager/                          # Desktop GUI application
-│       ├── manager.go                    # Qt app, window, sidebar, navigation
-│       ├── config.go                     # YAML config persistence
-│       ├── discovery.go                  # mDNS phone discovery
-│       ├── discovery_test.go
-│       ├── logger.go                     # Slog logger setup
-│       ├── nfc_scanner.go                # NFC scan coordination via HTTP long-poll
-│       ├── nfc_scanner_test.go
-│       ├── rfid_scanner.go               # RFID reader wrapper (Chafon CF-RU5102)
-│       ├── scanner.go                    # Scanner interface
-│       ├── assets/                       # Embedded resources
-│       │   └── assets.go                 # Icon PNG + CSS stylesheet (go:embed)
-│       ├── screen/                       # UI screens
-│       │   ├── ctx.go                    # Shared context with callbacks (decouples screens from manager)
-│       │   ├── table_screen.go           # Reusable table+panel layout widget
-│       │   ├── crud_base.go              # Generic CRUD boilerplate (generics)
-│       │   ├── base_form.go              # Shared form skeleton with AI button
-│       │   ├── helpers.go                # Accent folding, async, dialogs, filter popups
-│       │   ├── inventory.go              # Inventory screen (grouped/flat/history views)
-│       │   ├── inventory_form.go         # Bottle add/edit form with scan wait widget
-│       │   ├── designations.go           # Appellations CRUD screen
-│       │   ├── designation_form.go
-│       │   ├── domains.go                # Domaines CRUD screen
-│       │   ├── domain_form.go
-│       │   ├── cuvees.go                 # Cuvées CRUD screen
-│       │   ├── cuvee_form.go
-│       │   ├── dashboard.go              # Dashboard screen with stats
-│       │   ├── dashboard_test.go
-│       │   ├── settings.go               # Settings screen (server, RFID, logs)
-│       │   ├── ai.go                     # ChromeDP ChatGPT integration
-│       │   └── ai_test.go
-│       └── widget/                       # Reusable Qt widgets
-│           ├── aggregate.go              # Aggregation helpers
-│           ├── aggregate_test.go
-│           ├── dashboard_panel.go
-│           ├── hero_count.go
-│           └── pie_chart.go
-│
-├── mobile/                               # Flutter application (server + UI)
+├── mobile/                               # Flutter app (Android, iOS)
+│   ├── pubspec.yaml                      # Version 0.0.0 = dev build
 │   ├── lib/
-│   │   ├── main.dart                     # App entry point
-│   │   ├── server/                       # HTTP server — no Flutter imports
-│   │   │   ├── server.dart               # shelf server setup, route mounting, health endpoint
-│   │   │   ├── database.dart             # drift ORM: tables, queries, migrations
-│   │   │   ├── scan_coordinator.dart     # Single-scan lifecycle with Completer (long-poll)
-│   │   │   ├── consume_tracker.dart      # Tracks recent consumption events
-│   │   │   ├── seed_data.dart            # Sentinel designation seeding
-│   │   │   ├── handlers/                 # Route handlers (one file per resource)
-│   │   │   │   ├── bottles.dart          # CRUD + consume + partial update
-│   │   │   │   ├── cuvees.dart           # CRUD with denormalized joins
-│   │   │   │   ├── designations.dart     # CRUD + unique name enforcement
-│   │   │   │   ├── domains.dart          # CRUD + unique name enforcement
-│   │   │   │   ├── scan.dart             # request / result (long-poll) / cancel
-│   │   │   │   ├── completions.dart      # Autocomplete search
-│   │   │   │   └── backup.dart           # Database download + restore
-│   │   │   └── middleware/
-│   │   │       └── wakelock.dart         # Keep screen awake while server is active
-│   │   ├── providers/                    # ChangeNotifier state management
-│   │   │   ├── scan_provider.dart        # Consume flow: idle → scanning → consumed | error
-│   │   │   ├── intake_provider.dart      # Polls ScanCoordinator; auto-starts NFC on request
-│   │   │   └── server_provider.dart      # Manages shelf server lifecycle
-│   │   ├── screens/                      # Flutter UI screens
-│   │   │   ├── consume_screen.dart       # Tap-to-consume flow
-│   │   │   ├── identify_screen.dart      # Scan to identify a bottle
-│   │   │   ├── intake_screen.dart        # Shown during manager-initiated scan
-│   │   │   └── settings_screen.dart      # App settings
-│   │   ├── services/                     # Platform services
-│   │   │   ├── nfc_service.dart          # NFC interface
-│   │   │   ├── nfc_service_android.dart  # Android NFC implementation
-│   │   │   ├── nfc_service_ios.dart      # iOS NFC implementation
-│   │   │   ├── nfc_exceptions.dart       # NFC error types
-│   │   │   ├── discovery_service.dart    # mDNS advertisement
-│   │   │   └── tag_id.dart              # Tag ID normalization
-│   │   ├── widgets/                      # Reusable Flutter widgets
-│   │   │   ├── bottle_details_card.dart
-│   │   │   └── connection_indicator.dart
-│   │   └── l10n/
-│   │       └── strings.dart              # French localization strings
-│   └── test/                             # Flutter/Dart tests
-│       ├── providers/                    # Provider unit tests
-│       ├── screens/                      # Screen widget tests
-│       └── server/                       # Server-side tests
-│           ├── database_test.dart        # Drift database tests (in-memory SQLite)
-│           ├── scan_coordinator_test.dart
-│           └── handlers/                 # Handler integration tests
-│               ├── bottles_test.dart
-│               ├── cuvees_test.dart
-│               ├── designations_test.dart
-│               ├── domains_test.dart
-│               ├── scan_test.dart
-│               ├── completions_test.dart
-│               └── backup_test.dart
+│   │   ├── main.dart                     # Opens DB, dev seed, preferences, sessions, starts server, runs app
+│   │   ├── server/                       # HTTP server — no Flutter UI
+│   │   │   ├── server.dart               # Handler: /api/* router + static site; security & wakelock middleware
+│   │   │   ├── server_lifecycle.dart     # Start; restart on return to foreground
+│   │   │   ├── database.dart             # drift schema (v2, unchanged) and queries
+│   │   │   ├── database.g.dart           # Generated by drift
+│   │   │   ├── db_holder.dart            # Backup, restore file inspection, in-place replacement
+│   │   │   ├── events.dart               # Server-sent events hub
+│   │   │   ├── sessions.dart             # Browser sessions, approval, revocation, app token
+│   │   │   ├── remote_scan.dart          # Tag read requested by a computer
+│   │   │   ├── static_site.dart          # Serves assets/site/, injects the JS bridge for the WebView
+│   │   │   ├── preferences.dart          # Key-value store interface, shared settings
+│   │   │   ├── seed_data.dart            # Reference designations and domains (on DB creation)
+│   │   │   ├── dev_seed.dart             # Test catalogue on dev builds
+│   │   │   ├── sqlite_errors.dart        # SQLite constraint error helpers
+│   │   │   ├── middleware/wakelock.dart  # Keeps the screen on while the server is used
+│   │   │   └── api/
+│   │   │       ├── system_api.dart       # session, events, reglages, scan, sauvegarde, restauration
+│   │   │       ├── catalog_api.dart      # appellations, domaines, cuvees
+│   │   │       ├── bottle_api.dart       # bouteilles, consommer, tag lookup, degustations
+│   │   │       ├── security.dart         # Host / Origin / authorization middleware
+│   │   │       ├── context.dart          # ApiContext (shared state)
+│   │   │       └── json.dart             # JSON helpers, error responses
+│   │   ├── native/                       # Flutter UI
+│   │   │   ├── app_shell.dart            # WebView on localhost:8080 + native screens on top
+│   │   │   ├── bridge.dart               # window.winetapBridge, native side
+│   │   │   ├── reading.dart              # ReadingController: every read through N-E4
+│   │   │   ├── address_screen.dart       # N-E1 — address to type on the computer
+│   │   │   ├── auth_sheet.dart           # N-E2 — « Autoriser cette connexion ? »
+│   │   │   ├── connections_screen.dart   # N-E3 — authorized connections, revocation
+│   │   │   ├── nfc_screen.dart           # N-E4 — NFC reading
+│   │   │   ├── network.dart              # Local IPv4 address
+│   │   │   ├── prefs_store.dart          # shared_preferences store
+│   │   │   └── theme.dart                # Native theme (same tokens as the site)
+│   │   └── services/
+│   │       ├── nfc_service.dart          # NFC interface (+ _android, _ios via nfc_manager)
+│   │       ├── nfc_exceptions.dart       # NFC error types
+│   │       └── tag_id.dart               # Tag id normalization
+│   ├── assets/
+│   │   ├── site/                         # Built site (generated, not versioned)
+│   │   ├── fonts/                        # Fonts of the native screens (OFL)
+│   │   └── icon/                         # App icon
+│   ├── test/
+│   │   ├── server/                       # Database, dev seed, api/ (handler tests)
+│   │   ├── native/                       # Bridge, reading, screens
+│   │   ├── services/                     # NFC, tag id
+│   │   └── e2e/serve_test.dart           # Real server on port 8099 (WINETAP_E2E=1)
+│   ├── android/, ios/                    # Platform projects
 │
-├── docs/                                 # Documentation
-├── go.mod / go.sum                       # Go module
-├── seed_inventory.sh                     # Dev seed script (~200 bottles)
-├── spec.md                               # Full project specification
+├── scripts/
+│   ├── build_web.sh                      # Builds web/ into mobile/assets/site/
+│   └── build_packages.sh                 # Local signed Android build
+├── specs/                                # v3 specification (French)
+├── design_handoff_winetap_v3/            # Mockups and design tokens
+├── dat/                                  # Technical architecture document (French)
+├── docs/                                 # This documentation
+├── .github/workflows/                    # web-ci, mobile-ci, release
+├── spec.md                               # v2 specification (history)
+├── privacy-policies.md                   # App privacy policy (French)
 └── README.md
 ```
 
 ## Critical Directories
 
-| Directory                    | Purpose                                           |
-|------------------------------|---------------------------------------------------|
-| `cmd/manager/`               | Entry point only — config, flags, Qt app launch    |
-| `internal/client/`           | HTTP client for the phone REST API                 |
-| `internal/manager/`          | Desktop app orchestration, discovery, scanning     |
-| `internal/manager/screen/`   | All UI screens, forms, reusable widgets            |
-| `internal/manager/widget/`   | Dashboard widgets (charts, aggregates)             |
-| `mobile/lib/server/`         | shelf HTTP server, drift database, scan coordinator|
-| `mobile/lib/server/handlers/`| Route handlers — one file per REST resource        |
-| `mobile/lib/providers/`      | ChangeNotifier state (scan, intake, server)        |
-| `mobile/lib/screens/`        | Flutter UI screens                                 |
-| `mobile/lib/services/`       | NFC, mDNS, tag normalization                       |
+| Directory | Purpose |
+|-----------|---------|
+| `web/src/` | All management screens, for both layouts |
+| `web/mock/` | API and phone simulation for site development |
+| `mobile/lib/server/` | HTTP server, database, sessions, events |
+| `mobile/lib/server/api/` | `/api/*` handlers and security middleware |
+| `mobile/lib/native/` | WebView shell, JS bridge, native screens N-E1 to N-E4 |
+| `mobile/lib/services/` | NFC, tag normalization |
+| `mobile/assets/site/` | Site embedded in the app (build output) |
 
 ## Entry Points
 
-| Binary             | Entry                  | Initializes                                         |
-|--------------------|------------------------|-----------------------------------------------------|
-| `winetap-manager`  | `cmd/manager/main.go`  | Config → Logger → Qt App → HTTP Client → mDNS → UI |
-| Mobile app         | `mobile/lib/main.dart` | Providers → shelf Server → mDNS → NFC → UI         |
+| Program | Entry | Initializes |
+|---------|-------|-------------|
+| Mobile app | `mobile/lib/main.dart` | Database → dev seed → preferences → sessions, events, remote scan, settings → NFC → HTTP server → WebView shell |
+| Site | `web/src/main.js` | `App.svelte`: session check, then phone or desktop layout |
+| Site dev server | `web/vite.config.js` | Vite + mock API (`web/mock/serveur.js`) |
